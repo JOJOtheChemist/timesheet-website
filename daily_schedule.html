@@ -2429,12 +2429,13 @@
         }
 
         function getRandomIcon() {
-            // 随机返回一个图片
+            // 随机返回 easyhard 目录下的图片
             const icons = [
-                '/static/images/green1.png',
-                '/static/images/grenn2.png',
-                '/static/images/orange1.png',
-                '/static/images/orange2.png'
+                '/static/images/easyhard/easy.png',
+                '/static/images/easyhard/hard.png',
+                '/static/images/easyhard/ss.png',
+                '/static/images/easyhard/中等.png',
+                '/static/images/easyhard/地狱.png'
             ];
             return icons[Math.floor(Math.random() * icons.length)];
         }
