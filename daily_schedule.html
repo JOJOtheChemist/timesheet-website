@@ -784,12 +784,70 @@
             }
         }
 
+        /* 平板端适配 - 保持左右布局但调整间距 */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .sidebar-content,
+            .main-content-wrapper {
+                padding: 15px;
+            }
+            
+            .filter-group {
+                min-width: 70px;
+            }
+        }
+        
         /* 移动端适配 */
         @media (max-width: 768px) {
             .cat-sprite {
                 width: 48px;
                 height: 48px;
                 left: -8px;
+            }
+            
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .sidebar,
+            .main-content {
+                width: 100%;
+                height: auto;
+                min-height: 50vh;
+            }
+            
+            .filter-grid {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .filter-group {
+                min-width: 60px;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .sidebar-content,
+            .main-content-wrapper {
+                padding: 15px;
+            }
+        }
+        
+        /* 超窄屏适配 */
+        @media (max-width: 480px) {
+            .filter-group {
+                min-width: 50px;
+            }
+            
+            .filter-buttons {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .filter-button {
+                font-size: 10px;
+                padding: 3px 6px;
             }
         }
 
@@ -876,7 +934,7 @@
             position: relative;
             z-index: 100;
             flex-shrink: 0;
-            min-width: 120px;
+            min-width: 80px;
         }
 
         .filter-header {
