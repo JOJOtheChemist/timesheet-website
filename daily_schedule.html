@@ -52,7 +52,7 @@
             background-repeat: no-repeat;     /* 不平铺 */
             background-attachment: fixed;     /* 固定背景，滚动时不移动 */
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
             position: relative;
             z-index: 0;
         }
@@ -68,31 +68,29 @@
 
         .container {
             display: flex;
-            gap: 30px;
-            max-width: 1600px; /* 增加最大宽度，适应新的50%+50%布局 */
-            margin: 0 auto;
+            width: 100%;
+            height: 100vh;
             background: transparent;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
         }
 
         .sidebar {
             background: rgba(17, 24, 39, 0.5); /* 深色 50% 透明 */
-            padding: 30px;
-            width: 50%; /* 调整为50%，与主内容区更接近 */
+            padding: 0;
+            width: 50%;
             border-right: 1px solid rgba(255,255,255,0.08);
-            overflow-y: auto;
+            overflow: auto;
             color: #E5E7EB;
+            display: flex;
+            flex-direction: column;
         }
 
         .main-content {
-            flex: 1;
-            padding: 5px 0 30px 0;
-            overflow-x: auto;
+            padding: 0;
+            overflow: auto;
             display: flex;
             flex-direction: column;
-            width: 50%; /* 调整为50%，与侧边栏一致 */
+            width: 50%;
             color: #E5E7EB;
         }
 
@@ -103,6 +101,18 @@
             border-bottom: 2px solid rgba(79, 156, 255, 0.5);
             padding-bottom: 8px;
             text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar-content {
+            padding: 20px;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .main-content-wrapper {
+            padding: 20px;
+            height: 100%;
+            overflow: auto;
         }
 
         .schedule-header {
@@ -1417,9 +1427,11 @@
     <div class="floating-particles" id="floating-particles"></div>
     
     <div class="container">
-       
-        <!-- 项目组件 -->
-        <div class="project-component">
+        <!-- 左侧筛选器区域 -->
+        <div class="sidebar">
+            <div class="sidebar-content">
+                <!-- 项目组件 -->
+                <div class="project-component">
             <div class="project-component-header">
                 <h3>📋 项目筛选组件</h3>
              </div>
@@ -1538,9 +1550,12 @@
                 <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-orange-300">✨ 期待</button>
             </div>
         </div>
+            </div>
+        </div>
 
-        <!-- 主要内容区域 -->
+        <!-- 右侧时间表区域 -->
         <div class="main-content">
+            <div class="main-content-wrapper">
             <div class="schedule-header">
                 <h1 style="color: #4f9cff; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">📋 日程安排表</h1>
                 <div class="date-picker">
@@ -1576,6 +1591,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
             </div>
         </div>
 
