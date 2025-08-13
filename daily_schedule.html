@@ -2001,9 +2001,10 @@
                         <div class="project-subtasks" id="project-subtasks-${project.id}">
                             ${filteredSubtasks.map(subtask => {
                                 const randomIcon = getRandomIcon();
+                                const randomBackground = getRandomBackground();
                                 return `
                                 <div class="subtask-item" 
-                                     style="background:${project.color}20;" 
+                                     style="background-image: url('${randomBackground}'); background-size: cover; background-position: center; background-repeat: no-repeat;" 
                                      data-task-name="${subtask.name}"
                                      data-urgency-importance="${subtask.urgency_importance}"
                                      data-difficulty="${subtask.difficulty}"
@@ -2070,7 +2071,11 @@
                     console.log(`渲染第${index + 1}个子任务:`, subtask.name);
                     const subtaskDiv = document.createElement('div');
                     subtaskDiv.className = 'subtask-item';
-                    subtaskDiv.style.background = `${subtask.projectColor}20`; // 使用项目颜色作为背景
+                    const randomBackground = getRandomBackground();
+                    subtaskDiv.style.backgroundImage = `url('${randomBackground}')`;
+                    subtaskDiv.style.backgroundSize = 'cover';
+                    subtaskDiv.style.backgroundPosition = 'center';
+                    subtaskDiv.style.backgroundRepeat = 'no-repeat';
                     const randomIcon = getRandomIcon();
                     subtaskDiv.innerHTML = `
                         <div class="subtask-info">
@@ -2445,6 +2450,17 @@
                 '/static/images/easyhard/地狱.png'
             ];
             return icons[Math.floor(Math.random() * icons.length)];
+        }
+
+        function getRandomBackground() {
+            // 随机返回背景图2目录下的图片
+            const backgrounds = [
+                '/static/images/背景图2/树屋.png',
+                '/static/images/背景图2/沙漏.png',
+                '/static/images/背景图2/猫咪2.png',
+                '/static/images/背景图2/猫咪.png'
+            ];
+            return backgrounds[Math.floor(Math.random() * backgrounds.length)];
         }
 
         // 备注编辑相关变量
