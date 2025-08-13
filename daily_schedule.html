@@ -1525,7 +1525,7 @@
         <div class="mood-quick-input-section" id="moodQuickInput">
             <div class="mood-quick-input-header" id="moodDragHandle">
                 <h3>😊 心情快捷输入</h3>
-                <div class="mood-toggle-btn" onclick="toggleMoodQuickInput()">▼</div>
+                <div class="mood-toggle-btn" onclick="toggleMoodQuickInput()" ontouchstart="toggleMoodQuickInput()">▼</div>
             </div>
             <div class="mood-quick-input-buttons" id="moodButtons">
                 <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
@@ -4803,6 +4803,8 @@
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
         let isExpanded = false;
+        let touchStartTime = 0;
+        let touchStartPos = { x: 0, y: 0 };
 
         function initMoodQuickInput() {
             const moodSection = document.getElementById('moodQuickInput');
@@ -4826,6 +4828,10 @@
 
         function startDrag(e) {
             e.preventDefault();
+            // 检查是否点击的是展开按钮，如果是则不开始拖动
+            if (e.target.classList.contains('mood-toggle-btn')) {
+                return;
+            }
             isDragging = true;
             const moodSection = document.getElementById('moodQuickInput');
             const rect = moodSection.getBoundingClientRect();
@@ -4836,12 +4842,26 @@
 
         function startDragTouch(e) {
             e.preventDefault();
-            isDragging = true;
-            const moodSection = document.getElementById('moodQuickInput');
-            const rect = moodSection.getBoundingClientRect();
+            // 检查是否触摸的是展开按钮，如果是则不开始拖动
+            if (e.target.classList.contains('mood-toggle-btn')) {
+                return;
+            }
+            
             const touch = e.touches[0];
-            dragOffset.x = touch.clientX - rect.left;
-            dragOffset.y = touch.clientY - rect.top;
+            touchStartTime = Date.now();
+            touchStartPos.x = touch.clientX;
+            touchStartPos.y = touch.clientY;
+            
+            // 延迟启动拖动，避免与点击事件冲突
+            setTimeout(() => {
+                if (Date.now() - touchStartTime > 200) { // 200ms后开始拖动
+                    isDragging = true;
+                    const moodSection = document.getElementById('moodQuickInput');
+                    const rect = moodSection.getBoundingClientRect();
+                    dragOffset.x = touch.clientX - rect.left;
+                    dragOffset.y = touch.clientY - rect.top;
+                }
+            }, 200);
         }
 
         function onDrag(e) {
@@ -4864,8 +4884,17 @@
         function onDragTouch(e) {
             if (!isDragging) return;
             e.preventDefault();
-            const moodSection = document.getElementById('moodQuickInput');
+            
             const touch = e.touches[0];
+            const moveDistance = Math.sqrt(
+                Math.pow(touch.clientX - touchStartPos.x, 2) + 
+                Math.pow(touch.clientY - touchStartPos.y, 2)
+            );
+            
+            // 如果移动距离小于10px，认为是点击而不是拖动
+            if (moveDistance < 10) return;
+            
+            const moodSection = document.getElementById('moodQuickInput');
             const x = touch.clientX - dragOffset.x;
             const y = touch.clientY - dragOffset.y;
             
