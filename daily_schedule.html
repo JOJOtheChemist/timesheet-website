@@ -832,6 +832,20 @@
             opacity: 0;
         }
 
+        /* 表情包特效样式 */
+        .story-emoji {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1001;
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            animation: storyEmojiFloat 3.5s ease-out forwards;
+            opacity: 0;
+        }
+
         @keyframes storyFragmentFloat {
             0% {
                 opacity: 0;
@@ -848,6 +862,25 @@
             100% {
                 opacity: 0;
                 transform: translateY(-60px) scale(0.8);
+            }
+        }
+
+        @keyframes storyEmojiFloat {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.3) rotate(-10deg);
+            }
+            15% {
+                opacity: 1;
+                transform: translateY(-15px) scale(1.1) rotate(5deg);
+            }
+            70% {
+                opacity: 1;
+                transform: translateY(-50px) scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-80px) scale(0.7) rotate(10deg);
             }
         }
 
@@ -5021,6 +5054,16 @@
                 `🏆 成就解锁`
             ];
             
+            // 表情包图片数组
+            const emojiImages = [
+                '/static/images/学习表情包/v2-499f9f376198e8669760235be3f55bb6_1440w.webp',
+                '/static/images/学习表情包/v2-5b0724b00147b49f22a92f9f9ef576fd_1440w.webp',
+                '/static/images/学习表情包/v2-92f1f1662a0a9065d95b97f44e73360b_1440w.webp',
+                '/static/images/学习表情包/v2-b51d8bfa6fda248f50662799c6250fe1_1440w.webp',
+                '/static/images/学习表情包/v2-e0259987088e0377fb0832cc910535f3_1440w.webp',
+                '/static/images/学习表情包/v2-f81a0cb55aad7b919964095bdd721420_1440w.webp'
+            ];
+            
             // 创建多个故事碎片
             for (let i = 0; i < 6; i++) {
                 setTimeout(() => {
@@ -5056,6 +5099,37 @@
                     
                 }, i * 100); // 每100ms创建一个碎片
             }
+            
+            // 创建表情包特效（延迟一点出现，让文字先飘）
+            setTimeout(() => {
+                const emoji = document.createElement('img');
+                emoji.className = 'story-emoji';
+                
+                // 随机选择表情包
+                const randomEmoji = emojiImages[Math.floor(Math.random() * emojiImages.length)];
+                emoji.src = randomEmoji;
+                emoji.alt = '学习表情包';
+                
+                // 随机位置偏移（比文字稍大范围）
+                const offsetX = (Math.random() - 0.5) * 120;
+                const offsetY = (Math.random() - 0.5) * 80;
+                
+                emoji.style.left = (centerX + offsetX) + 'px';
+                emoji.style.top = (centerY + offsetY) + 'px';
+                
+                // 添加到容器
+                const container = document.getElementById('story-fragment-container');
+                container.appendChild(emoji);
+                
+                // 动画结束后移除元素（3.5秒）
+                setTimeout(() => {
+                    if (emoji.parentNode) {
+                        emoji.parentNode.removeChild(emoji);
+                    }
+                }, 3500);
+                
+                console.log('😊 显示随机学习表情包:', randomEmoji);
+            }, 300); // 延迟300ms出现表情包
             
             // 添加音效提示（可选）
             console.log('🎵 播放贪吃蛇吃食物音效（模拟）');
