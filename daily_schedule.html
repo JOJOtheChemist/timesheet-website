@@ -4299,56 +4299,6 @@
             console.log('页面加载完成，启动粒子系统...');
             startBackgroundMeteors();
             startFireflyParticles();
-            
-            // 添加测试按钮
-            setTimeout(() => {
-                // 测试绿色叶子按钮
-                const meteorBtn = document.createElement('button');
-                meteorBtn.textContent = '测试绿色叶子';
-                meteorBtn.style.cssText = `
-                    position: fixed;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 9999;
-                    padding: 10px;
-                    background: #22c55e;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    margin-right: 120px;
-                `;
-                meteorBtn.onclick = () => {
-                    console.log('手动创建测试绿色叶子');
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => createBackgroundMeteor(), i * 200);
-                    }
-                };
-                document.body.appendChild(meteorBtn);
-                
-                // 测试萤火虫按钮
-                const fireflyBtn = document.createElement('button');
-                fireflyBtn.textContent = '测试萤火虫';
-                fireflyBtn.style.cssText = `
-                    position: fixed;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 9999;
-                    padding: 10px;
-                    background: #4f9cff;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                `;
-                fireflyBtn.onclick = () => {
-                    console.log('手动创建测试萤火虫');
-                    for (let i = 0; i < 5; i++) {
-                        setTimeout(() => createFireflyParticle(), i * 100);
-                    }
-                };
-                document.body.appendChild(fireflyBtn);
-            }, 2000);
         });
 
         // 绿色叶子飘落粒子 - 模仿贪吃蛇的背景流星
