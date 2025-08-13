@@ -1019,13 +1019,14 @@
         }
 
         .project-meta {
-            font-size: 11px;
+            font-size: 9px;
             color: #6c757d;
             padding: 1px 4px;
             border-radius: 3px;
             border: 1px solid;
             display: inline-block;
             background: rgba(255, 255, 255, 0.9);
+            white-space: nowrap;
         }
 
         .project-subtasks {
@@ -1088,8 +1089,9 @@
             padding: 1px 4px;
             border-radius: 3px;
             font-size: 9px;
-            font-weight: 500;
+            font-weight: 600;
             border: 1px solid;
+            white-space: nowrap;
         }
 
         .subtask-icon {
@@ -2032,12 +2034,9 @@
                                     <div class="subtask-info">
                                         <div class="subtask-dot" style="background:${subtask.color}"></div>
                                         <span class="subtask-name" style="color:${subtask.color}">${subtask.name}</span>
-                                        <div class="subtask-tags ml-2">
-                                            <span class="subtask-tag ${getUrgencyClass(subtask.urgency_importance)}">${subtask.urgency_importance}</span>
-                                            <span class="subtask-tag ${subtask.difficulty_class}">${subtask.difficulty}</span>
                                         </div>
-                                    </div>
-                                    <div class="flex items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="subtask-tag"><span style="color:${project.categoryColor}">${project.categoryName}</span> · ${project.name}</span>
                                         <img src="${randomIcon}" class="subtask-icon ml-2" alt="random icon">
                                     </div>
                                 </div>
@@ -2102,14 +2101,10 @@
                             <div class="subtask-dot" style="background:${subtask.color}"></div>
                             <div>
                                 <div class="subtask-name" style="color:${subtask.color}">${subtask.name}</div>
-                                <div class="project-meta">
-                                    <span style="color:${subtask.categoryColor}">${subtask.categoryName}</span> · ${subtask.projectName}
-                                </div>
                             </div>
                         </div>
-                        <div class="subtask-tags">
-                            <span class="subtask-tag ${getUrgencyClass(subtask.urgency_importance)}">${subtask.urgency_importance}</span>
-                            <span class="subtask-tag ${subtask.difficulty_class}">${subtask.difficulty}</span>
+                        <div class="flex items-center gap-2" style="margin-left:auto;">
+                            <span class="subtask-tag"><span style="color:${subtask.categoryColor}">${subtask.categoryName}</span> · ${subtask.projectName}</span>
                             <img src="${randomIcon}" class="subtask-icon ml-2" alt="random icon">
                         </div>
                     `;
