@@ -1339,6 +1339,11 @@
             background: rgba(0, 0, 0, 0.3);
             border-bottom: 2px solid rgba(79, 156, 255, 0.5);
             border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+            user-select: none;
         }
         
         .mood-quick-input-header h3 {
@@ -1347,6 +1352,26 @@
             font-weight: 600;
             text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
             margin: 0;
+        }
+        
+        .mood-toggle-btn {
+            color: #4f9cff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            padding: 4px;
+        }
+        
+        .mood-toggle-btn:hover {
+            color: #ffffff;
+        }
+        
+        .mood-quick-input-section.collapsed .mood-toggle-btn {
+            transform: rotate(-90deg);
+        }
+        
+        .mood-quick-input-section.collapsed .mood-quick-input-buttons {
+            display: none;
         }
         
         .mood-quick-input-buttons {
@@ -1497,11 +1522,12 @@
         </div>
         
         <!-- 心情快捷输入独立区域 -->
-        <div class="mood-quick-input-section">
-            <div class="mood-quick-input-header">
+        <div class="mood-quick-input-section" id="moodQuickInput">
+            <div class="mood-quick-input-header" id="moodDragHandle">
                 <h3>😊 心情快捷输入</h3>
+                <div class="mood-toggle-btn" onclick="toggleMoodQuickInput()">▼</div>
             </div>
-            <div class="mood-quick-input-buttons">
+            <div class="mood-quick-input-buttons" id="moodButtons">
                 <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
                 <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
                 <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
@@ -1509,7 +1535,7 @@
                 <button onclick="quickSetMood('厌恶')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">🤢 厌恶</button>
                 <button onclick="quickSetMood('信任')" class="mood-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300">🤝 信任</button>
                 <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
-                <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-pink-300">✨ 期待</button>
+                <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-orange-300">✨ 期待</button>
             </div>
         </div>
 
@@ -4393,6 +4419,9 @@
             console.log('页面加载完成，启动粒子系统...');
             startBackgroundMeteors();
             startFireflyParticles();
+            
+            // 初始化心情快捷输入功能
+            initMoodQuickInput();
         });
 
         // 绿色叶子飘落粒子 - 模仿贪吃蛇的背景流星
@@ -4767,6 +4796,128 @@
                 console.log('萤火虫粒子系统已启动（智能管理模式）');
             } catch (error) {
                 console.error('启动萤火虫粒子系统失败:', error);
+            }
+        }
+
+        // 心情快捷输入功能
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let isExpanded = false;
+
+        function initMoodQuickInput() {
+            const moodSection = document.getElementById('moodQuickInput');
+            const dragHandle = document.getElementById('moodDragHandle');
+            
+            if (!moodSection || !dragHandle) return;
+            
+            // 默认收缩状态
+            moodSection.classList.add('collapsed');
+            
+            // 拖动功能
+            dragHandle.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            // 触摸设备支持
+            dragHandle.addEventListener('touchstart', startDragTouch);
+            document.addEventListener('touchmove', onDragTouch);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function startDrag(e) {
+            e.preventDefault();
+            isDragging = true;
+            const moodSection = document.getElementById('moodQuickInput');
+            const rect = moodSection.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            moodSection.style.cursor = 'grabbing';
+        }
+
+        function startDragTouch(e) {
+            e.preventDefault();
+            isDragging = true;
+            const moodSection = document.getElementById('moodQuickInput');
+            const rect = moodSection.getBoundingClientRect();
+            const touch = e.touches[0];
+            dragOffset.x = touch.clientX - rect.left;
+            dragOffset.y = touch.clientY - rect.top;
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const moodSection = document.getElementById('moodQuickInput');
+            const x = e.clientX - dragOffset.x;
+            const y = e.clientY - dragOffset.y;
+            
+            // 限制在视窗范围内
+            const maxX = window.innerWidth - moodSection.offsetWidth;
+            const maxY = window.innerHeight - moodSection.offsetHeight;
+            
+            moodSection.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+            moodSection.style.right = 'auto';
+            moodSection.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+            moodSection.style.transform = 'none';
+        }
+
+        function onDragTouch(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const moodSection = document.getElementById('moodQuickInput');
+            const touch = e.touches[0];
+            const x = touch.clientX - dragOffset.x;
+            const y = touch.clientY - dragOffset.y;
+            
+            // 限制在视窗范围内
+            const maxX = window.innerWidth - moodSection.offsetWidth;
+            const maxY = window.innerHeight - moodSection.offsetHeight;
+            
+            moodSection.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+            moodSection.style.right = 'auto';
+            moodSection.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+            moodSection.style.transform = 'none';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            const moodSection = document.getElementById('moodQuickInput');
+            if (moodSection) {
+                moodSection.style.cursor = 'grab';
+            }
+        }
+
+        function toggleMoodQuickInput() {
+            const moodSection = document.getElementById('moodQuickInput');
+            const toggleBtn = document.querySelector('.mood-toggle-btn');
+            
+            if (moodSection.classList.contains('collapsed')) {
+                moodSection.classList.remove('collapsed');
+                toggleBtn.textContent = '▼';
+                isExpanded = true;
+            } else {
+                moodSection.classList.add('collapsed');
+                toggleBtn.textContent = '▶';
+                isExpanded = false;
+            }
+        }
+
+        // 当选择心情栏时展开，其他时候收缩
+        function expandMoodQuickInput() {
+            const moodSection = document.getElementById('moodQuickInput');
+            if (moodSection && moodSection.classList.contains('collapsed')) {
+                moodSection.classList.remove('collapsed');
+                document.querySelector('.mood-toggle-btn').textContent = '▼';
+                isExpanded = true;
+            }
+        }
+
+        function collapseMoodQuickInput() {
+            const moodSection = document.getElementById('moodQuickInput');
+            if (moodSection && !moodSection.classList.contains('collapsed')) {
+                moodSection.classList.add('collapsed');
+                document.querySelector('.mood-toggle-btn').textContent = '▶';
+                isExpanded = false;
             }
         }
 
