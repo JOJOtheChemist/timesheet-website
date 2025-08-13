@@ -1176,6 +1176,36 @@
             }
         }
 
+        /* Data Panel 样式 */
+        .data-panel {
+            background: rgba(10,10,26,0.6);
+            border: 4px solid rgba(79,156,255,0.5);
+            border-radius: 10px;
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79,156,255,0.5), 0 0 20px rgba(79,156,255,0.3);
+        }
+        .data-panel-header {
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 2px solid rgba(79,156,255,0.5);
+        }
+        .data-panel-header h3 {
+            margin: 0;
+            color: #4f9cff;
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+        }
+        .data-panel .mood-btn {
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            image-rendering: pixelated;
+            padding: 6px 10px;
+            font-size: 12px;
+            transition: all .1s ease;
+        }
+        .data-panel .mood-btn:hover { filter: brightness(1.1); }
+
         /* 提示动画 */
         @keyframes slideIn {
             from {
@@ -1436,10 +1466,12 @@
                 </div>
             </div>
 
-            <!-- 心情快捷输入 -->
-            <div class="px-5 pb-2">
-                <div class="text-xs text-gray-600 mb-2">心情快捷输入</div>
-                <div class="flex gap-2 mb-2 overflow-x-auto whitespace-nowrap no-scrollbar">
+            <!-- 心情快捷输入 - Data Panel 独立区域 -->
+            <div class="data-panel mood-panel" style="margin: 10px 20px;">
+                <div class="data-panel-header">
+                    <h3>😊 心情快捷输入</h3>
+                </div>
+                <div class="data-panel-body no-scrollbar" style="display:flex; gap:8px; overflow-x:auto; white-space:nowrap; padding:10px;">
                     <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
                     <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
                     <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
@@ -1449,7 +1481,6 @@
                     <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
                     <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-pink-300">✨ 期待</button>
                 </div>
-
             </div>
 
             <!-- 项目列表 -->
