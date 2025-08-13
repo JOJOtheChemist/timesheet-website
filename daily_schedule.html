@@ -1258,7 +1258,7 @@
         }
         .project-component .project-meta {
             color: #8f8fb7;
-            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
         }
         .project-component .subtask-item {
             border: 2px solid rgba(79, 156, 255, 0.25);
@@ -1270,7 +1270,7 @@
         }
         .project-component .subtask-name {
             color: #8f8fb7; /* 贪吃蛇的灰色次级标题 */
-            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
         }
         
         /* 确保所有时间槽都有正确的背景色，防止白色背景 */
@@ -1314,6 +1314,59 @@
         
         .project-component .text-gray-400 {
             color: #8f8fb7 !important; /* 贪吃蛇的灰色次级标题 */
+        }
+        
+        /* 心情快捷输入独立区域样式 */
+        .mood-quick-input-section {
+            margin: 20px 0;
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            border-radius: 10px;
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            overflow: visible;
+        }
+        
+        .mood-quick-input-header {
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid rgba(79, 156, 255, 0.5);
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .mood-quick-input-header h3 {
+            color: #4f9cff;
+            font-size: 16px;
+            font-weight: 600;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+            margin: 0;
+        }
+        
+        .mood-quick-input-buttons {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .mood-quick-input-buttons .mood-btn {
+            border: none;
+            border-radius: 0;
+            opacity: 1;
+            backdrop-filter: none;
+            box-shadow: none;
+            image-rendering: pixelated;
+            padding: 8px 12px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.1s ease;
+        }
+        
+        .mood-quick-input-buttons .mood-btn:hover {
+            opacity: 1;
+            transform: none;
+            box-shadow: none;
+            filter: brightness(1.2);
         }
     </style>
 </head>
@@ -1417,21 +1470,7 @@
                 </div>
             </div>
 
-            <!-- 心情快捷输入 -->
-            <div class="px-5 pb-2">
-                <div class="text-xs text-gray-600 mb-2">心情快捷输入</div>
-                <div class="flex gap-2 mb-2 overflow-x-auto whitespace-nowrap no-scrollbar">
-                    <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
-                    <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
-                    <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
-                    <button onclick="quickSetMood('恐惧')" class="mood-btn bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300">😨 恐惧</button>
-                    <button onclick="quickSetMood('厌恶')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">🤢 厌恶</button>
-                    <button onclick="quickSetMood('信任')" class="mood-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300">🤝 信任</button>
-                    <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
-                    <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-pink-300">✨ 期待</button>
-                </div>
 
-            </div>
 
             <!-- 项目列表 -->
             <div class="project-list">
@@ -1446,6 +1485,22 @@
             </div>
         </div>
         
+        <!-- 心情快捷输入独立区域 -->
+        <div class="mood-quick-input-section">
+            <div class="mood-quick-input-header">
+                <h3>😊 心情快捷输入</h3>
+            </div>
+            <div class="mood-quick-input-buttons">
+                <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
+                <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
+                <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
+                <button onclick="quickSetMood('恐惧')" class="mood-btn bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300">😨 恐惧</button>
+                <button onclick="quickSetMood('厌恶')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">🤢 厌恶</button>
+                <button onclick="quickSetMood('信任')" class="mood-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300">🤝 信任</button>
+                <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
+                <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-pink-300">✨ 期待</button>
+            </div>
+        </div>
 
         <!-- 主要内容区域 -->
         <div class="main-content">
