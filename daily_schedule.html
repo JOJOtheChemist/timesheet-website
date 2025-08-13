@@ -1066,6 +1066,7 @@
             height: 8px;
             border-radius: 50%;
             margin-right: 8px;
+            display: none;
         }
 
         .subtask-name {
@@ -2032,7 +2033,6 @@
                                      data-difficulty="${subtask.difficulty}"
                                      onclick="fillTimeSlotWithSubtask(${subtask.id}, '${subtask.name}', '${project.name}', ${project.id})">
                                     <div class="subtask-info">
-                                        <div class="subtask-dot" style="background:${subtask.color}"></div>
                                         <span class="subtask-name" style="color:${subtask.color}">${subtask.name}</span>
                                         </div>
                                     <div class="flex items-center gap-2">
@@ -2098,7 +2098,6 @@
                     const randomIcon = getRandomIcon();
                     subtaskDiv.innerHTML = `
                         <div class="subtask-info">
-                            <div class="subtask-dot" style="background:${subtask.color}"></div>
                             <div>
                                 <div class="subtask-name" style="color:${subtask.color}">${subtask.name}</div>
                             </div>
