@@ -1042,6 +1042,7 @@
             border: 1px solid #e9ecef;
             transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
         }
 
         .subtask-item:hover {
@@ -1082,9 +1083,13 @@
         }
 
         .subtask-icon {
-            width: 21px;
-            height: 21px;
+            width: 28px;
+            height: 28px;
             object-fit: contain;
+            position: absolute;
+            top: -9px;
+            right: -9px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
         }
 
         .loading {
@@ -1254,6 +1259,7 @@
         }
         .project-component .subtask-item {
             border: 2px solid rgba(79, 156, 255, 0.25);
+            position: relative;
         }
         .project-component .subtask-item:hover {
             border-color: #4f9cff;
