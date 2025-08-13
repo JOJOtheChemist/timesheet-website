@@ -1,0 +1,19 @@
+[Unit]
+Description=Schedule API FastAPI Service
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/timesheet
+Environment=PATH=/home/ubuntu/timesheet/venv/bin
+ExecStart=/home/ubuntu/timesheet/venv/bin/python /home/ubuntu/timesheet/fastapi_schedule_api.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,42 @@
+nohup: ignoring input
+INFO:     Started server process [2690204]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5001 (Press CTRL+C to quit)
+Starting Schedule API on port 5001...
+API documentation available at: http://140.143.194.215:5001/docs
+API will be accessible from external networks
+Database tables initialized successfully!
+Schedule API Database initialized successfully!
+INFO:     127.0.0.1:34500 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34510 - "POST /api/schedule HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38244 - "PUT /api/schedule/135 HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:38250 - "PUT /api/schedule/135 HTTP/1.1" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/103 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     14.152.91.194:0 - "GET /api/schedule/2025-08-11 HTTP/1.0" 200 OK
+INFO:     81.71.98.254:0 - "GET /api/projects HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/103 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/107 HTTP/1.0" 200 OK
+INFO:     45.63.62.120:0 - "PUT /api/schedule/120 HTTP/1.0" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2690204]
+Schedule API shutting down...
