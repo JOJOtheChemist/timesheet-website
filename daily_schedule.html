@@ -796,7 +796,7 @@
             }
         }
         
-        /* 移动端适配 */
+        /* 移动端适配 - 保持左右布局 */
         @media (max-width: 768px) {
             .cat-sprite {
                 width: 48px;
@@ -805,49 +805,126 @@
             }
             
             .container {
-                flex-direction: column;
-                height: auto;
-                min-height: 100vh;
+                flex-direction: row;
+                height: 100vh;
+                width: 100%;
             }
             
             .sidebar,
             .main-content {
-                width: 100%;
-                height: auto;
-                min-height: 50vh;
+                width: 50%;
+                height: 100%;
             }
             
             .filter-grid {
                 flex-wrap: wrap;
-                gap: 8px;
+                gap: 6px;
             }
             
             .filter-group {
-                min-width: 60px;
+                min-width: 30px;
                 flex: 1;
-                min-width: 0;
             }
             
             .sidebar-content,
             .main-content-wrapper {
-                padding: 15px;
-            }
-        }
-        
-        /* 超窄屏适配 */
-        @media (max-width: 480px) {
-            .filter-group {
-                min-width: 50px;
-            }
-            
-            .filter-buttons {
-                flex-direction: column;
-                gap: 4px;
+                padding: 10px;
             }
             
             .filter-button {
                 font-size: 10px;
                 padding: 3px 6px;
+            }
+            
+            /* 时间表移动端优化 */
+            .schedule-table {
+                font-size: 11px;
+            }
+            
+            .schedule-table th {
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+            
+            .schedule-table td {
+                padding: 2px 4px;
+                font-size: 10px;
+            }
+            
+            .time-column {
+                width: 60px !important;
+                min-width: 60px;
+            }
+            
+            .task-column {
+                width: 80px !important;
+                min-width: 80px;
+            }
+            
+            .schedule-table-container {
+                max-height: 400px;
+                border-width: 4px;
+            }
+        }
+        
+        /* 超窄屏适配 - 保持左右布局但优化显示 */
+        @media (max-width: 480px) {
+            .sidebar-content,
+            .main-content-wrapper {
+                padding: 8px;
+            }
+            
+            .filter-group {
+                min-width: 20px;
+            }
+            
+            .filter-buttons {
+                flex-direction: column;
+                gap: 3px;
+            }
+            
+            .filter-button {
+                font-size: 9px;
+                padding: 2px 4px;
+            }
+            
+            .schedule-header h1 {
+                font-size: 14px;
+            }
+            
+            .date-picker input {
+                width: 100px !important;
+                font-size: 11px !important;
+            }
+            
+            /* 超窄屏时间表进一步优化 */
+            .schedule-table {
+                font-size: 9px;
+            }
+            
+            .schedule-table th {
+                padding: 4px 2px;
+                font-size: 8px;
+            }
+            
+            .schedule-table td {
+                padding: 1px 2px;
+                font-size: 8px;
+            }
+            
+            .time-column {
+                width: 40px !important;
+                min-width: 40px;
+            }
+            
+            .task-column {
+                width: 60px !important;
+                min-width: 60px;
+            }
+            
+            .schedule-table-container {
+                max-height: 300px;
+                border-width: 2px;
             }
         }
 
@@ -1177,33 +1254,6 @@
         }
 
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                min-width: auto;
-            }
-
-            .main-content {
-                width: 100%;
-            }
-
-            .filter-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .schedule-table-container {
-                max-height: 400px;
-            }
-
-            .project-component {
-                max-height: 400px;
-            }
-            
-
-            
             /* 移动设备下flatpickr日历优化 */
             .flatpickr-calendar {
                 font-size: 14px !important;
@@ -1485,11 +1535,53 @@
     <div class="floating-particles" id="floating-particles"></div>
     
     <div class="container">
-        <!-- 左侧筛选器区域 -->
+        <!-- 左侧时间表区域 -->
         <div class="sidebar">
             <div class="sidebar-content">
-                <!-- 项目组件 -->
-                <div class="project-component">
+            <div class="schedule-header">
+                <h1 style="color: #4f9cff; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">📋 日程安排表</h1>
+                <div class="date-picker">
+                    <label for="dateSelect">选择日期:</label>
+                    <input type="text" id="dateSelect" placeholder="选择日期">
+                </div>
+            </div>
+
+            <div id="errorMessage" style="display: none;" class="error"></div>
+
+            <!-- 固定的表头 -->
+            <div class="schedule-table-header-fixed">
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">时间</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">计划任务</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">实际任务</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">心情</th>
+                    </tr>
+                </thead>
+                </table>
+            </div>
+
+            <!-- 可滚动的内容区域 -->
+            <div class="schedule-table-container">
+                <table class="schedule-table">
+                <tbody id="scheduleBody">
+                    <tr>
+                        <td colspan="3" class="loading">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- 右侧筛选器区域 -->
+        <div class="main-content">
+            <div class="main-content-wrapper">
+        <!-- 项目组件 -->
+        <div class="project-component">
             <div class="project-component-header">
                 <h3>📋 项目筛选组件</h3>
              </div>
@@ -1611,47 +1703,7 @@
             </div>
         </div>
 
-        <!-- 右侧时间表区域 -->
-        <div class="main-content">
-            <div class="main-content-wrapper">
-            <div class="schedule-header">
-                <h1 style="color: #4f9cff; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">📋 日程安排表</h1>
-                <div class="date-picker">
-                    <label for="dateSelect">选择日期:</label>
-                    <input type="text" id="dateSelect" placeholder="选择日期">
-                </div>
-            </div>
 
-            <div id="errorMessage" style="display: none;" class="error"></div>
-
-            <!-- 固定的表头 -->
-            <div class="schedule-table-header-fixed">
-            <table class="schedule-table">
-                <thead>
-                    <tr>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">时间</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">计划任务</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">实际任务</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">心情</th>
-                    </tr>
-                </thead>
-                </table>
-            </div>
-
-            <!-- 可滚动的内容区域 -->
-            <div class="schedule-table-container">
-                <table class="schedule-table">
-                <tbody id="scheduleBody">
-                    <tr>
-                        <td colspan="3" class="loading">加载中...</td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
-            </div>
-        </div>
 
         <!-- 心情选择器模态框 -->
         <div id="moodModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
