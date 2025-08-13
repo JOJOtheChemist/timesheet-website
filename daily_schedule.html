@@ -710,7 +710,8 @@
 
         .project-component-header {
             padding: 10px 20px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: none;
+            background: transparent;
         }
 
         .project-component-header h3 {
@@ -720,7 +721,7 @@
         }
 
         .filter-container {
-            padding: 10px 20px;
+            padding: 4px 20px;
             flex-shrink: 0;
             position: relative;
             z-index: 50;
@@ -728,11 +729,11 @@
 
         .filter-grid {
             display: flex;
-            gap: 10px;
-            margin-bottom: 8px;
+            gap: 8px;
+            margin-bottom: 4px;
             overflow-x: auto;
             white-space: nowrap;
-            padding-bottom: 5px;
+            padding: 2px 0;
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -873,7 +874,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 6px;
@@ -895,12 +896,12 @@
             top: 100%;
             left: 0;
             width: 100%;
-            z-index: 1000;
-            background: rgba(10, 10, 26, 0.8);
+            z-index: 5000;
+            background: rgba(10, 10, 26, 0.92);
             border: 1px solid rgba(79, 156, 255, 0.5);
             border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            padding: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            padding: 10px;
             display: none;
         }
 
@@ -1250,8 +1251,8 @@
             box-shadow: none;
         }
         .project-component-header {
-            background: rgba(0, 0, 0, 0.3);
-            border-bottom: 2px solid rgba(79, 156, 255, 0.5);
+            background: transparent;
+            border-bottom: none;
         }
         .project-component-header h3 {
             color: #4f9cff; /* 贪吃蛇的蓝色标题 */
@@ -1259,6 +1260,8 @@
         }
         .project-component .filter-container {
             color: #e5e7eb;
+            padding-top: 2px;
+            padding-bottom: 2px;
         }
         .project-component .filter-header {
             background: rgba(0, 0, 0, 0.3);
