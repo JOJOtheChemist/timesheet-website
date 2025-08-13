@@ -818,6 +818,51 @@
             overflow: visible;
         }
 
+        /* 故事碎片特效样式 */
+        .story-fragment {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 12px;
+            font-weight: bold;
+            color: #4f9cff;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
+            white-space: nowrap;
+            animation: storyFragmentFloat 2s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes storyFragmentFloat {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.5);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-10px) scale(1.2);
+            }
+            80% {
+                opacity: 1;
+                transform: translateY(-40px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-60px) scale(0.8);
+            }
+        }
+
+        /* 故事碎片容器 */
+        .story-fragment-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: visible;
+        }
+
         .particle {
             position: fixed;
             width: 8px;
@@ -1415,6 +1460,9 @@
     
     <!-- 飘动粒子容器 -->
     <div class="floating-particles" id="floating-particles"></div>
+    
+    <!-- 故事碎片特效容器 -->
+    <div class="story-fragment-container" id="story-fragment-container"></div>
     
     <div class="container">
        
@@ -3420,6 +3468,9 @@
                 // 设置延迟保存
                 scheduleDelayedSave();
                 
+                // 触发贪吃蛇吃食物特效
+                createStoryFragmentEffect(timeSlotElement, subtaskName, projectName);
+                
                 // 立即跳转到下一行
                 console.log('子任务分配完成，立即跳转');
                 console.log('跳转前selectedTimeSlot:', selectedTimeSlot);
@@ -4946,8 +4997,68 @@
             if (moodSection && !moodSection.classList.contains('collapsed')) {
                 moodSection.classList.add('collapsed');
                 document.querySelector('.mood-toggle-btn').textContent = '▶';
-                isExpanded = false;
             }
+        }
+
+        // 故事碎片特效函数
+        function createStoryFragmentEffect(element, subtaskName, projectName) {
+            console.log('🎮 触发贪吃蛇吃食物特效！');
+            
+            // 获取元素位置
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // 故事碎片文本数组
+            const storyFragments = [
+                `✨ ${subtaskName}`,
+                `📖 故事碎片`,
+                `🎯 ${projectName}`,
+                `🌟 任务完成`,
+                `💫 进度+1`,
+                `📚 知识+1`,
+                `🎪 冒险继续`,
+                `🏆 成就解锁`
+            ];
+            
+            // 创建多个故事碎片
+            for (let i = 0; i < 6; i++) {
+                setTimeout(() => {
+                    const fragment = document.createElement('div');
+                    fragment.className = 'story-fragment';
+                    
+                    // 随机选择文本
+                    const randomText = storyFragments[Math.floor(Math.random() * storyFragments.length)];
+                    fragment.textContent = randomText;
+                    
+                    // 随机位置偏移
+                    const offsetX = (Math.random() - 0.5) * 100;
+                    const offsetY = (Math.random() - 0.5) * 50;
+                    
+                    fragment.style.left = (centerX + offsetX) + 'px';
+                    fragment.style.top = (centerY + offsetY) + 'px';
+                    
+                    // 随机颜色变化
+                    const colors = ['#4f9cff', '#ff6b6b', '#51cf66', '#ffd43b', '#ae8fff', '#ff922b'];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    fragment.style.color = randomColor;
+                    
+                    // 添加到容器
+                    const container = document.getElementById('story-fragment-container');
+                    container.appendChild(fragment);
+                    
+                    // 动画结束后移除元素
+                    setTimeout(() => {
+                        if (fragment.parentNode) {
+                            fragment.parentNode.removeChild(fragment);
+                        }
+                    }, 2000);
+                    
+                }, i * 100); // 每100ms创建一个碎片
+            }
+            
+            // 添加音效提示（可选）
+            console.log('🎵 播放贪吃蛇吃食物音效（模拟）');
         }
 
     </script>
