@@ -4431,25 +4431,8 @@
                 }
                 updateMoodDisplay(timeSlot, mood, fieldType);
 
-                // 写入本地缓存 -> 由延迟保存统一落库
-                const cacheKey = `${selectedDate}_${timeSlot}`;
-                const existingData = localScheduleCache.get(cacheKey) || {};
-                const updatedData = {
-                    ...existingData,
-                    schedule_date: selectedDate,
-                    time_slot: timeSlot,
-                    schedule_id: scheduleId || existingData.schedule_id || null,
-                    mood: mood
-                };
-                localScheduleCache.set(cacheKey, updatedData);
-                
-                console.log('心情数据已写入缓存:', {
-                    cacheKey,
-                    updatedData,
-                    cacheSize: localScheduleCache.size
-                });
-                
-                scheduleDelayedSave();
+                // 直接调用心情保存函数
+                prepareMoodData(timeSlot, scheduleId, mood, fieldType);
 
                 // 先跳转，提升流畅度
                 autoJumpToNextRow();
