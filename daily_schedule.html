@@ -3702,6 +3702,8 @@
                         selectedTimeSlotElement = badge;
                         selectedTimeSlot = badge.getAttribute('data-time-slot');
                         selectedFieldType = badge.getAttribute('data-field-type') || selectedFieldType;
+                        // 给选中的任务按钮添加selected类
+                        badge.classList.add('selected');
                         console.log('自动跳转到任务列:', {
                             selectedTimeSlot,
                             selectedFieldType,
