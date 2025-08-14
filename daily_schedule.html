@@ -4442,6 +4442,13 @@
                     mood: mood
                 };
                 localScheduleCache.set(cacheKey, updatedData);
+                
+                console.log('心情数据已写入缓存:', {
+                    cacheKey,
+                    updatedData,
+                    cacheSize: localScheduleCache.size
+                });
+                
                 scheduleDelayedSave();
 
                 // 先跳转，提升流畅度
