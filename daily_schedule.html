@@ -3228,11 +3228,9 @@
                     // 如果没有日程ID，需要先创建日程
                     const newSchedule = {
                         schedule_date: selectedDate,
-                        time_slot: timeSlot
+                        time_slot: timeSlot,
+                        mood: mood === undefined ? null : mood
                     };
-                    
-                    // Note: Mood field is not yet supported in backend
-                    // TODO: Add mood support to backend schema
                     
                     const response = await fetch('/api/schedule', {
                         method: 'POST',
@@ -3248,17 +3246,16 @@
                         // 刷新数据
                         await loadScheduleData(selectedDate);
                     } else {
-                        throw new Error('保存失败');
+                        const errorText = await response.text();
+                        throw new Error('保存失败: ' + errorText);
                     }
                 } else {
                     // 更新现有日程的心情
                     const updateData = {
                         schedule_date: selectedDate,
-                        time_slot: timeSlot
+                        time_slot: timeSlot,
+                        mood: mood === undefined ? null : mood
                     };
-                    
-                    // Note: Mood field is not yet supported in backend
-                    // TODO: Add mood support to backend schema
                     
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
                         method: 'PUT',
@@ -3271,7 +3268,8 @@
                     if (response.ok) {
                         console.log('心情更新成功');
                     } else {
-                        throw new Error('更新失败');
+                        const errorText = await response.text();
+                        throw new Error('更新失败: ' + errorText);
                     }
                 }
             } catch (error) {

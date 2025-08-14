@@ -198,6 +198,13 @@ async def get_schedule(schedule_date: str, db: sqlite3.Connection = Depends(get_
     try:
         cursor = db.cursor()
         
+        # 确保存在 mood 列（轻量校验）
+        cursor.execute("PRAGMA table_info(schedules)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'mood' not in columns:
+            cursor.execute("ALTER TABLE schedules ADD COLUMN mood TEXT")
+            db.commit()
+        
         # 获取日程数据，包括计划和实际的子任务和项目信息
         cursor.execute('''
             SELECT 
@@ -208,6 +215,7 @@ async def get_schedule(schedule_date: str, db: sqlite3.Connection = Depends(get_
                 s.planned_notes,
                 s.actual_subtask_id,
                 s.actual_notes,
+                s.mood,
                 pp.color as planned_project_color,
                 pst.name as planned_subtask_name,
                 ap.color as actual_project_color,
@@ -235,6 +243,7 @@ async def get_schedule(schedule_date: str, db: sqlite3.Connection = Depends(get_
                 "actual_subtask_id": row['actual_subtask_id'],
                 "actual_subtask_name": row['actual_subtask_name'],
                 "actual_notes": row['actual_notes'],
+                "mood": row['mood'],
                 "planned_project_color": row['planned_project_color'],
                 "actual_project_color": row['actual_project_color']
             })
@@ -250,12 +259,22 @@ async def create_schedule(schedule: ScheduleItem, db: sqlite3.Connection = Depen
     try:
         cursor = db.cursor()
         
+        # 确保存在 mood 列
+        cursor.execute("PRAGMA table_info(schedules)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'mood' not in columns:
+            cursor.execute("ALTER TABLE schedules ADD COLUMN mood TEXT")
+            db.commit()
+        
         cursor.execute('''
-            INSERT INTO schedules (schedule_date, time_slot, planned_subtask_id, planned_notes, actual_subtask_id, actual_notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (schedule.schedule_date, schedule.time_slot, 
-              schedule.planned_subtask_id, schedule.planned_notes,
-              schedule.actual_subtask_id, schedule.actual_notes))
+            INSERT INTO schedules (schedule_date, time_slot, planned_subtask_id, planned_notes, actual_subtask_id, actual_notes, mood)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            schedule.schedule_date, schedule.time_slot, 
+            schedule.planned_subtask_id, schedule.planned_notes,
+            schedule.actual_subtask_id, schedule.actual_notes,
+            schedule.mood
+        ))
         
         db.commit()
         
@@ -273,8 +292,8 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: sqlite3.
     try:
         cursor = db.cursor()
         
-        # 先获取现有记录
-        cursor.execute('SELECT planned_subtask_id, planned_notes, actual_subtask_id, actual_notes FROM schedules WHERE id = ?', (schedule_id,))
+        # 先获取现有记录（包含 mood）
+        cursor.execute('SELECT planned_subtask_id, planned_notes, actual_subtask_id, actual_notes, mood FROM schedules WHERE id = ?', (schedule_id,))
         existing_record = cursor.fetchone()
         
         if not existing_record:
@@ -285,12 +304,13 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: sqlite3.
         update_planned_notes = schedule.planned_notes if schedule.planned_notes is not None else existing_record['planned_notes']
         update_actual_subtask_id = schedule.actual_subtask_id if schedule.actual_subtask_id is not None else existing_record['actual_subtask_id']
         update_actual_notes = schedule.actual_notes if schedule.actual_notes is not None else existing_record['actual_notes']
+        update_mood = schedule.mood if schedule.mood is not None else existing_record['mood']
         
         cursor.execute('''
             UPDATE schedules 
-            SET planned_subtask_id = ?, planned_notes = ?, actual_subtask_id = ?, actual_notes = ?, updated_at = CURRENT_TIMESTAMP
+            SET planned_subtask_id = ?, planned_notes = ?, actual_subtask_id = ?, actual_notes = ?, mood = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        ''', (update_planned_subtask_id, update_planned_notes, update_actual_subtask_id, update_actual_notes, schedule_id))
+        ''', (update_planned_subtask_id, update_planned_notes, update_actual_subtask_id, update_actual_notes, update_mood, schedule_id))
         
         db.commit()
         
@@ -300,6 +320,7 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: sqlite3.
         schedule.planned_notes = update_planned_notes
         schedule.actual_subtask_id = update_actual_subtask_id
         schedule.actual_notes = update_actual_notes
+        schedule.mood = update_mood
         return schedule
         
     except Exception as e:
