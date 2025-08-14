@@ -4431,15 +4431,26 @@
                 }
                 updateMoodDisplay(timeSlot, mood, fieldType);
 
-                // 直接保存心情到数据库
-                try {
-                    await saveMoodToDatabase(timeSlot, mood, scheduleId, fieldType);
-                    console.log('心情保存成功:', { timeSlot, mood, scheduleId, fieldType });
-                    alert('心情保存成功！');
-                } catch (error) {
-                    console.error('心情保存失败:', error);
-                    alert('心情保存失败: ' + error.message);
-                }
+                // 先缓存到本地，500ms后保存到数据库
+                const cacheKey = `${selectedDate}_${timeSlot}`;
+                const existingData = localScheduleCache.get(cacheKey) || {};
+                const updatedData = {
+                    ...existingData,
+                    schedule_date: selectedDate,
+                    time_slot: timeSlot,
+                    schedule_id: scheduleId || existingData.schedule_id || null,
+                    mood: mood
+                };
+                localScheduleCache.set(cacheKey, updatedData);
+                
+                console.log('心情数据已写入缓存:', {
+                    cacheKey,
+                    updatedData,
+                    cacheSize: localScheduleCache.size
+                });
+                
+                // 延迟保存到数据库
+                scheduleDelayedSave();
 
                 // 先跳转，提升流畅度
                 autoJumpToNextRow();
@@ -4944,7 +4955,132 @@
             autoJumpToNextRow();
         }
         
+        // 延迟保存机制
+        function scheduleDelayedSave() {
+            // 清除之前的定时器
+            if (scheduleSaveTimeout) {
+                clearTimeout(scheduleSaveTimeout);
+            }
+            
+            // 设置新的定时器，500ms后保存
+            scheduleSaveTimeout = setTimeout(async () => {
+                try {
+                    // 保存所有缓存的数据
+                    for (const [cacheKey, data] of localScheduleCache) {
+                        console.log('保存缓存数据:', cacheKey, data);
+                        
+                        if (data.mood) {
+                            // 保存心情数据
+                            await saveMoodToDatabase(data.time_slot, data.mood, data.schedule_id, 'actual');
+                            console.log('心情保存成功:', data.mood);
+                        }
+                        
+                        // 这里可以添加其他字段的保存逻辑
+                        // 比如子任务、备注等
+                    }
+                    
+                    // 清空缓存
+                    localScheduleCache.clear();
+                    console.log('所有数据保存完成，缓存已清空');
+                    
+                    // 显示保存成功提示
+                    showSaveSuccessMessage('数据保存成功！');
+                } catch (error) {
+                    console.error('保存数据时出错:', error);
+                    showSaveErrorMessage('保存失败: ' + error.message);
+                }
+            }, 500);
+        }
 
+        // 显示保存成功提示
+        function showSaveSuccessMessage(message) {
+            // 创建提示元素
+            const notification = document.createElement('div');
+            notification.className = 'save-notification success';
+            notification.textContent = message;
+            
+            // 设置样式
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // 添加到页面
+            document.body.appendChild(notification);
+            
+            // 显示动画
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // 显示保存失败提示
+        function showSaveErrorMessage(message) {
+            // 创建提示元素
+            const notification = document.createElement('div');
+            notification.className = 'save-notification error';
+            notification.textContent = message;
+            
+            // 设置样式
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #ef4444;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // 添加到页面
+            document.body.appendChild(notification);
+            
+            // 显示动画
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 5秒后自动隐藏（错误提示显示更长时间）
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
         
         // 自动跳转到下一行（通用函数，支持所有列）
         function autoJumpToNextRow() {
