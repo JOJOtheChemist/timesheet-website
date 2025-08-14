@@ -271,7 +271,7 @@ async def create_schedule(schedule: ScheduleItem, db: sqlite3.Connection = Depen
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             schedule.schedule_date, schedule.time_slot, 
-            schedule.planned_subtask_id, schedule.planned_notes,
+              schedule.planned_subtask_id, schedule.planned_notes,
             schedule.actual_subtask_id, schedule.actual_notes,
             schedule.mood
         ))

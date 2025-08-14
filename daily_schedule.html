@@ -14,6 +14,9 @@
     <!-- GSAP Animation Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     
+    <!-- 背景图切换器 -->
+    <link rel="stylesheet" href="background-switcher.css">
+    
     <!-- 确保flatpickr在移动设备上正常工作的备用方案 -->
     <script>
         // 检查flatpickr是否正确加载
@@ -45,12 +48,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* 背景图设置：保持比例不变，覆盖全屏，居中且固定 */
-            background-image: url('/static/images/style1/Moebius-bg.webp');
-            background-size: cover;           /* 覆盖视口，保持比例，不拉伸变形 */
-            background-position: center;      /* 居中显示 */
-            background-repeat: no-repeat;     /* 不平铺 */
-            background-attachment: fixed;     /* 固定背景，滚动时不移动 */
+            /* 背景图由背景切换器控制 */
             min-height: 100vh;
             padding: 20px;
             position: relative;
@@ -453,12 +451,232 @@
             border: 2px solid transparent;
             box-sizing: border-box;
             white-space: nowrap;
-            overflow: hidden;
+            overflow: visible;
             text-overflow: ellipsis;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             position: relative;
+        }
+
+        .task-difficulty-icon {
+            position: absolute;
+            top: -9px;
+            right: -9px;
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+            z-index: 10;
+        }
+
+        .task-badge {
+            overflow: visible !important;
+        }
+
+        .arrow-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-right: 8px;
+        }
+
+        .arrow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow-cell {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow-img {
+            width: 21.6px;
+            height: 21.6px;
+            filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+            opacity: 0.8;
+        }
+
+        .arrow-up {
+            transform: rotate(-90deg);
+        }
+
+        .arrow-down {
+            transform: rotate(90deg);
+        }
+
+        .arrow-left {
+            transform: rotate(180deg);
+        }
+
+        .arrow-right {
+            transform: rotate(0deg);
+        }
+
+        .header-with-arrows {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .header-with-arrows.clicked {
+            transform: scale(0.95);
+        }
+        
+        .header-with-arrows.clicked span {
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .header-with-arrows .arrow-img {
+            transition: all 0.3s ease;
+        }
+        
+        .header-with-arrows.clicked .arrow-img {
+            transform: scale(1.2);
+        }
+        
+        .header-with-arrows .arrow-left {
+            transition: all 0.3s ease;
+        }
+        
+        .header-with-arrows .arrow-right {
+            transition: all 0.3s ease;
+        }
+        
+        /* 箭头实体移动动画 */
+        .header-with-arrows .arrow-cell {
+            transition: all 0.5s ease;
+            position: relative;
+        }
+        
+        /* 计划模式：箭头在"计划任务"位置 */
+        .header-with-arrows.plan-mode .arrow-cell:nth-child(1) {
+            opacity: 1;
+        }
+        
+        .header-with-arrows.plan-mode .arrow-cell:nth-child(3) {
+            opacity: 1;
+        }
+        
+        .header-with-arrows.plan-mode .arrow-cell:nth-child(5) {
+            transform: translateX(80);
+            opacity: 0;
+        }
+        
+        .header-with-arrows.plan-mode .arrow-cell:nth-child(7) {
+            transform: translateX(80);
+            opacity: 0;
+        }
+        
+        /* 实际模式：箭头在"实际任务"位置 */
+        .header-with-arrows.actual-mode .arrow-cell:nth-child(1) {
+            transform: translateX(80px);
+            opacity: 0;
+        }
+        
+        .header-with-arrows.actual-mode .arrow-cell:nth-child(3) {
+            transform: translateX(80px);
+            opacity: 0;
+        }
+        
+        .header-with-arrows.actual-mode .arrow-cell:nth-child(5) {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .header-with-arrows.actual-mode .arrow-cell:nth-child(7) {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        /* 移动过程中的箭头保持不透明 */
+        .header-with-arrows .arrow-cell {
+            transition: transform 0.5s ease, opacity 0.1s ease;
+        }
+        
+        /* 文字段落的样式 */
+        #task-plan, #task-actual, #task-task {
+            transition: all 0.3s ease;
+        }
+        
+        #task-slash {
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+        
+        /* 计划模式高亮"计划" */
+        .header-with-arrows.plan-mode #task-plan {
+            color: #4f9cff;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+        }
+        
+        /* 实际模式高亮"实际" */
+        .header-with-arrows.actual-mode #task-actual {
+            color: #4f9cff;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+        }
+        
+        /* 确保所有文字都有黑色阴影 */
+        #task-plan, #task-actual, #task-task, #task-slash {
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        /* 未选中状态的间距调整 */
+        .header-with-arrows.plan-mode #task-actual {
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+        }
+        
+        .header-with-arrows.actual-mode #task-plan {
+            margin-left: 0px !important;
+            margin-right: 0px !important;
+        }
+        
+        /* 选中状态的间距 */
+        .header-with-arrows.plan-mode #task-plan {
+            margin-left: 2px !important;
+            margin-right: 2px !important;
+        }
+        
+        .header-with-arrows.actual-mode #task-actual {
+            margin-left: 2px !important;
+            margin-right: 2px !important;
+        }
+
+        .sort-arrow {
+            width: 16px;
+            height: 16px;
+            filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+            opacity: 0.6;
+            transition: transform 0.3s ease;
+        }
+
+        .sort-arrow.down {
+            transform: rotate(180deg);
+        }
+
+        .sort-arrow.up {
+            transform: rotate(90deg);
+        }
+
+        .filter-group {
+            min-width: 120px;
+            max-width: 150px;
+        }
+
+        .filter-header {
+            padding: 8px 12px;
         }
 
         .task-badge:hover {
@@ -1253,6 +1471,20 @@
         }
         .project-component .filter-container {
             color: #e5e7eb;
+            padding: 0;
+            padding-bottom: 0;
+            display: flex;
+            align-items: center;
+        }
+        .project-component .filter-container > div {
+            padding-bottom: 0;
+            padding-left: 20px;
+            padding-right: 20px;
+            overflow: visible;
+        }
+        .project-component .filter-group {
+            position: relative;
+            overflow: visible;
         }
         .project-component .filter-header {
             background: rgba(0, 0, 0, 0.3);
@@ -1274,6 +1506,12 @@
             background: rgba(10, 10, 26, 0.8);
             border: 2px solid rgba(79, 156, 255, 0.5);
             box-shadow: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            overflow: visible;
         }
         .project-component .filter-button.default {
             background: rgba(79, 156, 255, 0.15);
@@ -1492,10 +1730,9 @@
                     <div class="filter-group">
                         <div class="filter-header" onclick="toggleFilterGroup('sort')">
                             <div class="flex items-center">
-                                <i class="fa fa-sort text-gray-600 mr-2"></i>
                                 <span class="text-sm font-medium text-gray-700">推荐排序</span>
                     </div>
-                            <i class="fa fa-chevron-down text-xs text-gray-400 transition-transform duration-300" id="sort-icon"></i>
+                            <img src="/static/images/svg/pixel-right-arrow.svg" class="sort-arrow down" id="sort-icon" alt="Sort Arrow">
                 </div>
                         <div class="filter-content" id="sort-content">
                             <div class="filter-buttons">
@@ -1512,10 +1749,9 @@
             <div class="filter-group">
                         <div class="filter-header" onclick="toggleFilterGroup('category')">
                             <div class="flex items-center">
-                                <i class="fa fa-tag text-gray-600 mr-2"></i>
                                 <span class="text-sm font-medium text-gray-700">分类</span>
                             </div>
-                            <i class="fa fa-chevron-down text-xs text-gray-400 transition-transform duration-300" id="category-icon"></i>
+                            <img src="/static/images/svg/pixel-right-arrow.svg" class="sort-arrow down" id="category-icon" alt="Category Arrow">
                 </div>
                 <div class="filter-content" id="category-content">
                             <div class="filter-buttons">
@@ -1528,10 +1764,9 @@
             <div class="filter-group">
                         <div class="filter-header" onclick="toggleFilterGroup('urgency')">
                             <div class="flex items-center">
-                                <i class="fa fa-clock-o text-gray-600 mr-2"></i>
                                 <span class="text-sm font-medium text-gray-700">紧急重要</span>
                             </div>
-                            <i class="fa fa-chevron-down text-xs text-gray-400 transition-transform duration-300" id="urgency-icon"></i>
+                            <img src="/static/images/svg/pixel-right-arrow.svg" class="sort-arrow down" id="urgency-icon" alt="Urgency Arrow">
                 </div>
                 <div class="filter-content" id="urgency-content">
                             <div class="filter-buttons">
@@ -1548,10 +1783,9 @@
                     <div class="filter-group">
                         <div class="filter-header" onclick="toggleFilterGroup('difficulty')">
                             <div class="flex items-center">
-                                <i class="fa fa-star text-gray-600 mr-2"></i>
                                 <span class="text-sm font-medium text-gray-700">困难程度</span>
                             </div>
-                            <i class="fa fa-chevron-down text-xs text-gray-400 transition-transform duration-300" id="difficulty-icon"></i>
+                            <img src="/static/images/svg/pixel-right-arrow.svg" class="sort-arrow down" id="difficulty-icon" alt="Difficulty Arrow">
                         </div>
                         <div class="filter-content" id="difficulty-content">
                             <div class="filter-buttons">
@@ -1618,10 +1852,26 @@
                 <thead>
                     <tr>
                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">时间</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">计划任务</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">实际任务</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">
+                            <div class="header-with-arrows">
+                                <div class="arrow-cell">
+                                    <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-right" alt="Right Arrow">
+                                </div>
+                                <span style="margin: 0 2px;" id="task-plan">计划任务</span>
+
+                                <div class="arrow-cell">
+                                    <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-left" alt="Left Arrow">
+                                </div>
+                                <span style="margin: 0 1px;" id="task-slash">/</span>
+                                <div class="arrow-cell">
+                                    <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-right" alt="Right Arrow">
+                                </div>
+                                <span style="margin: 0 2px;" id="task-actual">实际任务</span>
+                                <div class="arrow-cell">
+                                    <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-left" alt="Left Arrow">
+                                </div>
+                        </th>
+                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">心情</th>
                     </tr>
                 </thead>
@@ -1736,6 +1986,7 @@
                                      data-field-type="planned"
                                      style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
+                                    <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
                             </td>
                             <!-- 计划备注 -->
@@ -1757,6 +2008,7 @@
                                      data-field-type="actual"
                                      style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
+                                    <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
                             </td>
                             <!-- 实际备注 -->
@@ -1794,6 +2046,7 @@
                                      data-field-type="planned"
                                      style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     点击选择计划任务
+                                    <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
                             </td>
                             <!-- 计划备注 -->
@@ -1814,6 +2067,7 @@
                                      data-field-type="actual"
                                      style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     点击选择实际任务
+                                    <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
                             </td>
                             <!-- 实际备注 -->
@@ -2301,14 +2555,19 @@
             
             // 关闭其他所有筛选组
             const allContents = document.querySelectorAll('.filter-content');
-            const allIcons = document.querySelectorAll('.filter-header i.fa-chevron-down');
+            const allIcons = document.querySelectorAll('.filter-header i.fa-chevron-down, .filter-header .sort-arrow');
             const allHeaders = document.querySelectorAll('.filter-header');
             
             allContents.forEach((c, index) => {
                 if (c.id !== `${groupType}-content`) {
                     c.classList.remove('active');
                     if (allIcons[index]) {
-                        allIcons[index].style.transform = 'rotate(0deg)';
+                        if (allIcons[index].classList.contains('sort-arrow')) {
+                            allIcons[index].classList.remove('up');
+                            allIcons[index].classList.add('down');
+                        } else {
+                            allIcons[index].style.transform = 'rotate(0deg)';
+                        }
                     }
                     if (allHeaders[index]) {
                         allHeaders[index].classList.remove('active');
@@ -2319,12 +2578,22 @@
             if (!content.classList.contains('active')) {
                 // 展开筛选组
                 content.classList.add('active');
-                icon.style.transform = 'rotate(180deg)';
+                if (icon.classList.contains('sort-arrow')) {
+                    icon.classList.remove('down');
+                    icon.classList.add('up');
+                } else {
+                    icon.style.transform = 'rotate(180deg)';
+                }
                 header.classList.add('active');
             } else {
                 // 收缩筛选组
                 content.classList.remove('active');
-                icon.style.transform = 'rotate(0deg)';
+                if (icon.classList.contains('sort-arrow')) {
+                    icon.classList.remove('up');
+                    icon.classList.add('down');
+                } else {
+                    icon.style.transform = 'rotate(0deg)';
+                }
                 header.classList.remove('active');
             }
         }
@@ -2345,13 +2614,18 @@
                 if (!clickedInsideFilter) {
                     // 点击了筛选组外部，收起所有筛选组
                     const allContents = document.querySelectorAll('.filter-content');
-                    const allIcons = document.querySelectorAll('.filter-header i.fa-chevron-down');
+                    const allIcons = document.querySelectorAll('.filter-header i.fa-chevron-down, .filter-header .sort-arrow');
                     const allHeaders = document.querySelectorAll('.filter-header');
                     
                     allContents.forEach((content, index) => {
                         content.classList.remove('active');
                         if (allIcons[index]) {
-                            allIcons[index].style.transform = 'rotate(0deg)';
+                            if (allIcons[index].classList.contains('sort-arrow')) {
+                                allIcons[index].classList.remove('up');
+                                allIcons[index].classList.add('down');
+                            } else {
+                                allIcons[index].style.transform = 'rotate(0deg)';
+                            }
                         }
                         if (allHeaders[index]) {
                             allHeaders[index].classList.remove('active');
@@ -2379,7 +2653,14 @@
                             const header = filterGroup.querySelector('.filter-header');
                             
                             if (content) content.classList.remove('active');
-                            if (icon) icon.style.transform = 'rotate(0deg)';
+                            if (icon) {
+                                if (icon.classList.contains('sort-arrow')) {
+                                    icon.classList.remove('up');
+                                    icon.classList.add('down');
+                                } else {
+                                    icon.style.transform = 'rotate(0deg)';
+                                }
+                            }
                             if (header) header.classList.remove('active');
                         }
                     }, 300);
@@ -4567,8 +4848,43 @@
             setTimeout(() => {
                 // 取消特定元素背景设置
                 // setSpecificElementBackground();
+                
+                // 设置第一个计划任务单元格的随机图片
+                setRandomDifficultyIcon();
             }, 1000);
         });
+
+        // 设置第一个计划任务单元格的随机难度图标
+        function setRandomDifficultyIcon() {
+            const firstPlannedTask = document.querySelector('#scheduleBody > tr:nth-child(1) > td:nth-child(2) > div');
+            if (firstPlannedTask) {
+                const difficultyImages = [
+                    '/static/images/easyhard/easy.png',
+                    '/static/images/easyhard/中等.png',
+                    '/static/images/easyhard/hard.png',
+                    '/static/images/easyhard/地狱.png',
+                    '/static/images/easyhard/ss.png'
+                ];
+                
+                // 随机选择一张图片
+                const randomImage = difficultyImages[Math.floor(Math.random() * difficultyImages.length)];
+                
+                // 查找或创建图片元素
+                let iconElement = firstPlannedTask.querySelector('.task-difficulty-icon');
+                if (!iconElement) {
+                    iconElement = document.createElement('img');
+                    iconElement.className = 'task-difficulty-icon';
+                    iconElement.alt = '难度图标';
+                    firstPlannedTask.appendChild(iconElement);
+                }
+                
+                // 设置随机图片
+                iconElement.src = randomImage;
+                console.log('为第一个计划任务设置随机图片:', randomImage);
+            } else {
+                console.log('未找到第一个计划任务单元格');
+            }
+        }
 
         // 绿色叶子飘落粒子 - 模仿贪吃蛇的背景流星
         function createBackgroundMeteor() {
@@ -5610,10 +5926,47 @@
                 console.log('😊 显示随机学习表情包:', randomEmoji);
             }, 300); // 延迟300ms出现表情包
             
-            // 添加音效提示（可选）
-            console.log('🎵 播放贪吃蛇吃食物音效（模拟）');
+                    // 添加音效提示（可选）
+        console.log('🎵 播放贪吃蛇吃食物音效（模拟）');
+    }
+
+    // 计划任务按钮点击动画和箭头实体移动功能
+    document.addEventListener('DOMContentLoaded', function() {
+        const planTaskHeader = document.querySelector('.header-with-arrows');
+        let currentMode = 'plan'; // 默认计划模式
+        
+        if (planTaskHeader) {
+            // 初始化计划模式
+            planTaskHeader.classList.add('plan-mode');
+            
+            planTaskHeader.addEventListener('click', function() {
+                // 添加点击动画类
+                this.classList.add('clicked');
+                
+                // 直接切换模式，CSS会自动处理动画
+                if (currentMode === 'plan') {
+                    currentMode = 'actual';
+                    this.classList.remove('plan-mode');
+                    this.classList.add('actual-mode');
+                } else {
+                    currentMode = 'plan';
+                    this.classList.remove('actual-mode');
+                    this.classList.add('plan-mode');
+                }
+                
+                // 300ms后移除点击动画类，恢复原状
+                setTimeout(() => {
+                    this.classList.remove('clicked');
+                }, 300);
+                
+                console.log('🎯 箭头实体移动到:', currentMode === 'plan' ? '计划任务' : '实际任务');
+            });
         }
+    });
 
     </script>
+    
+    <!-- 背景图切换器脚本 -->
+    <script src="background-switcher.js"></script>
 </body>
 </html> 
