@@ -455,6 +455,32 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            /* 添加随机背景图和阴影效果 */
+            background-image: var(--task-badge-bg, none);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+        
+        /* 添加背景遮罩，确保文字可读性 */
+        .task-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%);
+            border-radius: 8px;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .task-badge > * {
+            position: relative;
+            z-index: 2;
         }
 
         .task-badge:hover {
@@ -1863,9 +1889,12 @@
             
             // 恢复本地缓存中的编辑状态
             restoreLocalCacheState();
-+
-+            // 应用心情样式
-+            applyAllMoodStyles();
+
+            // 应用心情样式
+            applyAllMoodStyles();
+            
+            // 设置子任务按钮的随机背景图
+            setTaskBadgeBackgrounds();
         }
 
 
@@ -2603,6 +2632,20 @@
                 '/static/images/背景图2/猫咪.png'
             ];
             return backgrounds[Math.floor(Math.random() * backgrounds.length)];
+        }
+        
+        // 给子任务按钮设置随机背景图
+        function setTaskBadgeBackgrounds() {
+            const taskBadges = document.querySelectorAll('.task-badge');
+            taskBadges.forEach(badge => {
+                // 跳过空状态和选中状态的按钮
+                if (badge.classList.contains('empty') || badge.classList.contains('selected')) {
+                    return;
+                }
+                
+                const randomBg = getRandomBackground();
+                badge.style.setProperty('--task-badge-bg', `url('${randomBg}')`);
+            });
         }
 
         // 备注编辑相关变量
@@ -4476,6 +4519,11 @@
             
             // 初始化心情快捷输入功能
             initMoodQuickInput();
+            
+            // 设置子任务按钮的随机背景图
+            setTimeout(() => {
+                setTaskBadgeBackgrounds();
+            }, 1000); // 延迟1秒，确保DOM完全加载
         });
 
         // 绿色叶子飘落粒子 - 模仿贪吃蛇的背景流星
