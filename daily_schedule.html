@@ -3366,7 +3366,9 @@
                         // 刷新数据
                         await loadScheduleData(selectedDate);
                     } else {
-                        throw new Error('保存失败');
+                        const errorText = await response.text();
+                        console.error('子任务保存失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`保存失败: ${response.status} - ${errorText}`);
                     }
                 } else {
                     // 更新现有日程的子任务
@@ -3389,7 +3391,9 @@
                     if (response.ok) {
                         console.log('子任务更新成功');
                     } else {
-                        throw new Error('更新失败');
+                        const errorText = await response.text();
+                        console.error('子任务更新失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`更新失败: ${response.status} - ${errorText}`);
                     }
                 }
             } catch (error) {
@@ -3423,7 +3427,9 @@
                         // 刷新数据
                         await loadScheduleData(selectedDate);
                     } else {
-                        throw new Error('保存失败');
+                        const errorText = await response.text();
+                        console.error('心情保存失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`保存失败: ${response.status} - ${errorText}`);
                     }
                 } else {
                     // 更新现有日程的心情
@@ -3444,7 +3450,9 @@
                     if (response.ok) {
                         console.log('心情更新成功');
                     } else {
-                        throw new Error('更新失败');
+                        const errorText = await response.text();
+                        console.error('心情更新失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`更新失败: ${response.status} - ${errorText}`);
                     }
                 }
             } catch (error) {
