@@ -3524,11 +3524,8 @@
                 // 立即跳转到下一行
                 console.log('子任务分配完成，立即跳转');
                 console.log('跳转前selectedTimeSlot:', selectedTimeSlot);
-                console.log('跳转前selectedFieldType:', selectedFieldType);
                 autoJumpToNextRow();
                 console.log('跳转后selectedTimeSlot:', selectedTimeSlot);
-                console.log('跳转后selectedFieldType:', selectedFieldType);
-                console.log('跳转后selectedTimeSlotElement:', selectedTimeSlotElement);
                 
                 // 不清空选择状态，保持选中以便继续操作
                 
@@ -3677,8 +3674,7 @@
                 const nextRowIndex = Math.min(currentEditingRow + 1, rows.length - 1);
                 const nextRow = rows[nextRowIndex];
                 if (!nextRow) return;
-                // 跳转到下一行的第4列（实际任务列）
-                const nextCell = nextRow.children[3]; // 第4列（索引为3）
+                const nextCell = nextRow.children[currentEditingColumn];
                 if (!nextCell) return;
                 
                 // 清除之前高亮
@@ -3695,7 +3691,6 @@
                 // 高亮整行
                 nextRow.classList.add('selected-row');
                 currentEditingRow = nextRowIndex;
-                currentEditingColumn = 3; // 更新为第4列（索引为3）
                 
                 // 如果是任务列，设置 selectedTimeSlotElement 以保持一致操作
                 if (nextCell.classList.contains('task-column')) {
@@ -3704,41 +3699,23 @@
                         selectedTimeSlotElement = badge;
                         selectedTimeSlot = badge.getAttribute('data-time-slot');
                         selectedFieldType = badge.getAttribute('data-field-type') || selectedFieldType;
-                        // 给选中的任务按钮添加selected类
-                        badge.classList.add('selected');
-                        console.log('自动跳转到任务列:', {
-                            selectedTimeSlot,
-                            selectedFieldType,
-                            badgeElement: badge
-                        });
                     }
                 } else if (nextCell.classList.contains('notes-column')) {
                     const span = nextCell.querySelector('.notes-text');
                     if (span) {
                         selectedTimeSlot = span.getAttribute('data-time-slot');
                         selectedFieldType = span.getAttribute('data-field-type') || selectedFieldType;
-                        console.log('自动跳转到备注列:', {
-                            selectedTimeSlot,
-                            selectedFieldType
-                        });
                     }
                 } else if (nextCell.classList.contains('mood-column')) {
                     const span = nextCell.querySelector('.mood-text');
                     if (span) {
                         selectedTimeSlot = span.getAttribute('data-time-slot');
                         selectedFieldType = span.getAttribute('data-field-type') || selectedFieldType;
-                        console.log('自动跳转到心情列:', {
-                            selectedTimeSlot,
-                            selectedFieldType
-                        });
                     }
                 } else if (nextCell.classList.contains('time-column')) {
                     const span = nextCell.querySelector('.time-slot');
                     if (span) {
                         selectedTimeSlot = span.textContent.trim();
-                        console.log('自动跳转到时间列:', {
-                            selectedTimeSlot
-                        });
                     }
                 }
             } catch (e) {
@@ -5058,6 +5035,28 @@
                         const cellIndex = Array.from(nextRow.children).indexOf(nextCell);
                         currentEditingRow = rowIndex;
                         currentEditingColumn = cellIndex;
+                        
+                        // 如果是任务列，设置 selectedTimeSlotElement 以保持一致操作
+                        if (nextCell.classList.contains('task-column')) {
+                            const badge = nextCell.querySelector('.task-badge');
+                            if (badge) {
+                                selectedTimeSlotElement = badge;
+                                selectedTimeSlot = badge.getAttribute('data-time-slot');
+                                selectedFieldType = badge.getAttribute('data-field-type') || selectedFieldType;
+                            }
+                        } else if (nextCell.classList.contains('notes-column')) {
+                            const span = nextCell.querySelector('.notes-text');
+                            if (span) {
+                                selectedTimeSlot = span.getAttribute('data-time-slot');
+                                selectedFieldType = span.getAttribute('data-field-type') || selectedFieldType;
+                            }
+                        } else if (nextCell.classList.contains('mood-column')) {
+                            const span = nextCell.querySelector('.mood-text');
+                            if (span) {
+                                selectedTimeSlot = span.getAttribute('data-time-slot');
+                                selectedFieldType = span.getAttribute('data-field-type') || selectedFieldType;
+                            }
+                        }
                         
                         console.log('自动跳转到下一行:', rowIndex, cellIndex);
                     }
