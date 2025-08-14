@@ -396,7 +396,7 @@
 
         .task-column {
             width: 180px;
-            color: #007bff;
+            color: inherit;
             font-weight: 500;
             padding: 2px 8px; /* 减少上下padding，让行高保持22px */
             cursor: pointer;
@@ -434,13 +434,14 @@
 
         .task-column {
             width: 180px;
-            color: #007bff;
+            color: inherit;
             font-weight: 500;
         }
 
         .task-badge {
             display: block;
             padding: 4px 16px; /* 减少上下padding，让行高保持22px */
+            background: transparent;
             color: white;
             border-radius: 8px;
             font-size: 12px;
@@ -454,37 +455,16 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* 使用背景图替代纯色背景 */
-            background-image: var(--task-badge-bg, none);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             position: relative;
-        }
-        
-        /* 添加背景遮罩，确保文字可读性 */
-        .task-badge::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%);
-            border-radius: 8px;
-            z-index: 1;
-            pointer-events: none;
-        }
-        
-        .task-badge > * {
-            position: relative;
-            z-index: 2;
         }
 
         .task-badge:hover {
+            background: transparent;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             width: 140px;
             white-space: nowrap;
             overflow: hidden;
@@ -493,36 +473,15 @@
         }
 
         .task-badge.selected {
-            border-color: #28a745;
-            box-shadow: 0 4px 16px rgba(40, 167, 69, 0.4);
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
             transform: translateY(-1px);
             width: 140px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             opacity: 1;
-        }
-
-        .task-badge.empty {
-            background: #6c757d;
-            cursor: pointer;
-            border: 2px dashed #6c757d;
-            width: 140px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            opacity: 0.8;
-        }
-
-        .task-badge.empty:hover {
-            background: #545b62;
-            border-color: #545b62;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-            width: 140px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .notes-column {
@@ -671,16 +630,7 @@
             color: #495057;
         }
 
-        .task-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: #007bff;
-            color: white;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            opacity: 0.8;
-        }
+
 
         .notes-text {
             max-width: 300px;
@@ -1378,29 +1328,37 @@
             background: transparent !important;
         }
         
-        .schedule-table tbody tr .task-column .task-badge {
-            background: #007bff !important;
-            color: white !important;
-        }
-        
-        .schedule-table tbody tr .task-column .task-badge.empty {
-            background: #6c757d !important;
-            color: white !important;
-            border: 2px dashed #6c757d !important;
-            opacity: 0.8 !important;
-            /* 强制覆盖内联样式 */
-            background-color: #6c757d !important;
-            border-color: #6c757d !important;
-        }
-        
-        .schedule-table tbody tr .task-column .task-badge.selected {
-            background: #28a745 !important;
-            color: white !important;
-        }
+
         
         /* 确保所有列的背景色正确 */
         .schedule-table tbody tr td {
             background-color: transparent !important;
+        }
+        
+        /* 支持背景图片的样式 */
+        .task-badge-with-bg {
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            position: relative;
+        }
+        
+        /* 背景图片上的文字阴影，确保可读性 */
+        .task-badge-with-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 6px;
+            z-index: 1;
+        }
+        
+        .task-badge-with-bg > * {
+            position: relative;
+            z-index: 2;
         }
         
         /* 覆盖Tailwind CSS类，使用贪吃蛇的颜色 */
@@ -1776,7 +1734,7 @@
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-project-color="${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}"
                                      data-field-type="planned"
-                                     style="border-color: transparent;">
+                                     style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
                                 </div>
                             </td>
@@ -1797,7 +1755,7 @@
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-project-color="${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}"
                                      data-field-type="actual"
-                                     style="border-color: transparent;">
+                                     style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
                                 </div>
                             </td>
@@ -1833,7 +1791,8 @@
                                      data-time-slot="${timeString}" 
                                      data-schedule-id=""
                                      data-subtask-id=""
-                                     data-field-type="planned">
+                                     data-field-type="planned"
+                                     style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     点击选择计划任务
                                 </div>
                             </td>
@@ -1852,7 +1811,8 @@
                                      data-time-slot="${timeString}" 
                                      data-schedule-id=""
                                      data-subtask-id=""
-                                     data-field-type="actual">
+                                     data-field-type="actual"
+                                     style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     点击选择实际任务
                                 </div>
                             </td>
@@ -2929,35 +2889,8 @@
                 clearTimeout(notesSaveTimeout);
             }
             
-            // 设置新的保存定时器（用户停止输入3秒后自动保存）
-            notesSaveTimeout = setTimeout(() => {
-                // 只在用户停止输入3秒后才自动保存，但不跳转
-                if (element.classList.contains('editing')) {
-                    const currentText = element.textContent.trim();
-                    console.log('=== 3秒后自动保存检测 ===');
-                    console.log('当前文本:', currentText);
-                    console.log('原始文本:', originalText);
-                    console.log('文本是否相同:', currentText === originalText);
-                    console.log('当前文本长度:', currentText.length);
-                    console.log('原始文本长度:', originalText.length);
-                    
-                    // 使用更严格的比较逻辑
-                    const hasChanged = currentText !== originalText || 
-                                    (currentText === '' && originalText !== '') ||
-                                    (currentText !== '' && originalText === '');
-                    
-                    console.log('检测到变化:', hasChanged);
-                    
-                    // 只有在内容有变化时才保存
-                    if (hasChanged) {
-                        saveNotesToLocalCache(element, currentText);
-                        console.log('3秒后自动保存备注 - 内容有变化');
-                    } else {
-                        console.log('内容无变化，不自动保存');
-                    }
-                    // 自动保存后不跳转，让用户继续编辑
-                }
-            }, 3000);
+            // 使用统一的保存定时器
+            scheduleDelayedSave();
         }
 
         // 完成编辑
@@ -3011,18 +2944,16 @@
             }
         }
 
-        // 保存备注到本地缓存
+        // 保存备注到本地缓存（更新为使用心情式的防抖保存机制）
         function saveNotesToLocalCache(element, notes) {
             const timeSlot = element.getAttribute('data-time-slot');
             const scheduleId = element.getAttribute('data-schedule-id');
             const fieldType = element.getAttribute('data-field-type');
             
-            console.log('=== 保存备注到本地缓存 ===');
+            console.log('=== 保存备注到本地缓存（新机制） ===');
             console.log('时间槽:', timeSlot);
             console.log('日程ID:', scheduleId);
             console.log('备注内容:', notes);
-            console.log('备注类型:', typeof notes);
-            console.log('备注长度:', notes ? notes.length : 0);
             console.log('字段类型:', fieldType);
             
             if (!timeSlot) {
@@ -3030,70 +2961,24 @@
                 return;
             }
             
-            // 获取缓存键和现有数据
+            // 使用统一的本地缓存机制
             const cacheKey = `${selectedDate}_${timeSlot}`;
             const existingData = localScheduleCache.get(cacheKey) || {};
-            
-            console.log('缓存键:', cacheKey);
-            console.log('现有缓存数据:', existingData);
-            
-            // 根据字段类型获取对应的子任务ID
-            let existingSubtaskId = null;
-            if (fieldType === 'planned') {
-                existingSubtaskId = existingData.planned_subtask_id;
-            } else {
-                existingSubtaskId = existingData.actual_subtask_id;
-            }
-            
-            // 如果缓存中没有子任务信息，从DOM中获取
-            if (!existingSubtaskId) {
-                const taskElement = document.querySelector(`[data-time-slot="${timeSlot}"][data-field-type="${fieldType}"] .task-badge`);
-                existingSubtaskId = taskElement ? taskElement.getAttribute('data-subtask-id') : '';
-                console.log(`从DOM获取${fieldType}子任务ID:`, existingSubtaskId);
-            } else {
-                console.log(`从缓存获取${fieldType}子任务ID:`, existingSubtaskId);
-            }
-            
-            console.log(`最终使用的${fieldType}子任务ID:`, existingSubtaskId);
-            
-            // 更新缓存，合并所有字段
             const updatedData = {
                 ...existingData,
                 schedule_date: selectedDate,
                 time_slot: timeSlot,
-                schedule_id: scheduleId || null
+                schedule_id: scheduleId || existingData.schedule_id || null
             };
             
-            // 根据字段类型更新相应的字段
             if (fieldType === 'planned') {
-                // 明确保存备注，即使是空字符串也要保存
                 updatedData.planned_notes = notes;
-                console.log('已更新计划备注:', notes);
-                
-                // 如果备注不为空，确保子任务ID也被保存
-                if (existingSubtaskId) {
-                    updatedData.planned_subtask_id = existingSubtaskId;
-                    console.log('已保存计划子任务ID:', existingSubtaskId);
-                }
-            } else {
-                // 明确保存备注，即使是空字符串也要保存
+            } else if (fieldType === 'actual') {
                 updatedData.actual_notes = notes;
-                console.log('已更新实际备注:', notes);
-                
-                // 如果备注不为空，确保子任务ID也被保存
-                if (existingSubtaskId) {
-                    updatedData.actual_subtask_id = existingSubtaskId;
-                    console.log('已保存实际子任务ID:', existingSubtaskId);
-                }
             }
             
-            // 保存到本地缓存
             localScheduleCache.set(cacheKey, updatedData);
-            
-            console.log('=== 备注保存完成 ===');
-            console.log('备注已添加到本地缓存，当前缓存大小:', localScheduleCache.size);
-            console.log('更新后的缓存数据:', localScheduleCache.get(cacheKey));
-            console.log('缓存键:', cacheKey);
+            console.log('备注已添加到缓存:', updatedData);
             
             // 设置延迟保存
             scheduleDelayedSave();
@@ -3129,10 +3014,9 @@
             // 清除之前的选择
             if (selectedTimeSlotElement) {
                 selectedTimeSlotElement.classList.remove('selected');
-                // 恢复原来的颜色
-                const originalColor = selectedTimeSlotElement.getAttribute('data-project-color') || '#007bff';
-                selectedTimeSlotElement.style.background = originalColor;
-                selectedTimeSlotElement.style.borderColor = originalColor;
+                // 取消背景颜色
+                selectedTimeSlotElement.style.background = 'transparent';
+                selectedTimeSlotElement.style.borderColor = 'transparent';
             }
             
             // 清除之前选中的单元格
@@ -3182,9 +3066,9 @@
             // 高亮整行
             row.classList.add('selected-row');
             
-            // 设置选中状态的高亮颜色
-            selectedTimeSlotElement.style.background = '#28a745';
-            selectedTimeSlotElement.style.borderColor = '#28a745';
+                            // 取消选中状态的背景高亮
+                selectedTimeSlotElement.style.background = 'transparent';
+                selectedTimeSlotElement.style.borderColor = 'transparent';
             
             console.log(`已选择时间槽: ${timeSlot}, 当前任务: ${subtaskName}`);
         }
@@ -3209,10 +3093,9 @@
             // 清除之前的时间槽选择
             if (selectedTimeSlotElement) {
                 selectedTimeSlotElement.classList.remove('selected');
-                // 恢复原来的颜色
-                const originalColor = selectedTimeSlotElement.getAttribute('data-project-color') || '#007bff';
-                selectedTimeSlotElement.style.background = originalColor;
-                selectedTimeSlotElement.style.borderColor = originalColor;
+                // 彻底透明化
+                selectedTimeSlotElement.style.background = 'transparent';
+                selectedTimeSlotElement.style.borderColor = 'transparent';
                 selectedTimeSlotElement = null;
             }
             
@@ -3263,10 +3146,9 @@
             // 清除之前的时间槽选择
             if (selectedTimeSlotElement) {
                 selectedTimeSlotElement.classList.remove('selected');
-                // 恢复原来的颜色
-                const originalColor = selectedTimeSlotElement.getAttribute('data-project-color') || '#007bff';
-                selectedTimeSlotElement.style.background = originalColor;
-                selectedTimeSlotElement.style.borderColor = originalColor;
+                // 彻底透明化
+                selectedTimeSlotElement.style.background = 'transparent';
+                selectedTimeSlotElement.style.borderColor = 'transparent';
                 selectedTimeSlotElement = null;
             }
             
@@ -3339,69 +3221,6 @@
             }
         }
 
-        // 保存子任务到数据库
-        async function saveSubtaskToDatabase(timeSlot, subtaskId, projectId, scheduleId, fieldType) {
-            try {
-                if (!scheduleId) {
-                    // 如果没有日程ID，需要先创建日程
-                    const newSchedule = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot,
-                        subtask_id: subtaskId,
-                        project_id: projectId,
-                        field_type: fieldType
-                    };
-                    
-                    const response = await fetch('/api/schedule', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(newSchedule)
-                    });
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        console.log('子任务保存成功:', result);
-                        // 刷新数据
-                        await loadScheduleData(selectedDate);
-                    } else {
-                        const errorText = await response.text();
-                        console.error('子任务保存失败，状态码:', response.status, '错误信息:', errorText);
-                        throw new Error(`保存失败: ${response.status} - ${errorText}`);
-                    }
-                } else {
-                    // 更新现有日程的子任务
-                    const updateData = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot,
-                        subtask_id: subtaskId,
-                        project_id: projectId,
-                        field_type: fieldType
-                    };
-                    
-                    const response = await fetch(`/api/schedule/${scheduleId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(updateData)
-                    });
-                    
-                    if (response.ok) {
-                        console.log('子任务更新成功');
-                    } else {
-                        const errorText = await response.text();
-                        console.error('子任务更新失败，状态码:', response.status, '错误信息:', errorText);
-                        throw new Error(`更新失败: ${response.status} - ${errorText}`);
-                    }
-                }
-            } catch (error) {
-                console.error('保存子任务失败:', error);
-                throw error;
-            }
-        }
-
         // 保存心情到数据库
         async function saveMoodToDatabase(timeSlot, mood, scheduleId, fieldType) {
             try {
@@ -3409,9 +3228,11 @@
                     // 如果没有日程ID，需要先创建日程
                     const newSchedule = {
                         schedule_date: selectedDate,
-                        time_slot: timeSlot,
-                        mood: mood
+                        time_slot: timeSlot
                     };
+                    
+                    // Note: Mood field is not yet supported in backend
+                    // TODO: Add mood support to backend schema
                     
                     const response = await fetch('/api/schedule', {
                         method: 'POST',
@@ -3427,17 +3248,17 @@
                         // 刷新数据
                         await loadScheduleData(selectedDate);
                     } else {
-                        const errorText = await response.text();
-                        console.error('心情保存失败，状态码:', response.status, '错误信息:', errorText);
-                        throw new Error(`保存失败: ${response.status} - ${errorText}`);
+                        throw new Error('保存失败');
                     }
                 } else {
                     // 更新现有日程的心情
                     const updateData = {
                         schedule_date: selectedDate,
-                        time_slot: timeSlot,
-                        mood: mood
+                        time_slot: timeSlot
                     };
+                    
+                    // Note: Mood field is not yet supported in backend
+                    // TODO: Add mood support to backend schema
                     
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
                         method: 'PUT',
@@ -3450,14 +3271,134 @@
                     if (response.ok) {
                         console.log('心情更新成功');
                     } else {
-                        const errorText = await response.text();
-                        console.error('心情更新失败，状态码:', response.status, '错误信息:', errorText);
-                        throw new Error(`更新失败: ${response.status} - ${errorText}`);
+                        throw new Error('更新失败');
                     }
                 }
             } catch (error) {
                 console.error('保存心情失败:', error);
                 alert('保存心情失败: ' + error.message);
+            }
+        }
+
+        // 保存任务到数据库
+        async function saveTaskToDatabase(timeSlot, subtaskId, subtaskName, projectId, projectName, scheduleId, fieldType) {
+            try {
+                if (!scheduleId) {
+                    // 如果没有日程ID，需要先创建日程
+                    const newSchedule = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot,
+                        planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
+                        planned_subtask_name: fieldType === 'planned' ? subtaskName : null,
+                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null,
+                        actual_subtask_name: fieldType === 'actual' ? subtaskName : null,
+                        project_id: projectId,
+                        project_name: projectName
+                    };
+                    
+                    const response = await fetch('/api/schedule', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newSchedule)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('任务保存成功:', result);
+                        // 刷新数据
+                        await loadScheduleData(selectedDate);
+                    } else {
+                        throw new Error('保存失败');
+                    }
+                } else {
+                    // 更新现有日程的任务
+                    const updateData = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot,
+                        planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
+                        planned_subtask_name: fieldType === 'planned' ? subtaskName : null,
+                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null,
+                        actual_subtask_name: fieldType === 'actual' ? subtaskName : null,
+                        project_id: projectId,
+                        project_name: projectName
+                    };
+                    
+                    const response = await fetch(`/api/schedule/${scheduleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('任务更新成功');
+                    } else {
+                        throw new Error('更新失败');
+                    }
+                }
+            } catch (error) {
+                console.error('保存任务失败:', error);
+                alert('保存任务失败: ' + error.message);
+            }
+        }
+
+        // 保存备注到数据库
+        async function saveNotesToDatabase(timeSlot, notes, scheduleId, fieldType) {
+            try {
+                if (!scheduleId) {
+                    // 如果没有日程ID，需要先创建日程
+                    const newSchedule = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot,
+                        planned_notes: fieldType === 'planned' ? notes : null,
+                        actual_notes: fieldType === 'actual' ? notes : null
+                    };
+                    
+                    const response = await fetch('/api/schedule', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newSchedule)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('备注保存成功:', result);
+                        // 刷新数据
+                        await loadScheduleData(selectedDate);
+                    } else {
+                        throw new Error('保存失败');
+                    }
+                } else {
+                    // 更新现有日程的备注
+                    const updateData = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot,
+                        planned_notes: fieldType === 'planned' ? notes : null,
+                        actual_notes: fieldType === 'actual' ? notes : null
+                    };
+                    
+                    const response = await fetch(`/api/schedule/${scheduleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('备注更新成功');
+                    } else {
+                        throw new Error('更新失败');
+                    }
+                }
+            } catch (error) {
+                console.error('保存备注失败:', error);
+                alert('保存备注失败: ' + error.message);
             }
         }
 
@@ -3506,10 +3447,15 @@
                 timeSlotElement.setAttribute('data-subtask-color', subtaskColor);
                 timeSlotElement.classList.remove('selected', 'empty');
                 
-                // 设置项目颜色作为背景，子任务颜色作为文字颜色
-                timeSlotElement.style.background = projectColor;
-                timeSlotElement.style.borderColor = projectColor;
-                timeSlotElement.style.color = subtaskColor;
+                // 取消背景图片与颜色（保持透明/继承）
+                timeSlotElement.style.background = 'transparent';
+                timeSlotElement.style.backgroundImage = 'none';
+                timeSlotElement.style.borderColor = 'transparent';
+                
+                // 应用彩色文字效果，使用子任务颜色，如果没有则使用项目颜色
+                const textColor = subtaskColor !== '#ffffff' ? subtaskColor : projectColor;
+                timeSlotElement.style.color = textColor;
+                timeSlotElement.style.textShadow = '2px 2px 0 rgba(0, 0, 0, 1)';
                 
                 // 同时更新对应的备注单元格的data属性，确保数据一致性
                 const row = timeSlotElement.closest('tr');
@@ -3582,7 +3528,7 @@
                 console.log('当前缓存大小:', localScheduleCache.size);
                 console.log('缓存键:', cacheKey);
                 
-                // 设置延迟保存
+                // 使用统一的延迟保存机制
                 scheduleDelayedSave();
                 
                 // 触发贪吃蛇吃食物特效
@@ -3715,8 +3661,9 @@
                 
                 // 如果是任务列，还要高亮任务按钮
                 if (newColumn === 1 || newColumn === 3) {
-                    targetElement.style.background = '#28a745';
-                    targetElement.style.borderColor = '#28a745';
+                    // 取消选中状态的背景高亮
+                    targetElement.style.background = 'transparent';
+                    targetElement.style.borderColor = 'transparent';
                     
                     // 更新选中状态
                     selectedTimeSlot = targetElement.getAttribute('data-time-slot');
@@ -3799,10 +3746,10 @@
                 clearTimeout(scheduleSaveTimeout);
             }
             
-            // 设置新的定时器，3秒后保存
+            // 设置新的定时器，500ms后保存
             scheduleSaveTimeout = setTimeout(() => {
                 saveLocalCacheToDatabase();
-            }, 3000);
+            }, 500);
         }
 
         // 保存本地缓存到数据库
@@ -3817,229 +3764,212 @@
             console.log('缓存内容:', Array.from(localScheduleCache.entries()));
             
             try {
-                const promises = [];
-                const requestDetails = [];
+                let savedCount = 0;
+                const moodUpdates = [];
+                const plannedTaskUpdates = [];
+                const actualTaskUpdates = [];
                 
-                for (const [key, data] of localScheduleCache) {
-                    console.log('--- 处理缓存项 ---');
-                    console.log('缓存键:', key);
-                    console.log('缓存数据:', data);
+                // 收集所有需要保存的数据
+                for (const [cacheKey, data] of localScheduleCache) {
+                    console.log('缓存数据:', cacheKey, data);
                     
-                    let promise;
-                    
-                    // 构建请求体，确保所有必要字段都被包含
-                    const body = {
-                        schedule_date: data.schedule_date,
-                        time_slot: data.time_slot
-                    };
-                    
-                    // 添加计划相关字段（即使为空也要发送，让后端处理）
-                    if (data.planned_subtask_id !== undefined) {
-                        body.planned_subtask_id = data.planned_subtask_id || null;
-                    }
-                    if (data.planned_subtask_name !== undefined) {
-                        body.planned_subtask_name = data.planned_subtask_name || null;
-                    }
-                    if (data.planned_project_name !== undefined) {
-                        body.planned_project_name = data.planned_project_name || null;
-                    }
-                    if (data.planned_project_id !== undefined) {
-                        body.planned_project_id = data.planned_project_id || null;
-                    }
-                    if (data.planned_notes !== undefined) {
-                        body.planned_notes = data.planned_notes;
-                    }
-                    
-                    // 添加实际相关字段（即使为空也要发送，让后端处理）
-                    if (data.actual_subtask_id !== undefined) {
-                        body.actual_subtask_id = data.actual_subtask_id || null;
-                    }
-                    if (data.actual_subtask_name !== undefined) {
-                        body.actual_subtask_name = data.actual_subtask_name || null;
-                    }
-                    if (data.actual_project_name !== undefined) {
-                        body.actual_project_name = data.actual_project_name || null;
-                    }
-                    if (data.actual_project_id !== undefined) {
-                        body.actual_project_id = data.actual_project_id || null;
-                    }
-                    if (data.actual_notes !== undefined) {
-                        body.actual_notes = data.actual_notes;
-                    }
+                    // 收集心情数据
                     if (data.mood !== undefined) {
-                        body.mood = data.mood;
-                    }
-                    
-                    console.log('构建的请求体:', body);
-                    
-                    if (data.schedule_id) {
-                        // 更新现有记录
-                        const url = `/api/schedule/${data.schedule_id}`;
-                        console.log('发送更新请求到:', url);
-                        console.log('请求体:', body);
-                        
-                        promise = fetch(url, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(body)
-                        }).then(async response => {
-                            console.log(`更新响应状态: ${response.status} ${response.statusText}`);
-                            if (!response.ok) {
-                                const errorText = await response.text();
-                                console.error('更新失败响应内容:', errorText);
-                                throw new Error(`更新失败: ${response.status} - ${errorText}`);
-                            }
-                            try {
-                                const responseData = await response.json();
-                                console.log('更新成功响应:', responseData);
-                            } catch (e) {
-                                console.log('更新成功，但响应不是JSON格式');
-                            }
-                            return response;
-                        });
-                        
-                        requestDetails.push({
-                            type: 'UPDATE',
-                            url: url,
-                            body: body,
-                            scheduleId: data.schedule_id
-                        });
-                    } else {
-                        // 创建新记录
-                        const url = '/api/schedule';
-                        console.log('发送创建请求到:', url);
-                        console.log('请求体:', body);
-                        
-                        promise = fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(body)
-                        }).then(async response => {
-                            console.log(`创建响应状态: ${response.status} ${response.statusText}`);
-                            if (!response.ok) {
-                                const errorText = await response.text();
-                                console.error('创建失败响应内容:', errorText);
-                                throw new Error(`创建失败: ${response.status} - ${errorText}`);
-                            }
-                            try {
-                                const responseData = await response.json();
-                                console.log('创建成功响应:', responseData);
-                            } catch (e) {
-                                console.log('创建成功，但响应不是JSON格式');
-                            }
-                            return response;
-                        });
-                        
-                        requestDetails.push({
-                            type: 'CREATE',
-                            url: url,
-                            body: body
+                        moodUpdates.push({
+                        schedule_date: data.schedule_date,
+                            time_slot: data.time_slot,
+                            mood: data.mood,
+                            schedule_id: data.schedule_id
                         });
                     }
-                    promises.push(promise);
-                }
-                
-                console.log('所有请求详情:', requestDetails);
-                console.log('开始执行所有请求...');
-                
-                const responses = await Promise.all(promises);
-                
-                console.log('所有请求完成，响应数量:', responses.length);
-                
-                // 检查所有响应
-                for (let i = 0; i < responses.length; i++) {
-                    if (!responses[i].ok) {
-                        console.error('请求失败:', responses[i].status, responses[i].statusText);
-                        throw new Error(`HTTP error! status: ${responses[i].status}`);
+                    
+                    // 收集计划任务数据
+                    if (data.planned_subtask_id !== undefined) {
+                        plannedTaskUpdates.push({
+                            schedule_date: data.schedule_date,
+                            time_slot: data.time_slot,
+                            subtask_id: data.planned_subtask_id,
+                            project_id: data.planned_project_id,
+                            schedule_id: data.schedule_id
+                        });
+                    }
+                    
+                    // 收集实际任务数据
+                    if (data.actual_subtask_id !== undefined) {
+                        actualTaskUpdates.push({
+                            schedule_date: data.schedule_date,
+                            time_slot: data.time_slot,
+                            subtask_id: data.actual_subtask_id,
+                            project_id: data.actual_project_id,
+                            schedule_id: data.schedule_id
+                        });
                     }
                 }
                 
-                // 清空本地缓存
+                // 批量保存心情数据
+                if (moodUpdates.length > 0) {
+                    console.log('批量保存心情数据:', moodUpdates);
+                    for (const moodData of moodUpdates) {
+                        await saveMoodToDatabase(
+                            moodData.time_slot, 
+                            moodData.mood, 
+                            moodData.schedule_id, 
+                            'actual'
+                        );
+                        savedCount++;
+                    }
+                    console.log(`成功保存 ${moodUpdates.length} 个心情数据`);
+                }
+                
+                // 批量保存计划任务数据
+                if (plannedTaskUpdates.length > 0) {
+                    console.log('批量保存计划任务数据:', plannedTaskUpdates);
+                    for (const taskData of plannedTaskUpdates) {
+                        await saveSubtaskToDatabase(
+                            taskData.time_slot,
+                            taskData.subtask_id,
+                            taskData.project_id,
+                            taskData.schedule_id,
+                            'planned'
+                        );
+                        savedCount++;
+                    }
+                    console.log(`成功保存 ${plannedTaskUpdates.length} 个计划任务数据`);
+                }
+                
+                // 批量保存实际任务数据
+                if (actualTaskUpdates.length > 0) {
+                    console.log('批量保存实际任务数据:', actualTaskUpdates);
+                    for (const taskData of actualTaskUpdates) {
+                        await saveSubtaskToDatabase(
+                            taskData.time_slot,
+                            taskData.subtask_id,
+                            taskData.project_id,
+                            taskData.schedule_id,
+                            'actual'
+                        );
+                        savedCount++;
+                }
+                    console.log(`成功保存 ${actualTaskUpdates.length} 个实际任务数据`);
+                }
+                
+                // 清空缓存
                 localScheduleCache.clear();
-                console.log('本地缓存已成功保存到数据库');
-                console.log('=== 保存完成 ===');
+                console.log('所有数据保存完成，缓存已清空');
                 
                 // 显示保存成功提示
-                showBatchSaveSuccess();
+                let message = '';
+                if (moodUpdates.length > 0) {
+                    message += `心情: ${moodUpdates.length}个 `;
+                }
+                if (plannedTaskUpdates.length > 0) {
+                    message += `计划任务: ${plannedTaskUpdates.length}个 `;
+                    }
+                if (actualTaskUpdates.length > 0) {
+                    message += `实际任务: ${actualTaskUpdates.length}个 `;
+                }
                 
-                // 注意：不重新加载数据，避免覆盖用户正在编辑的内容
-                // 数据已经保存到数据库，下次页面刷新时会显示最新数据
+                if (message) {
+                    showSaveSuccessMessage(`保存成功！${message}`);
+                }
                 
             } catch (error) {
                 console.error('=== 保存本地缓存失败 ===');
                 console.error('错误详情:', error);
-                console.error('错误堆栈:', error.stack);
-                showBatchSaveError(error.message);
+                showSaveErrorMessage('保存失败: ' + error.message);
             }
         }
 
-        // 显示批量保存成功提示
-        function showBatchSaveSuccess() {
-            // 在页面顶部显示成功提示
-            const successDiv = document.createElement('div');
-            successDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #28a745;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                z-index: 1000;
-                font-size: 14px;
-                font-weight: 500;
-                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-                animation: slideIn 0.3s ease-out;
-            `;
-            successDiv.textContent = '✓ 数据已保存到数据库';
-            document.body.appendChild(successDiv);
+        // 显示保存成功提示
+        function showSaveSuccessMessage(message) {
+            // 创建提示元素
+            const notification = document.createElement('div');
+            notification.className = 'save-notification success';
+            notification.textContent = message;
             
-            setTimeout(() => {
-                successDiv.style.animation = 'slideOut 0.3s ease-in';
-                setTimeout(() => {
-                    if (document.body.contains(successDiv)) {
-                        document.body.removeChild(successDiv);
-                    }
-                }, 300);
-            }, 2000);
-        }
-
-        // 显示批量保存错误提示
-        function showBatchSaveError(message) {
-            // 在页面顶部显示错误提示
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = `
+            // 设置样式
+            notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: #dc3545;
+                background: #10b981;
                 color: white;
-                padding: 12px 24px;
+                padding: 12px 20px;
                 border-radius: 8px;
-                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
                 font-size: 14px;
                 font-weight: 500;
-                box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-                animation: slideIn 0.3s ease-out;
-                max-width: 400px;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
                 word-wrap: break-word;
             `;
-            errorDiv.textContent = `✗ 保存失败: ${message || '请重试'}`;
-            document.body.appendChild(errorDiv);
             
+            // 添加到页面
+            document.body.appendChild(notification);
+            
+            // 显示动画
             setTimeout(() => {
-                errorDiv.style.animation = 'slideOut 0.3s ease-in';
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒后自动隐藏
                 setTimeout(() => {
-                    if (document.body.contains(errorDiv)) {
-                        document.body.removeChild(errorDiv);
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
                     }
                 }, 300);
-            }, 5000); // 延长显示时间到5秒，让用户有足够时间看到错误信息
+            }, 3000);
         }
+
+        // 显示保存失败提示
+        function showSaveErrorMessage(message) {
+            // 创建提示元素
+            const notification = document.createElement('div');
+            notification.className = 'save-notification error';
+            notification.textContent = message;
+            
+            // 设置样式
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #ef4444;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 300px;
+                word-wrap: break-word;
+            `;
+            
+            // 添加到页面
+            document.body.appendChild(notification);
+            
+            // 显示动画
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 5秒后自动隐藏（错误提示显示更长时间）
+                setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
         
         // 恢复本地缓存中的编辑状态
         function restoreLocalCacheState() {
@@ -4093,16 +4023,14 @@
         // 显示填充成功提示
         function showFillSuccess(element, subtaskName) {
             const originalText = element.textContent;
-            const originalColor = element.getAttribute('data-project-color') || '#007bff';
-            
+            // 不改变背景/边框颜色，仅改文案
             element.textContent = '✓ 已分配';
-            element.style.background = '#28a745';
-            element.style.borderColor = '#28a745';
             
             setTimeout(() => {
                 element.textContent = subtaskName;
-                element.style.background = originalColor;
-                element.style.borderColor = originalColor;
+                // 恢复为透明（不使用项目色）
+                element.style.background = 'transparent';
+                element.style.borderColor = 'transparent';
             }, 1000);
         }
 
@@ -4409,6 +4337,11 @@
             }
         }
         
+        // 手动设置特定元素背景图片（用于测试）
+        function setBackgroundNow() {
+            setSpecificElementBackground();
+        }
+        
         // 强制触发空白备注保存
         function forceTriggerEmptyNotesSave() {
             console.log('=== 强制触发空白备注保存 ===');
@@ -4460,7 +4393,7 @@
             }
         }
 
-        async function quickSetMood(mood) {
+        function quickSetMood(mood) {
             try {
                 let timeSlot = null;
                 let scheduleId = null;
@@ -4474,10 +4407,10 @@
                     const moodCell = selectedRow.querySelector('.mood-column');
                     if (moodCell) {
                         moodSpan = moodCell.querySelector('.mood-text');
-                        if (moodSpan) {
-                            timeSlot = moodSpan.getAttribute('data-time-slot');
-                            scheduleId = moodSpan.getAttribute('data-schedule-id');
-                            fieldType = moodSpan.getAttribute('data-field-type') || 'actual';
+                    if (moodSpan) {
+                        timeSlot = moodSpan.getAttribute('data-time-slot');
+                        scheduleId = moodSpan.getAttribute('data-schedule-id');
+                        fieldType = moodSpan.getAttribute('data-field-type') || 'actual';
                             
                             // 自动选中心情列
                             document.querySelectorAll('.mood-column.selected').forEach(c => c.classList.remove('selected'));
@@ -4498,7 +4431,7 @@
                 }
                 updateMoodDisplay(timeSlot, mood, fieldType);
 
-                // 先缓存到本地，500ms后保存到数据库
+                // 写入本地缓存 -> 由延迟保存统一落库
                 const cacheKey = `${selectedDate}_${timeSlot}`;
                 const existingData = localScheduleCache.get(cacheKey) || {};
                 const updatedData = {
@@ -4509,14 +4442,6 @@
                     mood: mood
                 };
                 localScheduleCache.set(cacheKey, updatedData);
-                
-                console.log('心情数据已写入缓存:', {
-                    cacheKey,
-                    updatedData,
-                    cacheSize: localScheduleCache.size
-                });
-                
-                // 延迟保存到数据库
                 scheduleDelayedSave();
 
                 // 先跳转，提升流畅度
@@ -4553,20 +4478,18 @@
         })();
 
         function applyMoodStyle(moodElement, mood) {
-            const { emoji, bg, text, border } = getMoodStyle(mood);
+            const { emoji } = getMoodStyle(mood);
             moodElement.textContent = emoji ? `${emoji} ${mood}` : mood || '-';
             
-            // 贪吃蛇方块样式 - 纯色非透明背景
-            moodElement.style.backgroundColor = bg;
-            moodElement.style.borderColor = 'transparent'; // 无边框
-            moodElement.style.color = text;
-            
-            // 移除所有装饰效果，保持纯色方块
+            // 取消背景色与边框、还原文字颜色
+            moodElement.style.backgroundColor = 'transparent';
+            moodElement.style.borderColor = 'transparent';
+            moodElement.style.color = '';
             moodElement.style.backdropFilter = 'none';
             moodElement.style.boxShadow = 'none';
-            moodElement.style.opacity = '1'; // 完全不透明
-            moodElement.style.borderRadius = '0'; // 无圆角
-            moodElement.style.border = 'none'; // 无边框
+            moodElement.style.opacity = '';
+            moodElement.style.borderRadius = '0';
+            moodElement.style.border = 'none';
         }
 
         function applyAllMoodStyles() {
@@ -4584,6 +4507,55 @@
 
 
 
+        // 设置特定元素的背景图片
+        function setSpecificElementBackground() {
+            // 选择多个目标元素
+            const targetSelectors = [
+                '#scheduleBody > tr:nth-child(1) > td:nth-child(4) > div',
+                '#scheduleBody > tr:nth-child(2) > td:nth-child(4) > div'
+            ];
+            
+            targetSelectors.forEach((selector, index) => {
+                const specificElement = document.querySelector(selector);
+                
+                if (specificElement) {
+                    console.log(`找到目标元素 ${index + 1}:`, specificElement);
+                    
+                    // 从背景图2文件夹中选择一张图片
+                    const backgroundImages = [
+                        '/static/images/背景图2/树屋.png',
+                        '/static/images/背景图2/沙漏.png',
+                        '/static/images/背景图2/猫咪.png',
+                        '/static/images/背景图2/猫咪2.png'
+                    ];
+                    
+                    // 为每个元素选择不同的图片
+                    const selectedImage = backgroundImages[index % backgroundImages.length];
+                    
+                    console.log(`为元素 ${index + 1} 设置背景图片:`, selectedImage);
+                    
+                    // 设置背景图片
+                    specificElement.style.backgroundImage = `url('${selectedImage}')`;
+                    specificElement.classList.add('task-badge-with-bg');
+                    
+                    // 设置文字颜色为白色，确保在背景图片上可读
+                    specificElement.style.color = '#ffffff';
+                    
+                    // 如果元素有内容，确保内容可见
+                    if (specificElement.textContent.trim()) {
+                        console.log(`元素 ${index + 1} 内容:`, specificElement.textContent);
+                    } else {
+                        // 如果没有内容，添加一些示例文本
+                        specificElement.textContent = `示例任务 ${index + 1}`;
+                        console.log(`为元素 ${index + 1} 添加了示例文本`);
+                    }
+                    
+                } else {
+                    console.log(`未找到目标元素 ${index + 1}:`, selector);
+                }
+            });
+        }
+
         // 页面加载完成后启动粒子系统
         document.addEventListener('DOMContentLoaded', () => {
             console.log('页面加载完成，启动粒子系统...');
@@ -4593,10 +4565,11 @@
             // 初始化心情快捷输入功能
             initMoodQuickInput();
             
-            // 设置子任务按钮的随机背景图
+            // 延迟设置特定元素背景图片，确保DOM完全加载
             setTimeout(() => {
-                setTaskBadgeBackgrounds();
-            }, 1000); // 延迟1秒，确保DOM完全加载
+                // 取消特定元素背景设置
+                // setSpecificElementBackground();
+            }, 1000);
         });
 
         // 绿色叶子飘落粒子 - 模仿贪吃蛇的背景流星
@@ -5016,226 +4989,295 @@
             moodElement.textContent = '-';
             
             // 保存到数据库 - 独立保存这一行这一列
-            prepareMoodData(timeSlot, scheduleId, null, fieldType);
+            saveMoodToDatabase(timeSlot, null, scheduleId, fieldType);
             
             // 自动跳转到下一行
             autoJumpToNextRow();
         }
         
-        // 延迟保存机制
-        function scheduleDelayedSave() {
-            // 清除之前的定时器
-            if (scheduleSaveTimeout) {
-                clearTimeout(scheduleSaveTimeout);
+        // 保存子任务到数据库
+        async function saveSubtaskToDatabase(timeSlot, subtaskId, projectId, scheduleId, fieldType) {
+            try {
+                if (!scheduleId) {
+                    // 如果没有日程ID，需要先创建日程
+                    const newSchedule = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot
+                    };
+                    
+                    // 根据字段类型设置相应的子任务ID
+                    if (fieldType === 'planned') {
+                        newSchedule.planned_subtask_id = subtaskId;
+                    } else if (fieldType === 'actual') {
+                        newSchedule.actual_subtask_id = subtaskId;
+                    }
+                    
+                    const response = await fetch('/api/schedule', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newSchedule)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('子任务保存成功:', result);
+                        // 刷新数据
+                        await loadScheduleData(selectedDate);
+                    } else {
+                        const errorText = await response.text();
+                        console.error('子任务保存失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`保存失败: ${response.status} - ${errorText}`);
+                    }
+                } else {
+                    // 更新现有日程的子任务
+                    const updateData = {
+                        schedule_date: selectedDate,
+                        time_slot: timeSlot
+                    };
+                    
+                    // 根据字段类型设置相应的子任务ID
+                    if (fieldType === 'planned') {
+                        updateData.planned_subtask_id = subtaskId;
+                    } else if (fieldType === 'actual') {
+                        updateData.actual_subtask_id = subtaskId;
+                    }
+                    
+                    const response = await fetch(`/api/schedule/${scheduleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('子任务更新成功');
+                    } else {
+                        const errorText = await response.text();
+                        console.error('子任务更新失败，状态码:', response.status, '错误信息:', errorText);
+                        throw new Error(`更新失败: ${response.status} - ${errorText}`);
+                    }
+                }
+            } catch (error) {
+                console.error('保存子任务失败:', error);
+                throw error;
+            }
+        }
+        
+        // === 日程表字段的防抖保存机制（模仿心情保存） ===
+        
+        // 保存计划任务到数据库
+        function savePlannedTaskToDatabase(timeSlot, subtaskId, subtaskName, projectId, projectName, scheduleId) {
+            const data = {
+                time_slot: timeSlot,
+                subtask_id: subtaskId,
+                subtask_name: subtaskName,
+                project_id: projectId,
+                project_name: projectName,
+                field_type: 'planned'
+            };
+            
+            if (scheduleId) {
+                data.schedule_id = scheduleId;
             }
             
-            // 设置新的定时器，500ms后保存
-            scheduleSaveTimeout = setTimeout(async () => {
-                try {
-                    // 收集所有需要保存的数据
-                    const moodUpdates = [];
-                    const plannedTaskUpdates = [];
-                    const actualTaskUpdates = [];
-                    
-                    for (const [cacheKey, data] of localScheduleCache) {
-                        console.log('缓存数据:', cacheKey, data);
-                        
-                        // 收集心情数据
-                        if (data.mood !== undefined) {
-                            moodUpdates.push({
-                                schedule_date: data.schedule_date,
-                                time_slot: data.time_slot,
-                                mood: data.mood,
-                                schedule_id: data.schedule_id
-                            });
-                        }
-                        
-                        // 收集计划任务数据
-                        if (data.planned_subtask_id !== undefined) {
-                            plannedTaskUpdates.push({
-                                schedule_date: data.schedule_date,
-                                time_slot: data.time_slot,
-                                subtask_id: data.planned_subtask_id,
-                                project_id: data.planned_project_id,
-                                schedule_id: data.schedule_id
-                            });
-                        }
-                        
-                        // 收集实际任务数据
-                        if (data.actual_subtask_id !== undefined) {
-                            actualTaskUpdates.push({
-                                schedule_date: data.schedule_date,
-                                time_slot: data.time_slot,
-                                subtask_id: data.actual_subtask_id,
-                                project_id: data.actual_project_id,
-                                schedule_id: data.schedule_id
-                            });
-                        }
-                    }
-                    
-                    let savedCount = 0;
-                    
-                    // 批量保存心情数据
-                    if (moodUpdates.length > 0) {
-                        console.log('批量保存心情数据:', moodUpdates);
-                        for (const moodData of moodUpdates) {
-                            await saveMoodToDatabase(
-                                moodData.time_slot, 
-                                moodData.mood, 
-                                moodData.schedule_id, 
-                                'actual'
-                            );
-                        }
-                        savedCount += moodUpdates.length;
-                        console.log(`成功保存 ${moodUpdates.length} 个心情数据`);
-                    }
-                    
-                    // 批量保存计划任务数据
-                    if (plannedTaskUpdates.length > 0) {
-                        console.log('批量保存计划任务数据:', plannedTaskUpdates);
-                        for (const taskData of plannedTaskUpdates) {
-                            await saveSubtaskToDatabase(
-                                taskData.time_slot,
-                                taskData.subtask_id,
-                                taskData.project_id,
-                                taskData.schedule_id,
-                                'planned'
-                            );
-                        }
-                        savedCount += plannedTaskUpdates.length;
-                        console.log(`成功保存 ${plannedTaskUpdates.length} 个计划任务数据`);
-                    }
-                    
-                    // 批量保存实际任务数据
-                    if (actualTaskUpdates.length > 0) {
-                        console.log('批量保存实际任务数据:', actualTaskUpdates);
-                        for (const taskData of actualTaskUpdates) {
-                            await saveSubtaskToDatabase(
-                                taskData.time_slot,
-                                taskData.subtask_id,
-                                taskData.project_id,
-                                taskData.schedule_id,
-                                'actual'
-                            );
-                        }
-                        savedCount += actualTaskUpdates.length;
-                        console.log(`成功保存 ${actualTaskUpdates.length} 个实际任务数据`);
-                    }
-                    
-                    // 清空缓存
-                    localScheduleCache.clear();
-                    console.log('所有数据保存完成，缓存已清空');
-                    
-                    // 显示保存成功提示
-                    let message = '';
-                    if (moodUpdates.length > 0) {
-                        message += `心情: ${moodUpdates.length}个 `;
-                    }
-                    if (plannedTaskUpdates.length > 0) {
-                        message += `计划任务: ${plannedTaskUpdates.length}个 `;
-                    }
-                    if (actualTaskUpdates.length > 0) {
-                        message += `实际任务: ${actualTaskUpdates.length}个 `;
-                    }
-                    
-                    if (message) {
-                        showSaveSuccessMessage(`保存成功！${message}`);
-                    }
-                } catch (error) {
-                    console.error('保存数据时出错:', error);
-                    showSaveErrorMessage('保存失败: ' + error.message);
-                }
+            scheduleDelayedPlannedTaskSave(data);
+        }
+        
+        // 保存计划备注到数据库
+        function savePlannedNotesToDatabase(timeSlot, notes, scheduleId) {
+            const data = {
+                time_slot: timeSlot,
+                notes: notes,
+                field_type: 'planned'
+            };
+            
+            if (scheduleId) {
+                data.schedule_id = scheduleId;
+            }
+            
+            scheduleDelayedPlannedNotesSave(data);
+        }
+        
+        // 保存实际任务到数据库
+        function saveActualTaskToDatabase(timeSlot, subtaskId, subtaskName, projectId, projectName, scheduleId) {
+            const data = {
+                time_slot: timeSlot,
+                subtask_id: subtaskId,
+                subtask_name: subtaskName,
+                project_id: projectId,
+                project_name: projectName,
+                field_type: 'actual'
+            };
+            
+            if (scheduleId) {
+                data.schedule_id = scheduleId;
+            }
+            
+            scheduleDelayedActualTaskSave(data);
+        }
+        
+        // 保存实际备注到数据库
+        function saveActualNotesToDatabase(timeSlot, notes, scheduleId) {
+            const data = {
+                time_slot: timeSlot,
+                notes: notes,
+                field_type: 'actual'
+            };
+            
+            if (scheduleId) {
+                data.schedule_id = scheduleId;
+            }
+            
+            scheduleDelayedActualNotesSave(data);
+        }
+        
+        // 计划任务延迟保存机制
+        function scheduleDelayedPlannedTaskSave(data) {
+            if (window.plannedTaskSaveTimeout) {
+                clearTimeout(window.plannedTaskSaveTimeout);
+            }
+            
+            window.plannedTaskSaveTimeout = setTimeout(() => {
+                savePlannedTaskData(data);
             }, 500);
         }
-
-        // 显示保存成功提示
-        function showSaveSuccessMessage(message) {
-            // 创建提示元素
-            const notification = document.createElement('div');
-            notification.className = 'save-notification success';
-            notification.textContent = message;
+        
+        // 计划备注延迟保存机制
+        function scheduleDelayedPlannedNotesSave(data) {
+            if (window.plannedNotesSaveTimeout) {
+                clearTimeout(window.plannedNotesSaveTimeout);
+            }
             
-            // 设置样式
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #10b981;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                z-index: 10000;
-                font-size: 14px;
-                font-weight: 500;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
-            
-            // 添加到页面
-            document.body.appendChild(notification);
-            
-            // 显示动画
-            setTimeout(() => {
-                notification.style.transform = 'translateX(0)';
-            }, 100);
-            
-            // 3秒后自动隐藏
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 3000);
+            window.plannedNotesSaveTimeout = setTimeout(() => {
+                savePlannedNotesData(data);
+            }, 500);
         }
-
-        // 显示保存失败提示
-        function showSaveErrorMessage(message) {
-            // 创建提示元素
-            const notification = document.createElement('div');
-            notification.className = 'save-notification error';
-            notification.textContent = message;
+        
+        // 实际任务延迟保存机制
+        function scheduleDelayedActualTaskSave(data) {
+            if (window.actualTaskSaveTimeout) {
+                clearTimeout(window.actualTaskSaveTimeout);
+            }
             
-            // 设置样式
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #ef4444;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                z-index: 10000;
-                font-size: 14px;
-                font-weight: 500;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
+            window.actualTaskSaveTimeout = setTimeout(() => {
+                saveActualTaskData(data);
+            }, 500);
+        }
+        
+        // 实际备注延迟保存机制
+        function scheduleDelayedActualNotesSave(data) {
+            if (window.actualNotesSaveTimeout) {
+                clearTimeout(window.actualNotesSaveTimeout);
+            }
             
-            // 添加到页面
-            document.body.appendChild(notification);
+            window.actualNotesSaveTimeout = setTimeout(() => {
+                saveActualNotesData(data);
+            }, 500);
+        }
+        
+        // 实际保存计划任务数据到数据库
+        async function savePlannedTaskData(data) {
+            try {
+                await saveTaskToDatabase(data.time_slot, data.subtask_id, data.subtask_name, data.project_id, data.project_name, data.schedule_id, 'planned');
+                console.log('计划任务保存成功:', data);
+            } catch (error) {
+                console.error('保存计划任务时出错:', error);
+            }
+        }
+        
+        // 实际保存计划备注数据到数据库
+        async function savePlannedNotesData(data) {
+            try {
+                await saveNotesToDatabase(data.time_slot, data.notes, data.schedule_id, 'planned');
+                console.log('计划备注保存成功:', data);
+            } catch (error) {
+                console.error('保存计划备注时出错:', error);
+            }
+        }
+        
+        // 实际保存实际任务数据到数据库
+        async function saveActualTaskData(data) {
+            try {
+                await saveTaskToDatabase(data.time_slot, data.subtask_id, data.subtask_name, data.project_id, data.project_name, data.schedule_id, 'actual');
+                console.log('实际任务保存成功:', data);
+            } catch (error) {
+                console.error('保存实际任务时出错:', error);
+            }
+        }
+        
+        // 实际保存实际备注数据到数据库
+        async function saveActualNotesData(data) {
+            try {
+                await saveNotesToDatabase(data.time_slot, data.notes, data.schedule_id, 'actual');
+                console.log('实际备注保存成功:', data);
+            } catch (error) {
+                console.error('保存实际备注时出错:', error);
+            }
+        }
+        
+        // === 字段识别和数据提取辅助函数 ===
+        
+        // 从元素获取任务数据
+        function getTaskDataFromElement(element) {
+            const taskBadge = element.querySelector('.task-badge');
+            if (!taskBadge) return null;
             
-            // 显示动画
-            setTimeout(() => {
-                notification.style.transform = 'translateX(0)';
-            }, 100);
+            return {
+                timeSlot: taskBadge.getAttribute('data-time-slot'),
+                scheduleId: taskBadge.getAttribute('data-schedule-id'),
+                subtaskId: taskBadge.getAttribute('data-subtask-id'),
+                subtaskName: taskBadge.textContent.trim(),
+                projectId: taskBadge.getAttribute('data-project-id'),
+                projectName: taskBadge.getAttribute('data-project-name'),
+                fieldType: taskBadge.getAttribute('data-field-type')
+            };
+        }
+        
+        // 从元素获取备注数据
+        function getNotesDataFromElement(element) {
+            if (!element.classList.contains('notes-text')) return null;
             
-            // 5秒后自动隐藏（错误提示显示更长时间）
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000);
+            return {
+                timeSlot: element.getAttribute('data-time-slot'),
+                scheduleId: element.getAttribute('data-schedule-id'),
+                notes: element.textContent.trim(),
+                fieldType: element.getAttribute('data-field-type')
+            };
+        }
+        
+        // 触发计划任务保存
+        function triggerPlannedTaskSave(taskBadge) {
+            const data = getTaskDataFromElement(taskBadge.closest('td'));
+            if (data && data.fieldType === 'planned') {
+                savePlannedTaskToDatabase(data.timeSlot, data.subtaskId, data.subtaskName, data.projectId, data.projectName, data.scheduleId);
+            }
+        }
+        
+        // 触发计划备注保存
+        function triggerPlannedNotesSave(notesElement) {
+            const data = getNotesDataFromElement(notesElement);
+            if (data && data.fieldType === 'planned') {
+                savePlannedNotesToDatabase(data.timeSlot, data.notes, data.scheduleId);
+            }
+        }
+        
+        // 触发实际任务保存
+        function triggerActualTaskSave(taskBadge) {
+            const data = getTaskDataFromElement(taskBadge.closest('td'));
+            if (data && data.fieldType === 'actual') {
+                saveActualTaskToDatabase(data.timeSlot, data.subtaskId, data.subtaskName, data.projectId, data.projectName, data.scheduleId);
+            }
+        }
+        
+        // 触发实际备注保存
+        function triggerActualNotesSave(notesElement) {
+            const data = getNotesDataFromElement(notesElement);
+            if (data && data.fieldType === 'actual') {
+                saveActualNotesToDatabase(data.timeSlot, data.notes, data.scheduleId);
+            }
         }
         
         // 自动跳转到下一行（通用函数，支持所有列）

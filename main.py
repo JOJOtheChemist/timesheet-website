@@ -33,6 +33,7 @@ class ScheduleItem(BaseModel):
     planned_notes: Optional[str] = None
     actual_subtask_id: Optional[int] = None
     actual_notes: Optional[str] = None
+    mood: Optional[str] = None
     project_color: Optional[str] = None
 
 class Project(BaseModel):
