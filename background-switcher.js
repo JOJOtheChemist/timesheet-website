@@ -61,18 +61,16 @@ class BackgroundSwitcher {
     }
     
     bindEvents() {
-        // 监听滚动事件，检测 schedule-table-container 的滚动
+        // 只监听日程表容器的滚动事件
         const scheduleContainer = document.querySelector('body > div.container > div.main-content > div.schedule-table-container');
         if (scheduleContainer) {
             scheduleContainer.addEventListener('scroll', (e) => {
                 this.handleScroll(e);
             });
+            console.log('🎯 已绑定日程表滚动事件监听器');
+        } else {
+            console.warn('⚠️ 未找到日程表容器，背景自动切换功能将不可用');
         }
-        
-        // 监听页面滚动
-        window.addEventListener('scroll', (e) => {
-            this.handleScroll(e);
-        });
         
         // 键盘快捷键
         document.addEventListener('keydown', (e) => {
