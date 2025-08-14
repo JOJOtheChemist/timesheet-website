@@ -441,7 +441,6 @@
         .task-badge {
             display: block;
             padding: 4px 16px; /* 减少上下padding，让行高保持22px */
-            background: #007bff;
             color: white;
             border-radius: 8px;
             font-size: 12px;
@@ -455,8 +454,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* 添加随机背景图和阴影效果 */
-            background-image: var(--task-badge-bg, none);
+            /* 使用背景图替代纯色背景 */
+            background-image: var(--task-badge-bg, #007bff);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -484,9 +483,8 @@
         }
 
         .task-badge:hover {
-            background: #0056b3;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             width: 140px;
             white-space: nowrap;
             overflow: hidden;
@@ -495,7 +493,6 @@
         }
 
         .task-badge.selected {
-            background: #28a745;
             border-color: #28a745;
             box-shadow: 0 4px 16px rgba(40, 167, 69, 0.4);
             transform: translateY(-1px);
@@ -1779,7 +1776,7 @@
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-project-color="${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}"
                                      data-field-type="planned"
-                                     style="background: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}; border-color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor};">
+                                     style="border-color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor};">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
                                 </div>
                             </td>
@@ -1800,7 +1797,7 @@
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-project-color="${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}"
                                      data-field-type="actual"
-                                     style="background: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}; border-color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor};">
+                                     style="border-color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor};">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
                                 </div>
                             </td>
@@ -2638,8 +2635,8 @@
         function setTaskBadgeBackgrounds() {
             const taskBadges = document.querySelectorAll('.task-badge');
             taskBadges.forEach(badge => {
-                // 跳过空状态和选中状态的按钮
-                if (badge.classList.contains('empty') || badge.classList.contains('selected')) {
+                // 跳过空状态的按钮
+                if (badge.classList.contains('empty')) {
                     return;
                 }
                 
