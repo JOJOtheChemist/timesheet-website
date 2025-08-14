@@ -3677,7 +3677,8 @@
                 const nextRowIndex = Math.min(currentEditingRow + 1, rows.length - 1);
                 const nextRow = rows[nextRowIndex];
                 if (!nextRow) return;
-                const nextCell = nextRow.children[currentEditingColumn];
+                // 跳转到下一行的第4列（实际任务列）
+                const nextCell = nextRow.children[3]; // 第4列（索引为3）
                 if (!nextCell) return;
                 
                 // 清除之前高亮
@@ -3694,6 +3695,7 @@
                 // 高亮整行
                 nextRow.classList.add('selected-row');
                 currentEditingRow = nextRowIndex;
+                currentEditingColumn = 3; // 更新为第4列（索引为3）
                 
                 // 如果是任务列，设置 selectedTimeSlotElement 以保持一致操作
                 if (nextCell.classList.contains('task-column')) {
