@@ -5119,8 +5119,19 @@
                     console.log('所有数据保存完成，缓存已清空');
                     
                     // 显示保存成功提示
-                    if (savedCount > 0) {
-                        showSaveSuccessMessage(`成功保存 ${savedCount} 个数据！`);
+                    let message = '';
+                    if (moodUpdates.length > 0) {
+                        message += `心情: ${moodUpdates.length}个 `;
+                    }
+                    if (plannedTaskUpdates.length > 0) {
+                        message += `计划任务: ${plannedTaskUpdates.length}个 `;
+                    }
+                    if (actualTaskUpdates.length > 0) {
+                        message += `实际任务: ${actualTaskUpdates.length}个 `;
+                    }
+                    
+                    if (message) {
+                        showSaveSuccessMessage(`保存成功！${message}`);
                     }
                 } catch (error) {
                     console.error('保存数据时出错:', error);
