@@ -4965,18 +4965,36 @@
             // 设置新的定时器，500ms后保存
             scheduleSaveTimeout = setTimeout(async () => {
                 try {
-                    // 保存所有缓存的数据
+                    // 收集所有需要保存的心情数据
+                    const moodUpdates = [];
+                    
                     for (const [cacheKey, data] of localScheduleCache) {
-                        console.log('保存缓存数据:', cacheKey, data);
+                        console.log('缓存数据:', cacheKey, data);
                         
-                        if (data.mood) {
-                            // 保存心情数据
-                            await saveMoodToDatabase(data.time_slot, data.mood, data.schedule_id, 'actual');
-                            console.log('心情保存成功:', data.mood);
+                        if (data.mood !== undefined) {
+                            moodUpdates.push({
+                                schedule_date: data.schedule_date,
+                                time_slot: data.time_slot,
+                                mood: data.mood,
+                                schedule_id: data.schedule_id
+                            });
+                        }
+                    }
+                    
+                    if (moodUpdates.length > 0) {
+                        console.log('批量保存心情数据:', moodUpdates);
+                        
+                        // 批量保存所有心情数据
+                        for (const moodData of moodUpdates) {
+                            await saveMoodToDatabase(
+                                moodData.time_slot, 
+                                moodData.mood, 
+                                moodData.schedule_id, 
+                                'actual'
+                            );
                         }
                         
-                        // 这里可以添加其他字段的保存逻辑
-                        // 比如子任务、备注等
+                        console.log(`成功保存 ${moodUpdates.length} 个心情数据`);
                     }
                     
                     // 清空缓存
@@ -4984,7 +5002,7 @@
                     console.log('所有数据保存完成，缓存已清空');
                     
                     // 显示保存成功提示
-                    showSaveSuccessMessage('数据保存成功！');
+                    showSaveSuccessMessage(`成功保存 ${moodUpdates.length} 个心情数据！`);
                 } catch (error) {
                     console.error('保存数据时出错:', error);
                     showSaveErrorMessage('保存失败: ' + error.message);
