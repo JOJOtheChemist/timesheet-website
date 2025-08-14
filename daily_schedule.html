@@ -408,7 +408,7 @@
         }
 
         .task-column.selected {
-            background-color: #e8f5e8;
+            background-color: transparent;
         }
 
         .schedule-table tbody tr:hover {
@@ -523,8 +523,8 @@
             position: relative;
             padding: 4px 8px;
             background: rgba(10, 10, 26, 0.3); /* 贪吃蛇风格的透明背景 */
-            border: 1px solid rgba(79, 156, 255, 0.2); /* 蓝色边框 */
-            border-radius: 4px;
+            border: none; /* 移除蓝色边框 */
+            border-radius: 0; /* 移除圆角 */
             transition: all 0.2s ease;
         }
 
@@ -537,7 +537,6 @@
         .mood-column.selected {
             background: rgba(79, 156, 255, 0.15) !important;
             border-color: rgba(79, 156, 255, 0.6) !important;
-            box-shadow: inset 0 0 0 2px rgba(79, 156, 255, 0.6), 0 0 12px rgba(79, 156, 255, 0.35);
         }
 
         .mood-text {
@@ -1660,40 +1659,6 @@
             </div>
         </div>
 
-        <!-- 心情选择器模态框 -->
-        <div id="moodModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-            <div class="mood-modal-panel bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900">选择心情</h3>
-                    <button onclick="closeMoodModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-                <div class="grid grid-cols-3 gap-3 mb-4">
-                    <button onclick="selectMood('开心')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">
-                        😊 开心
-                    </button>
-                    <button onclick="selectMood('超级开心')" class="mood-btn bg-yellow-200 hover:bg-yellow-300 text-yellow-900 border-yellow-400">
-                        😄 超级开心
-                    </button>
-                    <button onclick="selectMood('一般')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">
-                        😐 一般
-                    </button>
-                    <button onclick="selectMood('疲惫')" class="mood-btn bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300">
-                        😴 疲惫
-                    </button>
-                    <button onclick="selectMood('烦躁')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">
-                        😤 烦躁
-                    </button>
-                    <button onclick="selectMood('专注')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">
-                        🎯 专注
-                    </button>
-                </div>
-
-            </div>
-        </div>
     </div>
 
     <script>
@@ -2664,6 +2629,14 @@
                 element.addEventListener('input', handleNotesInput);
             });
             
+            // 为心情列添加键盘事件监听器（在父元素上）
+            const moodColumns = document.querySelectorAll('.mood-column');
+            moodColumns.forEach(column => {
+                column.addEventListener('keydown', handleMoodKeydown);
+                // 设置tabindex使元素可以获得焦点
+                column.setAttribute('tabindex', '0');
+            });
+            
             // 添加全局点击事件监听器
             document.addEventListener('click', handleGlobalClick);
             
@@ -2736,8 +2709,8 @@
             const element = event.target;
             if (element.classList.contains('editing')) return;
             
-            // 阻止事件冒泡，避免触发单元格选择
-            event.stopPropagation();
+            // 不阻止事件冒泡，让第一次点击能触发单元格选择
+            // event.stopPropagation();
             
             startEditing(element);
         }
@@ -3211,10 +3184,10 @@
             clickedCell.classList.add('selected');
             
             // 高亮整行
+            const row = clickedCell.closest('tr');
             row.classList.add('selected-row');
             
             // 记录当前编辑的行和列（用于自动跳转）
-            const row = clickedCell.closest('tr');
             const rowIndex = Array.from(row.parentNode.children).indexOf(row);
             const cellIndex = Array.from(row.children).indexOf(clickedCell);
             
@@ -3265,15 +3238,18 @@
             clickedCell.classList.add('selected');
             
             // 高亮整行
+            const row = clickedCell.closest('tr');
             row.classList.add('selected-row');
             
             // 记录当前编辑的行和列（用于自动跳转）
-            const row = clickedCell.closest('tr');
             const rowIndex = Array.from(row.parentNode.children).indexOf(row);
             const cellIndex = Array.from(row.children).indexOf(clickedCell);
             
             currentEditingRow = rowIndex;
             currentEditingColumn = cellIndex;
+            
+            // 让选中的心情单元格获得焦点，以便接收键盘事件
+            clickedCell.focus();
             
             // 不弹出心情选择器，改为仅高亮选中，等待左侧快捷按钮输入
             console.log(`已选择心情单元格: ${timeSlot}, 日程ID: ${scheduleId}`);
@@ -4378,38 +4354,32 @@
 
         function quickSetMood(mood) {
             try {
-                const selectedCell = document.querySelector('.mood-column.selected');
                 let timeSlot = null;
                 let scheduleId = null;
                 let fieldType = 'actual';
                 let moodSpan = null;
 
-                if (selectedCell) {
-                    moodSpan = selectedCell.querySelector('.mood-text');
-                    if (moodSpan) {
-                        timeSlot = moodSpan.getAttribute('data-time-slot');
-                        scheduleId = moodSpan.getAttribute('data-schedule-id');
-                        fieldType = moodSpan.getAttribute('data-field-type') || 'actual';
-                    }
-                }
-
-                // 若未直接选中文心情单元格，尝试使用最近选择的时间槽
-                if (!timeSlot && selectedTimeSlot) {
-                    moodSpan = document.querySelector(`.mood-text[data-time-slot="${selectedTimeSlot}"][data-field-type="${selectedFieldType}"]`)
-                    if (moodSpan) {
-                        timeSlot = selectedTimeSlot;
-                        scheduleId = moodSpan.getAttribute('data-schedule-id');
-                        fieldType = moodSpan.getAttribute('data-field-type') || selectedFieldType || 'actual';
-                        const cell = moodSpan.closest('.mood-column');
-                        if (cell) {
+                // 直接从高亮的行获取心情信息
+                const selectedRow = document.querySelector('tr.selected-row');
+                if (selectedRow) {
+                    // 从高亮行的心情列获取信息
+                    const moodCell = selectedRow.querySelector('.mood-column');
+                    if (moodCell) {
+                        moodSpan = moodCell.querySelector('.mood-text');
+                        if (moodSpan) {
+                            timeSlot = moodSpan.getAttribute('data-time-slot');
+                            scheduleId = moodSpan.getAttribute('data-schedule-id');
+                            fieldType = moodSpan.getAttribute('data-field-type') || 'actual';
+                            
+                            // 自动选中心情列
                             document.querySelectorAll('.mood-column.selected').forEach(c => c.classList.remove('selected'));
-                            cell.classList.add('selected');
+                            moodCell.classList.add('selected');
                         }
                     }
                 }
 
                 if (!timeSlot) {
-                    alert('请先点击右侧表格中的"心情"单元格');
+                    alert('请先点击表格中的任意单元格选择一行');
                     return;
                 }
 
@@ -4889,6 +4859,114 @@
         let isExpanded = false;
         let touchStartTime = 0;
         let touchStartPos = { x: 0, y: 0 };
+        
+        // 处理心情单元格的键盘事件
+        function handleMoodKeydown(event) {
+            switch (event.key) {
+                case 'Delete':
+                case 'Backspace':
+                    event.preventDefault();
+                    // 找到心情文本元素
+                    const moodText = event.target.querySelector('.mood-text') || event.target;
+                    clearMood(moodText);
+                    break;
+                case 'Enter':
+                    event.preventDefault();
+                    // 回车时跳到下一行同列
+                    autoJumpToNextRow();
+                    break;
+            }
+        }
+        
+        // 清空心情并保存到数据库
+        function clearMood(moodElement) {
+            const timeSlot = moodElement.getAttribute('data-time-slot');
+            const scheduleId = moodElement.getAttribute('data-schedule-id');
+            const fieldType = moodElement.getAttribute('data-field-type') || 'actual';
+            
+            if (!timeSlot) {
+                console.error('无法获取时间槽信息');
+                return;
+            }
+            
+            console.log(`准备清空心情: 时间槽=${timeSlot}, 日程ID=${scheduleId}, 字段类型=${fieldType}`);
+            
+            // 清空心情显示
+            moodElement.textContent = '-';
+            
+            // 保存到数据库 - 独立保存这一行这一列
+            saveMoodToDatabase(timeSlot, scheduleId, null, fieldType);
+            
+            // 自动跳转到下一行
+            autoJumpToNextRow();
+        }
+        
+        // 保存心情到数据库
+        function saveMoodToDatabase(timeSlot, scheduleId, mood, fieldType = 'actual') {
+            const data = {
+                time_slot: timeSlot,
+                mood: mood,
+                field_type: fieldType
+            };
+            
+            if (scheduleId) {
+                data.schedule_id = scheduleId;
+            }
+            
+            console.log(`准备保存心情数据:`, data);
+            
+            // 使用延迟保存机制 - 独立保存这一行这一列
+            scheduleDelayedSave(data);
+        }
+        
+        // 延迟保存机制
+        function scheduleDelayedSave(data) {
+            // 清除之前的定时器
+            if (window.moodSaveTimeout) {
+                clearTimeout(window.moodSaveTimeout);
+            }
+            
+            // 设置新的定时器，500ms后保存
+            window.moodSaveTimeout = setTimeout(() => {
+                saveMoodData(data);
+            }, 500);
+        }
+        
+        // 实际保存数据到数据库
+        async function saveMoodData(data) {
+            try {
+                // 使用现有的心情保存接口
+                await saveMoodToDatabase(data.time_slot, data.mood, data.schedule_id, data.field_type);
+                console.log('心情保存成功:', data);
+            } catch (error) {
+                console.error('保存心情时出错:', error);
+            }
+        }
+        
+        // 自动跳转到下一行
+        function autoJumpToNextRow() {
+            const currentRow = document.querySelector('.mood-column.selected');
+            if (!currentRow) return;
+            
+            const currentTr = currentRow.closest('tr');
+            const nextRow = currentTr.nextElementSibling;
+            
+            if (nextRow) {
+                const nextMoodColumn = nextRow.querySelector('.mood-column');
+                if (nextMoodColumn) {
+                    // 清除当前选择
+                    document.querySelectorAll('.mood-column.selected').forEach(col => {
+                        col.classList.remove('selected');
+                    });
+                    
+                    // 选择下一行的心情列
+                    nextMoodColumn.classList.add('selected');
+                    nextMoodColumn.focus();
+                }
+            }
+        }
+
+
 
         function initMoodQuickInput() {
             const moodSection = document.getElementById('moodQuickInput');
