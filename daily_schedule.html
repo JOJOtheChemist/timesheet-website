@@ -4943,26 +4943,58 @@
             }
         }
         
-        // 自动跳转到下一行
+        // 自动跳转到下一行（通用函数，支持所有列）
         function autoJumpToNextRow() {
-            const currentRow = document.querySelector('.mood-column.selected');
-            if (!currentRow) return;
-            
-            const currentTr = currentRow.closest('tr');
-            const nextRow = currentTr.nextElementSibling;
-            
-            if (nextRow) {
-                const nextMoodColumn = nextRow.querySelector('.mood-column');
-                if (nextMoodColumn) {
-                    // 清除当前选择
-                    document.querySelectorAll('.mood-column.selected').forEach(col => {
-                        col.classList.remove('selected');
-                    });
+            try {
+                // 查找当前选中的任意列
+                const currentSelectedCell = document.querySelector('.task-column.selected, .notes-column.selected, .mood-column.selected');
+                if (!currentSelectedCell) return;
+                
+                const currentTr = currentSelectedCell.closest('tr');
+                const nextRow = currentTr.nextElementSibling;
+                
+                if (nextRow) {
+                    // 确定当前选中的列类型
+                    let nextCell;
+                    if (currentSelectedCell.classList.contains('task-column')) {
+                        nextCell = nextRow.querySelector('.task-column');
+                    } else if (currentSelectedCell.classList.contains('notes-column')) {
+                        nextCell = nextRow.querySelector('.notes-column');
+                    } else if (currentSelectedCell.classList.contains('mood-column')) {
+                        nextCell = nextRow.querySelector('.mood-column');
+                    }
                     
-                    // 选择下一行的心情列
-                    nextMoodColumn.classList.add('selected');
-                    nextMoodColumn.focus();
+                    if (nextCell) {
+                        // 清除当前选择
+                        document.querySelectorAll('.task-column.selected, .notes-column.selected, .mood-column.selected').forEach(col => {
+                            col.classList.remove('selected');
+                        });
+                        
+                        // 清除之前行级别的高亮
+                        document.querySelectorAll('tr.selected-row').forEach(row => {
+                            row.classList.remove('selected-row');
+                        });
+                        
+                        // 选择下一行的同列
+                        nextCell.classList.add('selected');
+                        
+                        // 高亮整行
+                        nextRow.classList.add('selected-row');
+                        
+                        // 设置焦点
+                        nextCell.focus();
+                        
+                        // 更新编辑位置
+                        const rowIndex = Array.from(nextRow.parentNode.children).indexOf(nextRow);
+                        const cellIndex = Array.from(nextRow.children).indexOf(nextCell);
+                        currentEditingRow = rowIndex;
+                        currentEditingColumn = cellIndex;
+                        
+                        console.log('自动跳转到下一行:', rowIndex, cellIndex);
+                    }
                 }
+            } catch (e) {
+                console.error('自动跳转失败:', e);
             }
         }
 
