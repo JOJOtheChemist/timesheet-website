@@ -4948,14 +4948,14 @@
             moodElement.textContent = '-';
             
             // 保存到数据库 - 独立保存这一行这一列
-            saveMoodToDatabase(timeSlot, scheduleId, null, fieldType);
+            prepareMoodData(timeSlot, scheduleId, null, fieldType);
             
             // 自动跳转到下一行
             autoJumpToNextRow();
         }
         
-        // 保存心情到数据库
-        function saveMoodToDatabase(timeSlot, scheduleId, mood, fieldType = 'actual') {
+        // 准备心情数据并触发保存
+        function prepareMoodData(timeSlot, scheduleId, mood, fieldType = 'actual') {
             const data = {
                 time_slot: timeSlot,
                 mood: mood,
