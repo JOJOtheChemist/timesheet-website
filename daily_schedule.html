@@ -4393,7 +4393,7 @@
             }
         }
 
-        function quickSetMood(mood) {
+        async function quickSetMood(mood) {
             try {
                 let timeSlot = null;
                 let scheduleId = null;
@@ -4431,8 +4431,15 @@
                 }
                 updateMoodDisplay(timeSlot, mood, fieldType);
 
-                // 直接调用心情保存函数
-                prepareMoodData(timeSlot, scheduleId, mood, fieldType);
+                // 直接保存心情到数据库
+                try {
+                    await saveMoodToDatabase(timeSlot, mood, scheduleId, fieldType);
+                    console.log('心情保存成功:', { timeSlot, mood, scheduleId, fieldType });
+                    alert('心情保存成功！');
+                } catch (error) {
+                    console.error('心情保存失败:', error);
+                    alert('心情保存失败: ' + error.message);
+                }
 
                 // 先跳转，提升流畅度
                 autoJumpToNextRow();
@@ -4937,47 +4944,7 @@
             autoJumpToNextRow();
         }
         
-        // 准备心情数据并触发保存
-        function prepareMoodData(timeSlot, scheduleId, mood, fieldType = 'actual') {
-            const data = {
-                time_slot: timeSlot,
-                mood: mood,
-                field_type: fieldType
-            };
-            
-            if (scheduleId) {
-                data.schedule_id = scheduleId;
-            }
-            
-            console.log(`准备保存心情数据:`, data);
-            
-            // 使用延迟保存机制 - 独立保存这一行这一列
-            scheduleDelayedSave(data);
-        }
-        
-        // 延迟保存机制
-        function scheduleDelayedSave(data) {
-            // 清除之前的定时器
-            if (window.moodSaveTimeout) {
-                clearTimeout(window.moodSaveTimeout);
-            }
-            
-            // 设置新的定时器，500ms后保存
-            window.moodSaveTimeout = setTimeout(() => {
-                saveMoodData(data);
-            }, 500);
-        }
-        
-        // 实际保存数据到数据库
-        async function saveMoodData(data) {
-            try {
-                // 使用现有的心情保存接口
-                await saveMoodToDatabase(data.time_slot, data.mood, data.schedule_id, data.field_type);
-                console.log('心情保存成功:', data);
-            } catch (error) {
-                console.error('保存心情时出错:', error);
-            }
-        }
+
         
         // 自动跳转到下一行（通用函数，支持所有列）
         function autoJumpToNextRow() {
