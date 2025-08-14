@@ -5000,12 +5000,24 @@
                 const nextRow = currentTr.nextElementSibling;
                 
                 if (nextRow) {
-                    // 确定当前选中的列类型
+                    // 确定当前选中的列类型，保持在同一类型的列
                     let nextCell;
                     if (currentSelectedCell.classList.contains('task-column')) {
-                        nextCell = nextRow.querySelector('.task-column');
+                        // 检查是计划任务列还是实际任务列
+                        const currentFieldType = currentSelectedCell.querySelector('[data-field-type]')?.getAttribute('data-field-type');
+                        if (currentFieldType === 'planned') {
+                            nextCell = nextRow.querySelector('.task-column [data-field-type="planned"]')?.closest('.task-column');
+                        } else {
+                            nextCell = nextRow.querySelector('.task-column [data-field-type="actual"]')?.closest('.task-column');
+                        }
                     } else if (currentSelectedCell.classList.contains('notes-column')) {
-                        nextCell = nextRow.querySelector('.notes-column');
+                        // 检查是计划备注列还是实际备注列
+                        const currentFieldType = currentSelectedCell.querySelector('[data-field-type]')?.getAttribute('data-field-type');
+                        if (currentFieldType === 'planned') {
+                            nextCell = nextRow.querySelector('.notes-column [data-field-type="planned"]')?.closest('.notes-column');
+                        } else {
+                            nextCell = nextRow.querySelector('.notes-column [data-field-type="actual"]')?.closest('.notes-column');
+                        }
                     } else if (currentSelectedCell.classList.contains('mood-column')) {
                         nextCell = nextRow.querySelector('.mood-column');
                     }
