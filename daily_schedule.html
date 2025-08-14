@@ -455,7 +455,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             /* 使用背景图替代纯色背景 */
-            background-image: var(--task-badge-bg, #007bff);
+            background-image: var(--task-badge-bg, none);
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -1757,8 +1757,8 @@
                     
                     if (scheduleItem) {
                         // 有数据的行，但每列独立判断empty状态
-                        const plannedProjectColor = scheduleItem.planned_project_color || '#3b82f6';
-                        const actualProjectColor = scheduleItem.actual_project_color || '#10b981';
+                        const plannedProjectColor = scheduleItem.planned_project_color || 'transparent';
+                        const actualProjectColor = scheduleItem.actual_project_color || 'transparent';
                         
                         // 判断每列是否为空
                         const plannedSubtaskEmpty = !scheduleItem.planned_subtask_name;
@@ -1776,7 +1776,7 @@
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-project-color="${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}"
                                      data-field-type="planned"
-                                     style="border-color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor};">
+                                     style="border-color: transparent;">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
                                 </div>
                             </td>
@@ -1797,7 +1797,7 @@
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-project-color="${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}"
                                      data-field-type="actual"
-                                     style="border-color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor};">
+                                     style="border-color: transparent;">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
                                 </div>
                             </td>
@@ -2642,6 +2642,7 @@
                 
                 const randomBg = getRandomBackground();
                 badge.style.setProperty('--task-badge-bg', `url('${randomBg}')`);
+                console.log(`设置背景图: ${randomBg} 给元素:`, badge);
             });
         }
 
