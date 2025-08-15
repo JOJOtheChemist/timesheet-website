@@ -215,20 +215,22 @@ class BackgroundSwitcher {
     
     makeDraggable(element) {
         let isDragging = false;
-        let startX, startY;
-        let offsetX = 0, offsetY = 0;
+        let dragOffset = { x: 0, y: 0 };
         
         const dragStart = (e) => {
             e.preventDefault();
             isDragging = true;
             
+            const rect = element.getBoundingClientRect();
             if (e.type === 'touchstart') {
-                startX = e.touches[0].clientX - offsetX;
-                startY = e.touches[0].clientY - offsetY;
+                dragOffset.x = e.touches[0].clientX - rect.left;
+                dragOffset.y = e.touches[0].clientY - rect.top;
             } else {
-                startX = e.clientX - offsetX;
-                startY = e.clientY - offsetY;
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
             }
+            
+            element.style.cursor = 'grabbing';
         };
         
         const dragMove = (e) => {
@@ -244,21 +246,23 @@ class BackgroundSwitcher {
                 clientY = e.clientY;
             }
             
-            offsetX = clientX - startX;
-            offsetY = clientY - startY;
+            const x = clientX - dragOffset.x;
+            const y = clientY - dragOffset.y;
             
             // 限制在视窗范围内
             const maxX = window.innerWidth - element.offsetWidth;
             const maxY = window.innerHeight - element.offsetHeight;
             
-            offsetX = Math.max(0, Math.min(offsetX, maxX));
-            offsetY = Math.max(0, Math.min(offsetY, maxY));
-            
-            element.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            // 直接设置CSS属性，不使用transform
+            element.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
+            element.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
+            element.style.right = 'auto';
+            element.style.transform = 'none';
         };
         
         const dragEnd = () => {
             isDragging = false;
+            element.style.cursor = 'move';
         };
         
         // 鼠标事件
