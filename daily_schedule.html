@@ -385,6 +385,15 @@
             letter-spacing: 1px;
             text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
         }
+        
+        /* 调整表头列宽 */
+        .schedule-table th:nth-child(1) {
+            width: 120px;
+        }
+        
+        .schedule-table th:nth-child(2) {
+            width: 160px;
+        }
         /* 表头第一列也固定在左侧，透明背景 */
         .schedule-table th:first-child {
             position: sticky;
@@ -401,7 +410,7 @@
         }
 
         .task-column {
-            width: 180px;
+            width: 160px;
             color: inherit;
             font-weight: 500;
             padding: 2px 8px; /* 减少上下padding，让行高保持22px */
@@ -443,11 +452,12 @@
             width: 120px;
             font-weight: 600;
             color: #495057;
-            padding: 2px 8px; /* 减少上下padding，让行高保持22px */
+            padding: 2px 0 2px 8px; /* 减少上下padding，让行高保持22px，去掉右边padding */
             position: sticky;
             left: 0;
             background: transparent; /* 保持网格可见 */
             z-index: 2;
+            text-align: right;
         }
 
         .task-column {
@@ -646,6 +656,13 @@
             text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
         }
         
+        /* 全部显示模式：两个都高亮 */
+        .header-with-arrows.all-mode #task-plan,
+        .header-with-arrows.all-mode #task-actual {
+            color: #4f9cff;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+        }
+        
         /* 确保所有文字都有黑色阴影 */
         #task-plan, #task-actual, #task-task, #task-slash {
             text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
@@ -728,6 +745,10 @@
             cursor: pointer;
             position: relative;
             padding: 4px 8px;
+            font-weight: 500;
+            width: 200px; /* 固定宽度，确保一致性 */
+            min-width: 200px; /* 最小宽度 */
+            max-width: 200px; /* 最大宽度 */
         }
 
         .notes-column:hover {
@@ -873,7 +894,7 @@
 
 
         .notes-text {
-            max-width: 300px;
+            max-width: 180px; /* 与父容器宽度一致，减去padding */
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -1441,6 +1462,30 @@
                 z-index: 11 !important;
             }
             
+            /* 移动端备注列宽度调整 */
+            .notes-column {
+                width: 150px !important;
+                min-width: 150px !important;
+                max-width: 150px !important;
+            }
+            
+            .notes-text {
+                max-width: 130px !important;
+            }
+            
+            /* 移动端任务列宽度调整 */
+            .task-column {
+                width: 140px !important;
+                min-width: 140px !important;
+                max-width: 140px !important;
+            }
+            
+            .task-badge {
+                width: 120px !important;
+                min-width: 120px !important;
+                max-width: 120px !important;
+            }
+            
 
             
             /* 移动设备下flatpickr日历优化 */
@@ -1910,7 +1955,7 @@
                                     <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-left" alt="Left Arrow">
                                 </div>
                         </th>
-                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">心情</th>
                     </tr>
                 </thead>
@@ -2012,7 +2057,7 @@
                         const actualSubtaskEmpty = !scheduleItem.actual_subtask_name;
                         
                         row.innerHTML = `
-                            <td class="time-column">
+                            <td class="time-column" style="width: 120px;">
                                 <span class="time-slot">${scheduleItem.time_slot}</span>
                             </td>
                             <!-- 计划子任务 -->
@@ -2029,7 +2074,7 @@
                                 </div>
                             </td>
                             <!-- 计划备注 -->
-                            <td class="notes-column" onclick="selectNotesCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'planned')">
+                            <td class="notes-column" style="width: 200px;" onclick="selectNotesCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'planned')">
                                 <span class="notes-text" 
                                      data-time-slot="${scheduleItem.time_slot}" 
                                      data-schedule-id="${scheduleItem.id || ''}"
@@ -2051,7 +2096,7 @@
                                 </div>
                             </td>
                             <!-- 实际备注 -->
-                            <td class="notes-column" onclick="selectNotesCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'actual')">
+                            <td class="notes-column" style="width: 200px;" onclick="selectNotesCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'actual')">
                                 <span class="notes-text" 
                                      data-time-slot="${scheduleItem.time_slot}" 
                                      data-schedule-id="${scheduleItem.id || ''}"
@@ -2073,7 +2118,7 @@
                     } else {
                         // 没有数据的行，但每列独立判断empty状态
                         row.innerHTML = `
-                            <td class="time-column">
+                            <td class="time-column" style="width: 120px;">
                                 <span class="time-slot">${timeString}</span>
                             </td>
                             <!-- 计划子任务 -->
@@ -2089,7 +2134,7 @@
                                 </div>
                             </td>
                             <!-- 计划备注 -->
-                            <td class="notes-column" onclick="selectNotesCell(event, '${timeString}', '', 'planned')">
+                            <td class="notes-column" style="width: 200px;" onclick="selectNotesCell(event, '${timeString}', '', 'planned')">
                                 <span class="notes-text" 
                                      data-time-slot="${timeString}" 
                                      data-schedule-id=""
@@ -2110,7 +2155,7 @@
                                 </div>
                             </td>
                             <!-- 实际备注 -->
-                            <td class="notes-column" onclick="selectNotesCell(event, '${timeString}', '', 'actual')">
+                            <td class="notes-column" style="width: 200px;" onclick="selectNotesCell(event, '${timeString}', '', 'actual')">
                                 <span class="notes-text" 
                                      data-time-slot="${timeString}" 
                                      data-schedule-id=""
@@ -5969,28 +6014,82 @@
         console.log('🎵 播放贪吃蛇吃食物音效（模拟）');
     }
 
+    // 切换表格列显示/隐藏的函数
+    function toggleTableColumns(mode) {
+        const tbody = document.getElementById('scheduleBody');
+        const rows = tbody.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            
+            // 时间列始终显示（索引0）
+            // 计划任务列（索引1）
+            // 计划备注列（索引2）
+            // 实际任务列（索引3）
+            // 实际备注列（索引4）
+            // 心情列（索引5）
+            
+            if (mode === 'actual') {
+                // 实际模式：隐藏计划相关列，显示实际相关列
+                if (cells[1]) cells[1].style.display = 'none'; // 计划任务
+                if (cells[2]) cells[2].style.display = 'none'; // 计划备注
+                if (cells[3]) cells[3].style.display = 'table-cell'; // 实际任务
+                if (cells[4]) cells[4].style.display = 'table-cell'; // 实际备注
+                if (cells[5]) cells[5].style.display = 'table-cell'; // 心情
+            } else if (mode === 'plan') {
+                // 计划模式：显示计划相关列，隐藏实际相关列
+                if (cells[1]) cells[1].style.display = 'table-cell'; // 计划任务
+                if (cells[2]) cells[2].style.display = 'table-cell'; // 计划备注
+                if (cells[3]) cells[3].style.display = 'none'; // 实际任务
+                if (cells[4]) cells[4].style.display = 'none'; // 实际备注
+                if (cells[5]) cells[5].style.display = 'none'; // 心情
+            } else {
+                // 全部显示模式：显示所有列
+                if (cells[1]) cells[1].style.display = 'table-cell'; // 计划任务
+                if (cells[2]) cells[2].style.display = 'table-cell'; // 计划备注
+                if (cells[3]) cells[3].style.display = 'table-cell'; // 实际任务
+                if (cells[4]) cells[4].style.display = 'table-cell'; // 实际备注
+                if (cells[5]) cells[5].style.display = 'table-cell'; // 心情
+            }
+        });
+        
+        // 表头永远不变，只改变高亮状态
+        console.log(`📊 切换到${mode === 'actual' ? '实际' : mode === 'plan' ? '计划' : '全部'}模式`);
+    }
+
     // 计划任务按钮点击动画和箭头实体移动功能
     document.addEventListener('DOMContentLoaded', function() {
         const planTaskHeader = document.querySelector('.header-with-arrows');
         let currentMode = 'plan'; // 默认计划模式
         
         if (planTaskHeader) {
-            // 初始化计划模式
-            planTaskHeader.classList.add('plan-mode');
+            // 初始化全部显示模式
+            planTaskHeader.classList.add('all-mode');
+            let currentMode = 'all'; // 默认全部显示
+            
+            // 确保初始状态显示所有列
+            toggleTableColumns('all');
             
             planTaskHeader.addEventListener('click', function() {
                 // 添加点击动画类
                 this.classList.add('clicked');
                 
-                // 直接切换模式，CSS会自动处理动画
-                if (currentMode === 'plan') {
-                    currentMode = 'actual';
-                    this.classList.remove('plan-mode');
-                    this.classList.add('actual-mode');
-                } else {
+                // 循环切换模式：全部 -> 计划 -> 实际 -> 全部
+                if (currentMode === 'all') {
                     currentMode = 'plan';
-                    this.classList.remove('actual-mode');
+                    this.classList.remove('plan-mode', 'actual-mode', 'all-mode');
                     this.classList.add('plan-mode');
+                    toggleTableColumns('plan');
+                } else if (currentMode === 'plan') {
+                    currentMode = 'actual';
+                    this.classList.remove('plan-mode', 'actual-mode', 'all-mode');
+                    this.classList.add('actual-mode');
+                    toggleTableColumns('actual');
+                } else {
+                    currentMode = 'all';
+                    this.classList.remove('plan-mode', 'actual-mode', 'all-mode');
+                    this.classList.add('all-mode');
+                    toggleTableColumns('all');
                 }
                 
                 // 300ms后移除点击动画类，恢复原状
@@ -5998,7 +6097,7 @@
                     this.classList.remove('clicked');
                 }, 300);
                 
-                console.log('🎯 箭头实体移动到:', currentMode === 'plan' ? '计划任务' : '实际任务');
+                console.log('🎯 箭头实体移动到:', currentMode === 'plan' ? '计划任务' : currentMode === 'actual' ? '实际任务' : '全部显示');
             });
         }
     });
