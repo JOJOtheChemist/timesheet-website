@@ -422,6 +422,51 @@
         .schedule-table tbody tr.selected-row {
             background-color: #f8f9fa !important;
         }
+        
+        /* 选中行中的时间标记不显示黑色阴影 */
+        .schedule-table tbody tr.selected-row .time-slot {
+            text-shadow: none;
+        }
+        
+        /* 橙色时间轴样式 */
+        .orange-time-axis {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 100%;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            z-index: 100;
+            box-shadow: none;
+            pointer-events: none;
+        }
+        
+        .orange-time-axis .time-slot {
+            color: #ff8c00 !important;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1) !important;
+        }
+        
+        /* 确保橙色时间轴的行高与原始时间表完全一致 */
+        .orange-time-axis .schedule-table tr {
+            height: auto;
+            background: transparent !important;
+        }
+        
+        .orange-time-axis .schedule-table td {
+            padding: 2px 8px !important;
+            font-size: 14px !important;
+            vertical-align: middle !important;
+            border-bottom: none !important;
+            background: transparent !important;
+        }
+        
+        .orange-time-axis .schedule-table {
+            background: transparent !important;
+        }
+
 
         .time-column {
             width: 120px;
@@ -700,6 +745,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             opacity: 1;
+            text-shadow: none !important; /* 选中时移除黑色阴影 */
         }
 
         .notes-column {
@@ -842,10 +888,11 @@
         .time-slot {
             display: inline-block;
             padding: 4px 8px;
-            background: #e9ecef;
+            background: transparent;
             border-radius: 4px;
             font-size: 12px;
-            color: #495057;
+            color: #8f8fb7; /* 贪吃蛇的灰色次级标题 */
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1); /* 黑色阴影效果 */
         }
 
 
@@ -5967,6 +6014,105 @@
     </script>
     
     <!-- 背景图切换器脚本 -->
-    <script src="background-switcher.js"></script>
+    <script src="background-switcher.js">    </script>
+    
+    <script>
+        // 创建橙色时间轴函数
+        function createOrangeTimeAxis() {
+            // 移除已存在的橙色时间轴
+            const existingAxis = document.querySelector('.orange-time-axis');
+            if (existingAxis) {
+                existingAxis.remove();
+            }
+            
+            // 找到目标容器
+            const targetContainer = document.querySelector('body > div.container > div.main-content > div.schedule-table-container');
+            if (!targetContainer) {
+                console.error('找不到目标容器');
+                return;
+            }
+            
+            // 设置容器为相对定位，以便橙色时间轴可以绝对定位
+            targetContainer.style.position = 'relative';
+            
+            // 获取原始时间表第一行的样式
+            const originalFirstRow = document.querySelector('#scheduleBody > tr:nth-child(1)');
+            if (!originalFirstRow) {
+                console.error('找不到原始时间表第一行');
+                return;
+            }
+            
+            // 创建橙色时间轴容器
+            const orangeAxis = document.createElement('div');
+            orangeAxis.className = 'orange-time-axis';
+            
+            // 创建表格结构
+            const table = document.createElement('table');
+            table.className = 'schedule-table';
+            table.style.width = '80px';
+            table.style.borderCollapse = 'collapse';
+            table.style.background = 'transparent';
+            
+            // 创建表体
+            const tbody = document.createElement('tbody');
+            
+            // 生成48个时间段（每30分钟一个）
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    
+                    const row = document.createElement('tr');
+                    
+                    // 复制原始第一行的样式
+                    const computedStyle = window.getComputedStyle(originalFirstRow);
+                    row.style.height = computedStyle.height;
+                    row.style.lineHeight = computedStyle.lineHeight;
+                    row.style.padding = computedStyle.padding;
+                    row.style.margin = computedStyle.margin;
+                    row.style.border = computedStyle.border;
+                    row.style.boxSizing = computedStyle.boxSizing;
+                    
+                    row.innerHTML = `
+                        <td class="time-column">
+                            <span class="time-slot">${timeString}</span>
+                        </td>
+                    `;
+                    
+                    // 复制td的样式
+                    const originalTd = originalFirstRow.querySelector('td');
+                    if (originalTd) {
+                        const tdComputedStyle = window.getComputedStyle(originalTd);
+                        const newTd = row.querySelector('td');
+                        newTd.style.height = tdComputedStyle.height;
+                        newTd.style.lineHeight = tdComputedStyle.lineHeight;
+                        newTd.style.padding = tdComputedStyle.padding;
+                        newTd.style.margin = tdComputedStyle.margin;
+                        newTd.style.border = tdComputedStyle.border;
+                        newTd.style.fontSize = tdComputedStyle.fontSize;
+                        newTd.style.fontWeight = tdComputedStyle.fontWeight;
+                        newTd.style.verticalAlign = tdComputedStyle.verticalAlign;
+                    }
+                    tbody.appendChild(row);
+                }
+            }
+            
+            // 组装表格
+            table.appendChild(tbody);
+            
+            // 组装橙色时间轴
+            orangeAxis.appendChild(table);
+            
+            // 添加到目标容器作为覆盖层
+            targetContainer.appendChild(orangeAxis);
+            
+            console.log('🍊 橙色时间轴已创建');
+        }
+        
+        // 页面加载完成后自动创建橙色时间轴
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟2秒后创建橙色时间轴
+            setTimeout(createOrangeTimeAxis, 2000);
+        });
+    </script>
 </body>
 </html> 

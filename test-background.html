@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背景切换测试</title>
+    <link rel="stylesheet" href="background-switcher.css">
+    <style>
+        .content-section {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .content-section h2 {
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .content-section p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-section">
+        <div>
+            <h2>🌙 夜间背景</h2>
+            <p>滚动查看背景切换效果</p>
+        </div>
+    </div>
+    
+    <div class="content-section">
+        <div>
+            <h2>🌅 早晨背景</h2>
+            <p>继续滚动查看下一个背景</p>
+        </div>
+    </div>
+    
+    <div class="content-section">
+        <div>
+            <h2>☀️ 白天背景</h2>
+            <p>背景切换非常流畅</p>
+        </div>
+    </div>
+    
+    <div class="content-section">
+        <div>
+            <h2>🌆 傍晚背景</h2>
+            <p>使用 Ctrl+1/2/3/4 快速切换</p>
+        </div>
+    </div>
+    
+    <script src="background-switcher.js"></script>
+</body>
+</html> 
