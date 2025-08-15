@@ -48,6 +48,9 @@ class BackgroundSwitcher {
         document.body.appendChild(controls);
         this.indicator = indicator;
         this.controls = controls;
+        
+        // 添加拖拽功能
+        this.makeDraggable(controls);
     }
     
     getBackgroundIcon(bg) {
@@ -208,6 +211,77 @@ class BackgroundSwitcher {
         setTimeout(() => {
             notification.remove();
         }, 2000);
+    }
+    
+    makeDraggable(element) {
+        let isDragging = false;
+        let startX, startY;
+        let currentX = 0, currentY = 0;
+        
+        const dragStart = (e) => {
+            // 阻止默认行为
+            e.preventDefault();
+            
+            // 获取起始位置
+            if (e.type === 'touchstart') {
+                startX = e.touches[0].clientX - currentX;
+                startY = e.touches[0].clientY - currentY;
+            } else {
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
+            }
+            
+            isDragging = true;
+        };
+        
+        const dragMove = (e) => {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            
+            // 计算新位置
+            let newX, newY;
+            if (e.type === 'touchmove') {
+                newX = e.touches[0].clientX - startX;
+                newY = e.touches[0].clientY - startY;
+            } else {
+                newX = e.clientX - startX;
+                newY = e.clientY - startY;
+            }
+            
+            // 限制在视窗范围内
+            const maxX = window.innerWidth - element.offsetWidth;
+            const maxY = window.innerHeight - element.offsetHeight;
+            
+            currentX = Math.max(0, Math.min(newX, maxX));
+            currentY = Math.max(0, Math.min(newY, maxY));
+            
+            // 应用位置
+            element.style.transform = `translate(${currentX}px, ${currentY}px)`;
+        };
+        
+        const dragEnd = () => {
+            isDragging = false;
+        };
+        
+        // 鼠标事件
+        element.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', dragMove);
+        document.addEventListener('mouseup', dragEnd);
+        
+        // 触摸事件（移动端）
+        element.addEventListener('touchstart', dragStart, { passive: false });
+        document.addEventListener('touchmove', dragMove, { passive: false });
+        document.addEventListener('touchend', dragEnd);
+        
+        // 防止拖拽时触发按钮点击
+        element.addEventListener('click', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
     }
 }
 

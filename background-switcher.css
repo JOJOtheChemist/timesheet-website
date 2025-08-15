@@ -63,6 +63,13 @@ body.background-night {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+    /* 扩大点击范围 */
+    padding: 20px;
+    margin: -20px;
+    background: transparent;
 }
 
 .bg-btn {
