@@ -216,53 +216,45 @@ class BackgroundSwitcher {
     makeDraggable(element) {
         let isDragging = false;
         let startX, startY;
-        let currentX = 0, currentY = 0;
-        
-        // 获取元素的初始位置
-        const rect = element.getBoundingClientRect();
-        currentX = rect.left;
-        currentY = rect.top;
+        let offsetX = 0, offsetY = 0;
         
         const dragStart = (e) => {
-            // 阻止默认行为
             e.preventDefault();
-            
-            // 获取起始位置
-            if (e.type === 'touchstart') {
-                startX = e.touches[0].clientX - currentX;
-                startY = e.touches[0].clientY - currentY;
-            } else {
-                startX = e.clientX - currentX;
-                startY = e.clientY - currentY;
-            }
-            
             isDragging = true;
+            
+            if (e.type === 'touchstart') {
+                startX = e.touches[0].clientX - offsetX;
+                startY = e.touches[0].clientY - offsetY;
+            } else {
+                startX = e.clientX - offsetX;
+                startY = e.clientY - offsetY;
+            }
         };
         
         const dragMove = (e) => {
             if (!isDragging) return;
-            
             e.preventDefault();
             
-            // 计算新位置
-            let newX, newY;
+            let clientX, clientY;
             if (e.type === 'touchmove') {
-                newX = e.touches[0].clientX - startX;
-                newY = e.touches[0].clientY - startY;
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
             } else {
-                newX = e.clientX - startX;
-                newY = e.clientY - startY;
+                clientX = e.clientX;
+                clientY = e.clientY;
             }
+            
+            offsetX = clientX - startX;
+            offsetY = clientY - startY;
             
             // 限制在视窗范围内
             const maxX = window.innerWidth - element.offsetWidth;
             const maxY = window.innerHeight - element.offsetHeight;
             
-            currentX = Math.max(0, Math.min(newX, maxX));
-            currentY = Math.max(0, Math.min(newY, maxY));
+            offsetX = Math.max(0, Math.min(offsetX, maxX));
+            offsetY = Math.max(0, Math.min(offsetY, maxY));
             
-            // 应用位置
-            element.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            element.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
         };
         
         const dragEnd = () => {
