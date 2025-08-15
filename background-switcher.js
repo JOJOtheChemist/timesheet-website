@@ -218,6 +218,11 @@ class BackgroundSwitcher {
         let startX, startY;
         let currentX = 0, currentY = 0;
         
+        // 获取元素的初始位置
+        const rect = element.getBoundingClientRect();
+        currentX = rect.left;
+        currentY = rect.top;
+        
         const dragStart = (e) => {
             // 阻止默认行为
             e.preventDefault();
