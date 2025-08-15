@@ -343,7 +343,7 @@
             border-collapse: collapse;
             background: transparent;
             border-radius: 10px;
-            overflow: hidden;
+            overflow: visible; /* 改为visible以支持sticky定位 */
             color: #E5E7EB;
         }
 
@@ -358,6 +358,7 @@
         .schedule-table-container {
             max-height: 600px;
             overflow-y: auto;
+            overflow-x: auto; /* 添加水平滚动支持 */
             background: rgba(10, 10, 26, 0.5);
             background-image: linear-gradient(to right, rgba(79, 156, 255, 0.065) 1px, transparent 1px), linear-gradient(to bottom, rgba(79, 156, 255, 0.065) 1px, transparent 1px);
             background-size: 23.1px 23.1px; /* 22px * 1.05 = 23.1px，放大到105% */
@@ -383,6 +384,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+        /* 表头第一列也固定在左侧，透明背景 */
+        .schedule-table th:first-child {
+            position: sticky;
+            left: 0;
+            background: transparent !important;
+            z-index: 3;
         }
 
         .schedule-table td {
@@ -428,44 +436,7 @@
             text-shadow: none;
         }
         
-        /* 橙色时间轴样式 */
-        .orange-time-axis {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 80px;
-            height: 100%;
-            background: transparent;
-            border: none;
-            border-radius: 0;
-            padding: 0;
-            z-index: 100;
-            box-shadow: none;
-            pointer-events: none;
-        }
-        
-        .orange-time-axis .time-slot {
-            color: #ff8c00 !important;
-            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1) !important;
-        }
-        
-        /* 确保橙色时间轴的行高与原始时间表完全一致 */
-        .orange-time-axis .schedule-table tr {
-            height: auto;
-            background: transparent !important;
-        }
-        
-        .orange-time-axis .schedule-table td {
-            padding: 2px 8px !important;
-            font-size: 14px !important;
-            vertical-align: middle !important;
-            border-bottom: none !important;
-            background: transparent !important;
-        }
-        
-        .orange-time-axis .schedule-table {
-            background: transparent !important;
-        }
+
 
 
         .time-column {
@@ -473,6 +444,10 @@
             font-weight: 600;
             color: #495057;
             padding: 2px 8px; /* 减少上下padding，让行高保持22px */
+            position: sticky;
+            left: 0;
+            background: transparent; /* 保持网格可见 */
+            z-index: 2;
         }
 
         .task-column {
@@ -1443,10 +1418,27 @@
 
             .schedule-table-container {
                 max-height: 400px;
+                overflow-x: auto; /* 确保水平滚动 */
             }
 
             .project-component {
                 max-height: 400px;
+            }
+            
+            /* 移动端时间列sticky定位 */
+            .time-column {
+                position: sticky !important;
+                left: 0 !important;
+                background: transparent !important;
+                z-index: 10 !important;
+            }
+            
+            /* 移动端表头第一列sticky定位 */
+            .schedule-table th:first-child {
+                position: sticky !important;
+                left: 0 !important;
+                background: transparent !important;
+                z-index: 11 !important;
             }
             
 
@@ -6016,103 +6008,6 @@
     <!-- 背景图切换器脚本 -->
     <script src="background-switcher.js">    </script>
     
-    <script>
-        // 创建橙色时间轴函数
-        function createOrangeTimeAxis() {
-            // 移除已存在的橙色时间轴
-            const existingAxis = document.querySelector('.orange-time-axis');
-            if (existingAxis) {
-                existingAxis.remove();
-            }
-            
-            // 找到目标容器
-            const targetContainer = document.querySelector('body > div.container > div.main-content > div.schedule-table-container');
-            if (!targetContainer) {
-                console.error('找不到目标容器');
-                return;
-            }
-            
-            // 设置容器为相对定位，以便橙色时间轴可以绝对定位
-            targetContainer.style.position = 'relative';
-            
-            // 获取原始时间表第一行的样式
-            const originalFirstRow = document.querySelector('#scheduleBody > tr:nth-child(1)');
-            if (!originalFirstRow) {
-                console.error('找不到原始时间表第一行');
-                return;
-            }
-            
-            // 创建橙色时间轴容器
-            const orangeAxis = document.createElement('div');
-            orangeAxis.className = 'orange-time-axis';
-            
-            // 创建表格结构
-            const table = document.createElement('table');
-            table.className = 'schedule-table';
-            table.style.width = '80px';
-            table.style.borderCollapse = 'collapse';
-            table.style.background = 'transparent';
-            
-            // 创建表体
-            const tbody = document.createElement('tbody');
-            
-            // 生成48个时间段（每30分钟一个）
-            for (let hour = 0; hour < 24; hour++) {
-                for (let minute = 0; minute < 60; minute += 30) {
-                    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    
-                    const row = document.createElement('tr');
-                    
-                    // 复制原始第一行的样式
-                    const computedStyle = window.getComputedStyle(originalFirstRow);
-                    row.style.height = computedStyle.height;
-                    row.style.lineHeight = computedStyle.lineHeight;
-                    row.style.padding = computedStyle.padding;
-                    row.style.margin = computedStyle.margin;
-                    row.style.border = computedStyle.border;
-                    row.style.boxSizing = computedStyle.boxSizing;
-                    
-                    row.innerHTML = `
-                        <td class="time-column">
-                            <span class="time-slot">${timeString}</span>
-                        </td>
-                    `;
-                    
-                    // 复制td的样式
-                    const originalTd = originalFirstRow.querySelector('td');
-                    if (originalTd) {
-                        const tdComputedStyle = window.getComputedStyle(originalTd);
-                        const newTd = row.querySelector('td');
-                        newTd.style.height = tdComputedStyle.height;
-                        newTd.style.lineHeight = tdComputedStyle.lineHeight;
-                        newTd.style.padding = tdComputedStyle.padding;
-                        newTd.style.margin = tdComputedStyle.margin;
-                        newTd.style.border = tdComputedStyle.border;
-                        newTd.style.fontSize = tdComputedStyle.fontSize;
-                        newTd.style.fontWeight = tdComputedStyle.fontWeight;
-                        newTd.style.verticalAlign = tdComputedStyle.verticalAlign;
-                    }
-                    tbody.appendChild(row);
-                }
-            }
-            
-            // 组装表格
-            table.appendChild(tbody);
-            
-            // 组装橙色时间轴
-            orangeAxis.appendChild(table);
-            
-            // 添加到目标容器作为覆盖层
-            targetContainer.appendChild(orangeAxis);
-            
-            console.log('🍊 橙色时间轴已创建');
-        }
-        
-        // 页面加载完成后自动创建橙色时间轴
-        document.addEventListener('DOMContentLoaded', function() {
-            // 延迟2秒后创建橙色时间轴
-            setTimeout(createOrangeTimeAxis, 2000);
-        });
-    </script>
+
 </body>
 </html> 
