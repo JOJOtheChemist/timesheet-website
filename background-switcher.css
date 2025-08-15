@@ -6,7 +6,7 @@ body {
 /* 默认背景（夜间） */
 body {
     background-image: url('/static/images/蕨类/night.webp');
-    background-size: cover;
+    background-size: auto 110vh;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -16,21 +16,29 @@ body {
 /* 早晨背景 */
 body.background-morning {
     background-image: url('/static/images/蕨类/morning.webp');
+    background-size: auto 110vh;
+    background-position: center;
 }
 
 /* 白天背景 */
 body.background-day {
     background-image: url('/static/images/蕨类/day.webp');
+    background-size: auto 110vh;
+    background-position: center;
 }
 
 /* 傍晚背景 */
 body.background-dusk {
     background-image: url('/static/images/蕨类/dusk.webp');
+    background-size: auto 110vh;
+    background-position: center;
 }
 
 /* 夜间背景 */
 body.background-night {
     background-image: url('/static/images/蕨类/night.webp');
+    background-size: auto 110vh;
+    background-position: center;
 }
 
 /* 背景切换指示器 */
@@ -56,20 +64,53 @@ body.background-night {
 
 /* 背景切换按钮组 */
 .background-controls {
-    position: fixed;
-    top: 70px;
-    right: 20px;
+    position: absolute;
+    top: 120px;
+    left: 5px;
     z-index: 9999;
     display: flex;
     flex-direction: column;
     gap: 10px;
     cursor: move;
     user-select: none;
-    touch-action: none;
-    /* 扩大点击范围 */
-    padding: 20px;
-    margin: -20px;
+    /* 去除触摸相关 */
     background: transparent;
+}
+
+/* 日期组（上下，每个日期独立容器） */
+.background-date-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+/* 单字圆圈日期，与图标视觉统一 */
+.date-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+/* 与圆形图标对齐，保持按钮尺寸不变 */
+.background-controls { align-items: flex-start; }
+.background-date-group-top { margin-bottom: 0px; }
+.background-date-group-bottom { margin-top: 0px; }
+
+/* 保证按钮尺寸不被影响 */
+.background-controls .bg-btn {
+    width: 40px;
+    height: 40px;
 }
 
 .bg-btn {
@@ -109,14 +150,51 @@ body.background-night {
         padding: 8px 12px;
     }
     
-    .background-controls {
-        top: 60px;
-        right: 10px;
+        .background-controls {
+        top: 520px;
+        left: 5px;
     }
+ 
     
     .bg-btn {
         width: 35px;
         height: 35px;
         font-size: 12px;
     }
+
+    /* 移动端适配：圆圈缩小 */
+    .date-circle {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+} 
+
+/* 今天标签：圆角矩形 + 右侧箭头 */
+.date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    font-size: 12px;
+    line-height: 1;
+}
+.date-pill .arrow {
+    display: inline-block;
+    font-size: 14px;
+    opacity: 0.9;
+}
+.date-pill .text { opacity: 0.95; }
+
+@media (max-width: 768px) {
+    .date-pill {
+        font-size: 11px;
+        padding: 5px 9px;
+    }
+    .date-pill .arrow { font-size: 13px; }
 } 

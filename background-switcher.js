@@ -30,7 +30,37 @@ class BackgroundSwitcher {
         // 创建背景控制按钮
         const controls = document.createElement('div');
         controls.className = 'background-controls';
-        
+
+		// 顶部日期（前天、昨天）
+		const formatDate = (date) => {
+			const m = String(date.getMonth() + 1).padStart(2, '0');
+			const d = String(date.getDate()).padStart(2, '0');
+			return `${m}-${d}`;
+		};
+		const getRelativeDate = (offset) => {
+			const dt = new Date();
+			dt.setDate(dt.getDate() + offset);
+			return dt;
+		};
+		const createDateItem = (label, offset) => {
+			const item = document.createElement('div');
+			item.className = 'date-circle';
+			const charMap = { '昨天': '昨', '前天': '前', '明天': '明', '后天': '后' };
+			const ch = charMap[label] || label.charAt(0);
+			item.textContent = ch;
+			item.title = `${label} ${formatDate(getRelativeDate(offset))}`;
+			return item;
+		};
+		const topGroup = document.createElement('div');
+		topGroup.className = 'background-date-group background-date-group-top';
+		const todayPill = document.createElement('div');
+		todayPill.className = 'date-pill';
+		todayPill.innerHTML = `<span class="text">今天 ${formatDate(new Date())}</span><span class="arrow">›</span>`;
+		topGroup.appendChild(todayPill);
+		topGroup.appendChild(createDateItem('昨天', -1));
+		topGroup.appendChild(createDateItem('前天', -2));
+		controls.appendChild(topGroup);
+
         this.backgrounds.forEach(bg => {
             const btn = document.createElement('button');
             btn.className = 'bg-btn';
@@ -44,7 +74,14 @@ class BackgroundSwitcher {
             
             controls.appendChild(btn);
         });
-        
+
+		// 底部日期（明天、后天）
+		const bottomGroup = document.createElement('div');
+		bottomGroup.className = 'background-date-group background-date-group-bottom';
+		bottomGroup.appendChild(createDateItem('明天', 1));
+		bottomGroup.appendChild(createDateItem('后天', 2));
+		controls.appendChild(bottomGroup);
+
         document.body.appendChild(controls);
         this.indicator = indicator;
         this.controls = controls;
