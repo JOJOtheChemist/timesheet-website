@@ -3718,10 +3718,26 @@
                         throw new Error('保存失败: ' + errorText);
                     }
                 } else {
-                    // 更新现有日程的心情
+                    // 更新现有日程的心情 - 需要先获取现有数据，然后合并更新
+                    // 先获取当前日程数据
+                    const currentResponse = await fetch(`/api/schedule/${selectedDate}`);
+                    if (!currentResponse.ok) {
+                        throw new Error('获取当前日程数据失败');
+                    }
+                    
+                    const currentData = await currentResponse.json();
+                    const currentSchedule = currentData.schedule_data.find(s => s.id == scheduleId);
+                    
+                    if (!currentSchedule) {
+                        throw new Error('未找到当前日程记录');
+                    }
+                    
+                    // 构建更新数据，保留现有字段
                     const updateData = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot,
+                        planned_subtask_id: currentSchedule.planned_subtask_id,
+                        planned_notes: currentSchedule.planned_notes,
+                        actual_subtask_id: currentSchedule.actual_subtask_id,
+                        actual_notes: currentSchedule.actual_notes,
                         mood: mood === undefined ? null : mood
                     };
                     
@@ -3775,11 +3791,35 @@
                         throw new Error('保存失败');
                     }
                 } else {
-                    // 更新现有日程的任务
+                    // 更新现有日程的任务 - 需要先获取现有数据，然后合并更新
+                    // 先获取当前日程数据
+                    const currentResponse = await fetch(`/api/schedule/${selectedDate}`);
+                    if (!currentResponse.ok) {
+                        throw new Error('获取当前日程数据失败');
+                    }
+                    
+                    const currentData = await currentResponse.json();
+                    const currentSchedule = currentData.schedule_data.find(s => s.id == scheduleId);
+                    
+                    if (!currentSchedule) {
+                        throw new Error('未找到当前日程记录');
+                    }
+                    
+                    // 构建更新数据，保留现有字段
                     const updateData = {
-                        planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
-                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null
+                        planned_subtask_id: currentSchedule.planned_subtask_id,
+                        planned_notes: currentSchedule.planned_notes,
+                        actual_subtask_id: currentSchedule.actual_subtask_id,
+                        actual_notes: currentSchedule.actual_notes,
+                        mood: currentSchedule.mood
                     };
+                    
+                    // 根据字段类型更新相应的子任务ID
+                    if (fieldType === 'planned') {
+                        updateData.planned_subtask_id = subtaskId;
+                    } else if (fieldType === 'actual') {
+                        updateData.actual_subtask_id = subtaskId;
+                    }
                     
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
                         method: 'PUT',
@@ -3830,11 +3870,35 @@
                         throw new Error('保存失败');
                     }
                 } else {
-                    // 更新现有日程的备注 - 模仿子任务保存逻辑，不提供schedule_date和time_slot
+                    // 更新现有日程的备注 - 需要先获取现有数据，然后合并更新
+                    // 先获取当前日程数据
+                    const currentResponse = await fetch(`/api/schedule/${selectedDate}`);
+                    if (!currentResponse.ok) {
+                        throw new Error('获取当前日程数据失败');
+                    }
+                    
+                    const currentData = await currentResponse.json();
+                    const currentSchedule = currentData.schedule_data.find(s => s.id == scheduleId);
+                    
+                    if (!currentSchedule) {
+                        throw new Error('未找到当前日程记录');
+                    }
+                    
+                    // 构建更新数据，保留现有字段
                     const updateData = {
-                        planned_notes: fieldType === 'planned' ? notes : null,
-                        actual_notes: fieldType === 'actual' ? notes : null
+                        planned_subtask_id: currentSchedule.planned_subtask_id,
+                        planned_notes: currentSchedule.planned_notes,
+                        actual_subtask_id: currentSchedule.actual_subtask_id,
+                        actual_notes: currentSchedule.actual_notes,
+                        mood: currentSchedule.mood
                     };
+                    
+                    // 根据字段类型更新相应的备注
+                    if (fieldType === 'planned') {
+                        updateData.planned_notes = notes;
+                    } else if (fieldType === 'actual') {
+                        updateData.actual_notes = notes;
+                    }
                     
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
                         method: 'PUT',
@@ -5699,10 +5763,30 @@
                         throw new Error(`保存失败: ${response.status} - ${errorText}`);
                     }
                 } else {
-                    // 更新现有日程的子任务 - 不提供schedule_date和time_slot
-                    const updateData = {};
+                    // 更新现有日程的子任务 - 需要先获取现有数据，然后合并更新
+                    // 先获取当前日程数据
+                    const currentResponse = await fetch(`/api/schedule/${selectedDate}`);
+                    if (!currentResponse.ok) {
+                        throw new Error('获取当前日程数据失败');
+                    }
                     
-                    // 根据字段类型设置相应的子任务ID
+                    const currentData = await currentResponse.json();
+                    const currentSchedule = currentData.schedule_data.find(s => s.id == scheduleId);
+                    
+                    if (!currentSchedule) {
+                        throw new Error('未找到当前日程记录');
+                    }
+                    
+                    // 构建更新数据，保留现有字段
+                    const updateData = {
+                        planned_subtask_id: currentSchedule.planned_subtask_id,
+                        planned_notes: currentSchedule.planned_notes,
+                        actual_subtask_id: currentSchedule.actual_subtask_id,
+                        actual_notes: currentSchedule.actual_notes,
+                        mood: currentSchedule.mood
+                    };
+                    
+                    // 根据字段类型更新相应的子任务ID
                     if (fieldType === 'planned') {
                         updateData.planned_subtask_id = subtaskId;
                     } else if (fieldType === 'actual') {
