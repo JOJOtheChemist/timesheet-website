@@ -33,18 +33,22 @@ app.add_middleware(
 # 数据模型
 class ScheduleItem(BaseModel):
     id: Optional[int] = None
-    schedule_date: str
-    time_slot: str
+    schedule_date: Optional[str] = None  # 更新时可选
+    time_slot: Optional[str] = None      # 更新时可选
     # 计划字段
     planned_subtask_id: Optional[int] = None
     planned_subtask_name: Optional[str] = None
-    planned_notes: Optional[str] = None
+    planned_subtask_color: Optional[str] = None
+    planned_project_name: Optional[str] = None
     planned_project_color: Optional[str] = None
+    planned_notes: Optional[str] = None
     # 实际字段
     actual_subtask_id: Optional[int] = None
     actual_subtask_name: Optional[str] = None
-    actual_notes: Optional[str] = None
+    actual_subtask_color: Optional[str] = None
+    actual_project_name: Optional[str] = None
     actual_project_color: Optional[str] = None
+    actual_notes: Optional[str] = None
     mood: Optional[str] = None
 
 class ScheduleResponse(BaseModel):
@@ -172,24 +176,34 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
     try:
         cursor = db.cursor(dictionary=True)
         
-        # 获取日程数据，包括计划字段和实际字段的子任务和项目信息
+        # 通过JOIN获取完整的日程数据，包括子任务和项目信息
         cursor.execute('''
             SELECT 
                 ds.id,
                 ds.schedule_date,
                 ds.time_slot,
-                # 计划字段
                 ds.planned_subtask_id,
-                ds.planned_subtask_name,
                 ds.planned_notes,
-                ds.planned_project_color,
-                # 实际字段
                 ds.actual_subtask_id,
-                ds.actual_subtask_name,
                 ds.actual_notes,
-                ds.actual_project_color,
-                ds.mood
+                ds.mood,
+                -- 计划子任务信息
+                ps.name as planned_subtask_name,
+                ps.color as planned_subtask_color,
+                pp.name as planned_project_name,
+                pp.color as planned_project_color,
+                -- 实际子任务信息
+                asub.name as actual_subtask_name,
+                asub.color as actual_subtask_color,
+                ap.name as actual_project_name,
+                ap.color as actual_project_color
             FROM daily_schedule ds
+            -- 左连接计划子任务和项目
+            LEFT JOIN subtasks ps ON ds.planned_subtask_id = ps.id
+            LEFT JOIN projects pp ON ps.project_id = pp.id
+            -- 左连接实际子任务和项目
+            LEFT JOIN subtasks asub ON ds.actual_subtask_id = asub.id
+            LEFT JOIN projects ap ON asub.project_id = ap.id
             WHERE ds.schedule_date = %s
             ORDER BY ds.time_slot
         ''', (schedule_date,))
@@ -202,16 +216,18 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
                 "id": row['id'],
                 "schedule_date": row['schedule_date'].isoformat() if row['schedule_date'] else None,
                 "time_slot": row['time_slot'],
-                # 计划字段
                 "planned_subtask_id": row['planned_subtask_id'],
                 "planned_subtask_name": row['planned_subtask_name'],
-                "planned_notes": row['planned_notes'],
+                "planned_subtask_color": row['planned_subtask_color'],
+                "planned_project_name": row['planned_project_name'],
                 "planned_project_color": row['planned_project_color'],
-                # 实际字段
+                "planned_notes": row['planned_notes'],
                 "actual_subtask_id": row['actual_subtask_id'],
                 "actual_subtask_name": row['actual_subtask_name'],
-                "actual_notes": row['actual_notes'],
+                "actual_subtask_color": row['actual_subtask_color'],
+                "actual_project_name": row['actual_project_name'],
                 "actual_project_color": row['actual_project_color'],
+                "actual_notes": row['actual_notes'],
                 "mood": row['mood']
             })
         
@@ -232,14 +248,14 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
         cursor.execute('''
             INSERT INTO daily_schedule (
                 schedule_date, time_slot, 
-                planned_subtask_id, planned_subtask_name, planned_notes, planned_project_color,
-                actual_subtask_id, actual_subtask_name, actual_notes, actual_project_color, mood
+                planned_subtask_id, planned_notes,
+                actual_subtask_id, actual_notes, mood
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', (
             schedule.schedule_date, schedule.time_slot,
-            schedule.planned_subtask_id, schedule.planned_subtask_name, schedule.planned_notes, schedule.planned_project_color,
-            schedule.actual_subtask_id, schedule.actual_subtask_name, schedule.actual_notes, schedule.actual_project_color, schedule.mood
+            schedule.planned_subtask_id, schedule.planned_notes,
+            schedule.actual_subtask_id, schedule.actual_notes, schedule.mood
         ))
         
         db.commit()
@@ -265,33 +281,36 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.co
         update_fields = []
         update_values = []
         
-        if schedule.planned_subtask_id is not None:
+        # 对于subtask_id字段，允许null值（用于删除）
+        if hasattr(schedule, 'planned_subtask_id') and schedule.planned_subtask_id is not None:
             update_fields.append("planned_subtask_id = %s")
             update_values.append(schedule.planned_subtask_id)
-        if schedule.planned_subtask_name is not None:
-            update_fields.append("planned_subtask_name = %s")
-            update_values.append(schedule.planned_subtask_name)
-        if schedule.planned_notes is not None:
+        elif hasattr(schedule, 'planned_subtask_id') and schedule.planned_subtask_id is None:
+            update_fields.append("planned_subtask_id = NULL")
+            
+        if hasattr(schedule, 'planned_notes') and schedule.planned_notes is not None:
             update_fields.append("planned_notes = %s")
             update_values.append(schedule.planned_notes)
-        if schedule.planned_project_color is not None:
-            update_fields.append("planned_project_color = %s")
-            update_values.append(schedule.planned_project_color)
-        if schedule.actual_subtask_id is not None:
+        elif hasattr(schedule, 'planned_notes') and schedule.planned_notes is None:
+            update_fields.append("planned_notes = NULL")
+            
+        if hasattr(schedule, 'actual_subtask_id') and schedule.actual_subtask_id is not None:
             update_fields.append("actual_subtask_id = %s")
             update_values.append(schedule.actual_subtask_id)
-        if schedule.actual_subtask_name is not None:
-            update_fields.append("actual_subtask_name = %s")
-            update_values.append(schedule.actual_subtask_name)
-        if schedule.actual_notes is not None:
+        elif hasattr(schedule, 'actual_subtask_id') and schedule.actual_subtask_id is None:
+            update_fields.append("actual_subtask_id = NULL")
+            
+        if hasattr(schedule, 'actual_notes') and schedule.actual_notes is not None:
             update_fields.append("actual_notes = %s")
             update_values.append(schedule.actual_notes)
-        if schedule.actual_project_color is not None:
-            update_fields.append("actual_project_color = %s")
-            update_values.append(schedule.actual_project_color)
-        if schedule.mood is not None:
+        elif hasattr(schedule, 'actual_notes') and schedule.actual_notes is None:
+            update_fields.append("actual_notes = NULL")
+            
+        if hasattr(schedule, 'mood') and schedule.mood is not None:
             update_fields.append("mood = %s")
             update_values.append(schedule.mood)
+        elif hasattr(schedule, 'mood') and schedule.mood is None:
+            update_fields.append("mood = NULL")
         
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")

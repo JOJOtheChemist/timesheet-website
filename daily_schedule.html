@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Daily Schedule Viewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -1997,32 +2000,85 @@
         async function fetchScheduleData(date) {
             try {
                 console.log(`=== 正在获取日期 ${date} 的日程数据 ===`);
-                const url = `/api/schedule/${date}`;
-                console.log(`请求URL: ${url}`);
                 
-                const response = await fetch(url);
-                console.log(`响应状态: ${response.status} ${response.statusText}`);
+                // 并行获取日程数据和项目数据
+                const [scheduleResponse, projectsResponse] = await Promise.all([
+                    fetch(`/api/schedule/${date}`),
+                    fetch('/api/projects')
+                ]);
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('响应错误内容:', errorText);
-                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}: ${errorText}`);
+                console.log(`日程响应状态: ${scheduleResponse.status} ${scheduleResponse.statusText}`);
+                console.log(`项目响应状态: ${projectsResponse.status} ${projectsResponse.statusText}`);
+                
+                if (!scheduleResponse.ok) {
+                    const errorText = await scheduleResponse.text();
+                    console.error('日程响应错误内容:', errorText);
+                    throw new Error(`HTTP error! status: ${scheduleResponse.status} - ${scheduleResponse.statusText}: ${errorText}`);
                 }
                 
-                const data = await response.json();
-                console.log(`获取到的原始响应数据:`, data);
-                
-                const scheduleData = data.schedule_data || [];
-                console.log(`解析后的日程数据:`, scheduleData);
-                console.log(`数据条数: ${scheduleData.length}`);
-                
-                // 检查数据结构
-                if (scheduleData.length > 0) {
-                    console.log('第一条数据示例:', scheduleData[0]);
-                    console.log('数据字段:', Object.keys(scheduleData[0]));
+                if (!projectsResponse.ok) {
+                    const errorText = await projectsResponse.text();
+                    console.error('项目响应错误内容:', errorText);
+                    throw new Error(`项目数据获取失败: ${projectsResponse.status} - ${projectsResponse.statusText}: ${errorText}`);
                 }
                 
-                return scheduleData;
+                const scheduleData = await scheduleResponse.json();
+                const projectsData = await projectsResponse.json();
+                
+                console.log(`获取到的原始日程数据:`, scheduleData);
+                console.log(`获取到的项目数据:`, projectsData);
+                
+                const scheduleItems = scheduleData.schedule_data || [];
+                console.log(`解析后的日程数据:`, scheduleItems);
+                console.log(`数据条数: ${scheduleItems.length}`);
+                
+                // 建立子任务ID到详情的映射
+                const subtaskMap = new Map();
+                const projectMap = new Map();
+                
+                projectsData.forEach(category => {
+                    category.projects.forEach(project => {
+                        projectMap.set(project.id, {
+                            name: project.name,
+                            color: project.color
+                        });
+                        
+                        project.subtasks.forEach(subtask => {
+                            subtaskMap.set(subtask.id, {
+                                name: subtask.name,
+                                color: subtask.color,
+                                projectId: project.id,
+                                projectName: project.name,
+                                projectColor: project.color
+                            });
+                        });
+                    });
+                });
+                
+                console.log('子任务映射:', subtaskMap);
+                console.log('项目映射:', projectMap);
+                
+                // 为每个日程项添加子任务和项目信息
+                const enrichedScheduleData = scheduleItems.map(item => {
+                    const plannedSubtask = item.planned_subtask_id ? subtaskMap.get(item.planned_subtask_id) : null;
+                    const actualSubtask = item.actual_subtask_id ? subtaskMap.get(item.actual_subtask_id) : null;
+                    
+                    return {
+                        ...item,
+                        planned_subtask_name: plannedSubtask ? plannedSubtask.name : null,
+                        planned_subtask_color: plannedSubtask ? plannedSubtask.color : null,
+                        planned_project_name: plannedSubtask ? plannedSubtask.projectName : null,
+                        planned_project_color: plannedSubtask ? plannedSubtask.projectColor : null,
+                        actual_subtask_name: actualSubtask ? actualSubtask.name : null,
+                        actual_subtask_color: actualSubtask ? actualSubtask.color : null,
+                        actual_project_name: actualSubtask ? actualSubtask.projectName : null,
+                        actual_project_color: actualSubtask ? actualSubtask.projectColor : null
+                    };
+                });
+                
+                console.log('增强后的日程数据:', enrichedScheduleData);
+                
+                return enrichedScheduleData;
             } catch (error) {
                 console.error('获取数据失败:', error);
                 if (error.name === 'TypeError' && error.message.includes('Load failed')) {
@@ -2049,8 +2105,9 @@
                     
                     if (scheduleItem) {
                         // 有数据的行，但每列独立判断empty状态
-                        const plannedProjectColor = scheduleItem.planned_project_color || 'transparent';
-                        const actualProjectColor = scheduleItem.actual_project_color || 'transparent';
+                        // 优先使用子任务颜色，如果没有则使用项目颜色作为备用
+                        const plannedSubtaskColor = scheduleItem.planned_subtask_color || scheduleItem.planned_project_color || 'transparent';
+                        const actualSubtaskColor = scheduleItem.actual_subtask_color || scheduleItem.actual_project_color || 'transparent';
                         
                         // 判断每列是否为空
                         const plannedSubtaskEmpty = !scheduleItem.planned_subtask_name;
@@ -2066,9 +2123,9 @@
                                      data-time-slot="${scheduleItem.time_slot}" 
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
-                                     data-project-color="${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}"
+                                     data-subtask-color="${plannedSubtaskEmpty ? '#6c757d' : plannedSubtaskColor}"
                                      data-field-type="planned"
-                                     style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedSubtaskColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -2088,9 +2145,9 @@
                                      data-time-slot="${scheduleItem.time_slot}" 
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
-                                     data-project-color="${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}"
+                                     data-subtask-color="${actualSubtaskEmpty ? '#6c757d' : actualSubtaskColor}"
                                      data-field-type="actual"
-                                     style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualProjectColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualSubtaskColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -2114,7 +2171,7 @@
                                      contenteditable="false">${scheduleItem.mood || '-'}</span>
                             </td>
                         `;
-                        console.log(`时间槽 ${scheduleItem.time_slot}: 计划颜色 = ${plannedProjectColor}, 实际颜色 = ${actualProjectColor}`);
+                        console.log(`时间槽 ${scheduleItem.time_slot}: 计划颜色 = ${plannedSubtaskColor}, 实际颜色 = ${actualSubtaskColor}`);
                     } else {
                         // 没有数据的行，但每列独立判断empty状态
                         row.innerHTML = `
@@ -2181,6 +2238,9 @@
             
             // 添加备注编辑事件监听器
             addNotesEditListeners();
+            
+            // 添加子任务编辑事件监听器
+            addTaskEditListeners();
             
             // 恢复本地缓存中的编辑状态
             restoreLocalCacheState();
@@ -3010,6 +3070,18 @@
             document.addEventListener('keydown', handleGlobalKeydown);
         }
 
+        // 添加子任务编辑事件监听器
+        function addTaskEditListeners() {
+            const taskBadges = document.querySelectorAll('.task-badge');
+            console.log('找到子任务单元格数量:', taskBadges.length);
+            taskBadges.forEach((element, index) => {
+                console.log(`为第${index + 1}个子任务单元格添加键盘事件监听器`);
+                element.addEventListener('keydown', handleTaskKeydown);
+                // 设置tabindex使元素可以获得焦点
+                element.setAttribute('tabindex', '0');
+            });
+        }
+
         // 处理全局点击事件
         function handleGlobalClick(event) {
             // 如果点击的是另一个编辑框，先保存当前编辑框
@@ -3048,6 +3120,19 @@
                 case 'ArrowRight':
                     event.preventDefault();
                     moveHighlight('right');
+                    break;
+                case 'Delete':
+                    event.preventDefault();
+                    console.log('全局键盘事件检测到Delete键');
+                    // 如果当前有高亮的子任务单元格，删除子任务
+                    const selectedTaskCell = document.querySelector('.task-column.selected');
+                    if (selectedTaskCell) {
+                        const taskBadge = selectedTaskCell.querySelector('.task-badge');
+                        if (taskBadge) {
+                            console.log('找到选中的子任务单元格，开始删除');
+                            clearTimeSlotSubtask(taskBadge);
+                        }
+                    }
                     break;
                 case 'Enter':
                     event.preventDefault();
@@ -3177,6 +3262,11 @@
                 event.preventDefault();
                 // Escape键：取消编辑，恢复原内容
                 finishEditing(event.target, false);
+            } else if (event.key === 'Delete') {
+                event.preventDefault();
+                // Delete键：清空内容并保存（删除备注）
+                event.target.textContent = '';
+                finishEditing(event.target, true);
             } else if (event.key === 'Tab') {
                 event.preventDefault();
                 // Tab键：保存但不跳转，让用户手动控制
@@ -3210,6 +3300,11 @@
 
         // 处理任务键盘事件
         function handleTaskKeydown(event) {
+            console.log('=== 任务键盘事件 ===');
+            console.log('按键:', event.key);
+            console.log('目标元素:', event.target);
+            console.log('元素类名:', event.target.className);
+            
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 // Enter键：保存并跳转到下一行
@@ -3218,6 +3313,11 @@
                 event.preventDefault();
                 // Escape键：取消编辑，恢复原内容
                 finishEditing(event.target, false);
+            } else if (event.key === 'Delete') {
+                event.preventDefault();
+                console.log('检测到Delete键，开始清空子任务');
+                // Delete键：清空子任务
+                clearTimeSlotSubtask(event.target);
             } else if (event.key === 'Tab') {
                 event.preventDefault();
                 // Tab键：保存但不跳转，让用户手动控制
@@ -3431,9 +3531,12 @@
             // 高亮整行
             row.classList.add('selected-row');
             
-                            // 取消选中状态的背景高亮
-                selectedTimeSlotElement.style.background = 'transparent';
-                selectedTimeSlotElement.style.borderColor = 'transparent';
+            // 取消选中状态的背景高亮
+            selectedTimeSlotElement.style.background = 'transparent';
+            selectedTimeSlotElement.style.borderColor = 'transparent';
+            
+            // 让子任务单元格获得焦点，以便接收键盘事件
+            selectedTimeSlotElement.focus();
             
             console.log(`已选择时间槽: ${timeSlot}, 当前任务: ${subtaskName}`);
         }
@@ -3652,11 +3755,7 @@
                         schedule_date: selectedDate,
                         time_slot: timeSlot,
                         planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
-                        planned_subtask_name: fieldType === 'planned' ? subtaskName : null,
-                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null,
-                        actual_subtask_name: fieldType === 'actual' ? subtaskName : null,
-                        project_id: projectId,
-                        project_name: projectName
+                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null
                     };
                     
                     const response = await fetch('/api/schedule', {
@@ -3678,14 +3777,8 @@
                 } else {
                     // 更新现有日程的任务
                     const updateData = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot,
                         planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
-                        planned_subtask_name: fieldType === 'planned' ? subtaskName : null,
-                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null,
-                        actual_subtask_name: fieldType === 'actual' ? subtaskName : null,
-                        project_id: projectId,
-                        project_name: projectName
+                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null
                     };
                     
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
@@ -3737,10 +3830,8 @@
                         throw new Error('保存失败');
                     }
                 } else {
-                    // 更新现有日程的备注
+                    // 更新现有日程的备注 - 模仿子任务保存逻辑，不提供schedule_date和time_slot
                     const updateData = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot,
                         planned_notes: fieldType === 'planned' ? notes : null,
                         actual_notes: fieldType === 'actual' ? notes : null
                     };
@@ -3940,6 +4031,127 @@
             return '#ffffff';
         }
 
+        // 清空时间槽的子任务
+        async function clearTimeSlotSubtask(element) {
+            console.log('=== 开始清空子任务 ===');
+            console.log('清空元素:', element);
+            
+            if (!element) {
+                console.error('未提供元素，无法清空子任务');
+                return;
+            }
+            
+            const timeSlot = element.getAttribute('data-time-slot');
+            const scheduleId = element.getAttribute('data-schedule-id');
+            const fieldType = element.getAttribute('data-field-type');
+            
+            console.log('时间槽:', timeSlot);
+            console.log('日程ID:', scheduleId);
+            console.log('字段类型:', fieldType);
+            
+            if (!timeSlot) {
+                console.error('timeSlot为空，无法清空子任务');
+                return;
+            }
+            
+            // 清空UI显示
+            const defaultText = fieldType === 'planned' ? '点击选择计划任务' : '点击选择实际任务';
+            element.textContent = defaultText;
+            element.removeAttribute('data-subtask-id');
+            element.removeAttribute('data-project-color');
+            element.removeAttribute('data-subtask-color');
+            element.classList.add('empty');
+            element.classList.remove('selected');
+            
+            // 重置样式
+            element.style.background = 'transparent';
+            element.style.backgroundImage = 'none';
+            element.style.borderColor = 'transparent';
+            element.style.color = '';
+            element.style.textShadow = '';
+            
+            // 同时清空对应的备注单元格的data属性
+            const row = element.closest('tr');
+            const notesElement = row ? row.querySelector(`.notes-text[data-field-type="${fieldType}"]`) : null;
+            
+            if (notesElement) {
+                notesElement.removeAttribute('data-subtask-id');
+                console.log(`已清空${fieldType}备注单元格的data-subtask-id`);
+            }
+            
+            // 更新缓存数据
+            const cacheKey = `${selectedDate}_${timeSlot}`;
+            const existingData = localScheduleCache.get(cacheKey) || {};
+            
+            console.log('清空子任务时，现有缓存数据:', existingData);
+            
+            const updatedData = {
+                ...existingData,
+                schedule_date: selectedDate,
+                time_slot: timeSlot,
+                schedule_id: scheduleId || null
+            };
+            
+            // 根据字段类型清空相应的字段
+            if (fieldType === 'planned') {
+                updatedData.planned_subtask_id = null;
+                updatedData.planned_subtask_name = null;
+                updatedData.planned_project_name = null;
+                updatedData.planned_project_id = null;
+                console.log('已清空计划字段的子任务信息');
+            } else {
+                updatedData.actual_subtask_id = null;
+                updatedData.actual_subtask_name = null;
+                updatedData.actual_project_name = null;
+                updatedData.actual_project_id = null;
+                console.log('已清空实际字段的子任务信息');
+            }
+            
+            // 保存到本地缓存
+            localScheduleCache.set(cacheKey, updatedData);
+            
+            console.log('=== 子任务清空完成 ===');
+            console.log('更新后的缓存数据:', localScheduleCache.get(cacheKey));
+            
+            // 直接调用API删除子任务
+            try {
+                if (scheduleId) {
+                    // 更新现有日程
+                    const updateData = {};
+                    if (fieldType === 'planned') {
+                        updateData.planned_subtask_id = null;
+                    } else {
+                        updateData.actual_subtask_id = null;
+                    }
+                    
+                    console.log('直接调用API删除子任务:', updateData);
+                    
+                    const response = await fetch(`/api/schedule/${scheduleId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(updateData)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('子任务删除成功');
+                        // 刷新数据
+                        await loadScheduleData(selectedDate);
+                    } else {
+                        const errorText = await response.text();
+                        console.error('子任务删除失败:', errorText);
+                    }
+                } else {
+                    console.log('没有日程ID，无法删除子任务');
+                }
+            } catch (error) {
+                console.error('删除子任务时出错:', error);
+            }
+            
+            console.log('子任务清空完成');
+        }
+
         // 移动高亮框
         function moveHighlight(direction) {
             console.log(`=== 移动高亮框: ${direction} ===`);
@@ -4131,6 +4343,8 @@
                 const moodUpdates = [];
                 const plannedTaskUpdates = [];
                 const actualTaskUpdates = [];
+                const plannedNotesUpdates = [];
+                const actualNotesUpdates = [];
                 
                 // 收集所有需要保存的数据
                 for (const [cacheKey, data] of localScheduleCache) {
@@ -4164,6 +4378,26 @@
                             time_slot: data.time_slot,
                             subtask_id: data.actual_subtask_id,
                             project_id: data.actual_project_id,
+                            schedule_id: data.schedule_id
+                        });
+                    }
+                    
+                    // 收集计划备注数据
+                    if (data.planned_notes !== undefined) {
+                        plannedNotesUpdates.push({
+                            schedule_date: data.schedule_date,
+                            time_slot: data.time_slot,
+                            notes: data.planned_notes,
+                            schedule_id: data.schedule_id
+                        });
+                    }
+                    
+                    // 收集实际备注数据
+                    if (data.actual_notes !== undefined) {
+                        actualNotesUpdates.push({
+                            schedule_date: data.schedule_date,
+                            time_slot: data.time_slot,
+                            notes: data.actual_notes,
                             schedule_id: data.schedule_id
                         });
                     }
@@ -4216,6 +4450,36 @@
                     console.log(`成功保存 ${actualTaskUpdates.length} 个实际任务数据`);
                 }
                 
+                // 批量保存计划备注数据
+                if (plannedNotesUpdates.length > 0) {
+                    console.log('批量保存计划备注数据:', plannedNotesUpdates);
+                    for (const notesData of plannedNotesUpdates) {
+                        await saveNotesToDatabase(
+                            notesData.time_slot,
+                            notesData.notes,
+                            notesData.schedule_id,
+                            'planned'
+                        );
+                        savedCount++;
+                    }
+                    console.log(`成功保存 ${plannedNotesUpdates.length} 个计划备注数据`);
+                }
+                
+                // 批量保存实际备注数据
+                if (actualNotesUpdates.length > 0) {
+                    console.log('批量保存实际备注数据:', actualNotesUpdates);
+                    for (const notesData of actualNotesUpdates) {
+                        await saveNotesToDatabase(
+                            notesData.time_slot,
+                            notesData.notes,
+                            notesData.schedule_id,
+                            'actual'
+                        );
+                        savedCount++;
+                    }
+                    console.log(`成功保存 ${actualNotesUpdates.length} 个实际备注数据`);
+                }
+                
                 // 清空缓存
                 localScheduleCache.clear();
                 console.log('所有数据保存完成，缓存已清空');
@@ -4230,6 +4494,12 @@
                     }
                 if (actualTaskUpdates.length > 0) {
                     message += `实际任务: ${actualTaskUpdates.length}个 `;
+                }
+                if (plannedNotesUpdates.length > 0) {
+                    message += `计划备注: ${plannedNotesUpdates.length}个 `;
+                }
+                if (actualNotesUpdates.length > 0) {
+                    message += `实际备注: ${actualNotesUpdates.length}个 `;
                 }
                 
                 if (message) {
@@ -5429,11 +5699,8 @@
                         throw new Error(`保存失败: ${response.status} - ${errorText}`);
                     }
                 } else {
-                    // 更新现有日程的子任务
-                    const updateData = {
-                        schedule_date: selectedDate,
-                        time_slot: timeSlot
-                    };
+                    // 更新现有日程的子任务 - 不提供schedule_date和time_slot
+                    const updateData = {};
                     
                     // 根据字段类型设置相应的子任务ID
                     if (fieldType === 'planned') {
