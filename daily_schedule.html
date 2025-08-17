@@ -18,7 +18,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     
     <!-- 背景图切换器 -->
-    <link rel="stylesheet" href="background-switcher.css">
+    <link rel="stylesheet" href="components/background-switcher/background-switcher.css">
     
     <!-- 确保flatpickr在移动设备上正常工作的备用方案 -->
     <script>
@@ -430,17 +430,17 @@
         }
 
         .schedule-table tbody tr:hover {
-            background-color: #ff69b4;
+            background-color: rgba(255, 105, 180, 0.3);
         }
         
         /* 当行中有单元格被选中时，整行显示高亮背景 */
         .schedule-table tbody tr:has(.selected) {
-            background-color: #87ceeb;
+            background-color: rgba(135, 206, 235, 0.3);
         }
         
         /* 兼容性支持：直接选择包含selected类的行 */
         .schedule-table tbody tr.selected-row {
-            background-color: #87ceeb !important;
+            background-color: rgba(135, 206, 235, 0.3) !important;
         }
         
         /* 选中行中的时间标记不显示黑色阴影 */
@@ -1786,6 +1786,26 @@
             transform: none;
             box-shadow: none;
             filter: brightness(1.2);
+        }
+        
+        /* 保存成功动画 */
+        @keyframes saveSuccess {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(76, 175, 80, 0.4);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+            }
+        }
+        
+        .save-success {
+            animation: saveSuccess 0.5s ease-in-out;
         }
     </style>
 </head>
@@ -3711,8 +3731,8 @@
                     if (response.ok) {
                         const result = await response.json();
                         console.log('心情保存成功:', result);
-                        // 刷新数据
-                        await loadScheduleData(selectedDate);
+                        // 直接更新UI，不刷新整个页面
+                        updateMoodAfterSave(timeSlot, mood, result.id);
                     } else {
                         const errorText = await response.text();
                         throw new Error('保存失败: ' + errorText);
@@ -3785,8 +3805,8 @@
                     if (response.ok) {
                         const result = await response.json();
                         console.log('任务保存成功:', result);
-                        // 刷新数据
-                        await loadScheduleData(selectedDate);
+                        // 直接更新UI，不刷新整个页面
+                        updateTaskAfterSave(timeSlot, subtaskId, subtaskName, projectId, projectName, fieldType, result.id);
                     } else {
                         throw new Error('保存失败');
                     }
@@ -5755,8 +5775,8 @@
                     if (response.ok) {
                         const result = await response.json();
                         console.log('子任务保存成功:', result);
-                        // 刷新数据
-                        await loadScheduleData(selectedDate);
+                        // 不刷新整个页面，只更新当前单元格
+                        updateCellAfterSave(timeSlot, subtaskId, projectId, fieldType, result.id);
                     } else {
                         const errorText = await response.text();
                         console.error('子任务保存失败，状态码:', response.status, '错误信息:', errorText);
@@ -5803,6 +5823,8 @@
                     
                     if (response.ok) {
                         console.log('子任务更新成功');
+                        // 更新成功后直接更新UI，不刷新整个页面
+                        updateCellAfterSave(timeSlot, subtaskId, projectId, fieldType, scheduleId);
                     } else {
                         const errorText = await response.text();
                         console.error('子任务更新失败，状态码:', response.status, '错误信息:', errorText);
@@ -5812,6 +5834,104 @@
             } catch (error) {
                 console.error('保存子任务失败:', error);
                 throw error;
+            }
+        }
+        
+        // 保存心情成功后更新UI，避免刷新整个页面
+        function updateMoodAfterSave(timeSlot, mood, scheduleId) {
+            const moodElement = document.querySelector(`[data-time="${timeSlot}"] .mood-cell`);
+            if (moodElement) {
+                moodElement.textContent = mood || '-';
+                moodElement.style.animation = 'saveSuccess 0.5s ease-in-out';
+                setTimeout(() => {
+                    moodElement.style.animation = '';
+                }, 500);
+            }
+            showSaveSuccessMessage('心情保存成功！');
+        }
+        
+        // 保存任务成功后更新UI，避免刷新整个页面
+        function updateTaskAfterSave(timeSlot, subtaskId, subtaskName, projectId, projectName, fieldType, scheduleId) {
+            const cell = document.querySelector(`[data-time="${timeSlot}"][data-field="${fieldType}"]`);
+            if (cell) {
+                // 更新单元格内容
+                cell.innerHTML = `
+                    <div class="task-badge" style="background: #4CAF5020; color: #4CAF50; border: 2px solid #4CAF50;">
+                        ${subtaskName}
+                        <div class="task-difficulty-icon">
+                            <img src="${getRandomIcon()}" alt="difficulty">
+                        </div>
+                    </div>
+                `;
+                
+                // 添加保存成功的视觉反馈
+                cell.style.animation = 'saveSuccess 0.5s ease-in-out';
+                setTimeout(() => {
+                    cell.style.animation = '';
+                }, 500);
+            }
+            showSaveSuccessMessage('任务保存成功！');
+        }
+        
+        // 保存成功后更新单元格，避免刷新整个页面
+        async function updateCellAfterSave(timeSlot, subtaskId, projectId, fieldType, scheduleId) {
+            try {
+                // 获取子任务和项目信息
+                const subtaskResponse = await fetch('/api/projects');
+                if (!subtaskResponse.ok) {
+                    throw new Error('获取项目数据失败');
+                }
+                
+                const projectsData = await subtaskResponse.json();
+                let subtaskInfo = null;
+                let projectInfo = null;
+                
+                // 查找子任务和项目信息
+                for (const category of projectsData) {
+                    for (const project of category.projects) {
+                        if (project.id === projectId) {
+                            projectInfo = project;
+                            for (const subtask of project.subtasks) {
+                                if (subtask.id === subtaskId) {
+                                    subtaskInfo = subtask;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    if (subtaskInfo) break;
+                }
+                
+                if (subtaskInfo && projectInfo) {
+                    // 更新当前单元格显示
+                    const cell = document.querySelector(`[data-time="${timeSlot}"][data-field="${fieldType}"]`);
+                    if (cell) {
+                        // 更新单元格内容，显示保存成功的状态
+                        cell.innerHTML = `
+                            <div class="task-badge" style="background: ${subtaskInfo.color}20; color: ${subtaskInfo.color}; border: 2px solid ${subtaskInfo.color};">
+                                ${subtaskInfo.name}
+                                <div class="task-difficulty-icon">
+                                    <img src="${getRandomIcon()}" alt="difficulty">
+                                </div>
+                            </div>
+                        `;
+                        
+                        // 添加保存成功的视觉反馈
+                        cell.style.animation = 'saveSuccess 0.5s ease-in-out';
+                        setTimeout(() => {
+                            cell.style.animation = '';
+                        }, 500);
+                    }
+                }
+                
+                // 显示保存成功提示
+                showSaveSuccessMessage('子任务保存成功！');
+                
+            } catch (error) {
+                console.error('更新单元格失败:', error);
+                // 如果更新失败，回退到刷新数据
+                await loadScheduleData(selectedDate);
             }
         }
         
@@ -6456,7 +6576,7 @@
     </script>
     
     <!-- 背景图切换器脚本 -->
-    <script src="background-switcher.js">    </script>
+    <script src="components/background-switcher/background-switcher.js"></script>
     
 
 </body>

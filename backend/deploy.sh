@@ -22,16 +22,16 @@ sudo apt update
 sudo apt install -y python3.12-venv python3-pip
 
 # 创建虚拟环境
-if [ ! -d "venv" ]; then
+if [ ! -d "../venv" ]; then
     echo "🐍 创建虚拟环境..."
-    python3 -m venv venv
+    python3 -m venv ../venv
 else
     echo "✅ 虚拟环境已存在"
 fi
 
 # 激活虚拟环境并安装依赖
 echo "📚 安装Python依赖..."
-source venv/bin/activate
+source ../venv/bin/activate
 pip install -r requirements.txt
 
 # 设置启动脚本权限
