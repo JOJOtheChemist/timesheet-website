@@ -1,0 +1,43 @@
+{
+  "mcpServers": {
+    "schedule-api": {
+      "command": "python3",
+      "args": ["mcp_schedule_server.py"],
+      "env": {
+        "PYTHONPATH": ".",
+        "MCP_LOG_LEVEL": "INFO"
+      },
+      "cwd": ".",
+      "description": "MCP Schedule API Server for timesheet management",
+      "capabilities": {
+        "tools": {},
+        "resources": {},
+        "logging": {}
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "database": {
+    "host": "localhost",
+    "user": "root",
+    "password": "12356790zZ_",
+    "database": "project_tasks",
+    "charset": "utf8mb4",
+    "autocommit": true,
+    "pool_size": 5
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "debug": false,
+    "cors": {
+      "allow_origins": ["*"],
+      "allow_credentials": true,
+      "allow_methods": ["*"],
+      "allow_headers": ["*"]
+    }
+  }
+} 

@@ -1,0 +1,26 @@
+[Unit]
+Description=MCP Schedule API Server
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/mcp_schedule_api
+Environment=PATH=/home/ubuntu/mcp_schedule_api/venv/bin
+ExecStart=/home/ubuntu/mcp_schedule_api/venv/bin/python3 mcp_schedule_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/ubuntu/mcp_schedule_api
+
+[Install]
+WantedBy=multi-user.target 

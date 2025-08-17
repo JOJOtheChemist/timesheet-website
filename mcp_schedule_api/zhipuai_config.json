@@ -1,0 +1,31 @@
+{
+  "zhipuai": {
+    "api_key": "ce85d782d3834f3982b87494dbd2a447.y8l8wxwEFafurRY2",
+    "model": "glm-4.5-air",
+    "base_url": "https://open.bigmodel.cn/api/paas/v4",
+    "timeout": 30,
+    "max_tokens": 1024,
+    "temperature": 0.1,
+    "top_p": 0.7
+  },
+  "mcp_server": {
+    "name": "mcp-schedule-api-zhipuai",
+    "version": "1.0.0",
+    "description": "MCP Schedule API Server with ZhipuAI GLM-4.5-Air integration",
+    "host": "0.0.0.0",
+    "port": 8000
+  },
+  "database": {
+    "host": "localhost",
+    "user": "root",
+    "password": "12356790zZ_",
+    "database": "project_tasks",
+    "charset": "utf8mb4",
+    "autocommit": true,
+    "pool_size": 5
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+} 

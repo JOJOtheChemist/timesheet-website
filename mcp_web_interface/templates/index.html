@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP 智能日程助手</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-robot"></i> MCP 智能日程助手</h1>
+            <p>使用自然语言与AI助手交互，管理你的日程安排</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 输入区域 -->
+            <div class="input-section">
+                <div class="input-container">
+                    <textarea 
+                        id="userInput" 
+                        placeholder="请输入你的自然语言指令，例如：'查询今天的日程安排'、'创建明天上午9点的会议'..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendBtn" class="send-btn">
+                        <i class="fas fa-paper-plane"></i> 发送
+                    </button>
+                </div>
+                <div class="input-tips">
+                    <p><i class="fas fa-lightbulb"></i> 提示：你可以用自然语言描述你的需求，AI会自动理解并执行相应操作</p>
+                </div>
+            </div>
+
+            <!-- 对话历史 -->
+            <div class="chat-section">
+                <div class="chat-header">
+                    <h3><i class="fas fa-comments"></i> 对话历史</h3>
+                    <button id="clearChat" class="clear-btn">
+                        <i class="fas fa-trash"></i> 清空
+                    </button>
+                </div>
+                <div id="chatHistory" class="chat-history">
+                    <div class="welcome-message">
+                        <i class="fas fa-hand-wave"></i>
+                        <p>你好！我是你的智能日程助手，请告诉我你需要什么帮助？</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作结果展示 -->
+            <div class="results-section">
+                <div class="results-header">
+                    <h3><i class="fas fa-chart-bar"></i> 操作结果</h3>
+                    <div class="result-tabs">
+                        <button class="tab-btn active" data-tab="schedule">日程</button>
+                        <button class="tab-btn" data-tab="projects">项目</button>
+                        <button class="tab-btn" data-tab="ai-analysis">AI分析</button>
+                    </div>
+                </div>
+                
+                <div class="tab-content">
+                    <!-- 日程标签页 -->
+                    <div id="schedule-tab" class="tab-pane active">
+                        <div id="scheduleContent" class="content-area">
+                            <p class="placeholder-text">日程数据将在这里显示</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目标签页 -->
+                    <div id="projects-tab" class="tab-pane">
+                        <div id="projectsContent" class="content-area">
+                            <p class="placeholder-text">项目数据将在这里显示</p>
+                        </div>
+                    </div>
+                    
+                    <!-- AI分析标签页 -->
+                    <div id="ai-analysis-tab" class="tab-pane">
+                        <div id="aiAnalysisContent" class="content-area">
+                            <p class="placeholder-text">AI分析结果将在这里显示</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 MCP Schedule API Server. Powered by ZhipuAI GLM-4.5-Air</p>
+        </footer>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>AI正在思考中...</p>
+        </div>
+    </div>
+
+    <script>
+        // 内嵌的简化JavaScript代码
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 页面加载完成，开始初始化...');
+            
+            // 获取DOM元素
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const chatHistory = document.getElementById('chatHistory');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            console.log('🔍 DOM元素检查:', {
+                userInput: !!userInput,
+                sendBtn: !!sendBtn,
+                chatHistory: !!chatHistory,
+                loadingOverlay: !!loadingOverlay
+            });
+            
+            // 绑定发送按钮事件
+            if (sendBtn) {
+                sendBtn.addEventListener('click', handleSend);
+                console.log('✅ 发送按钮事件绑定成功');
+            }
+            
+            // 绑定回车键事件
+            if (userInput) {
+                userInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                    }
+                });
+                console.log('✅ 输入框事件绑定成功');
+            }
+            
+            // 发送消息处理函数
+            async function handleSend() {
+                const input = userInput.value.trim();
+                if (!input) return;
+                
+                console.log('📤 发送消息:', input);
+                
+                // 显示用户消息
+                addChatMessage('user', input);
+                
+                // 清空输入框
+                userInput.value = '';
+                
+                // 显示加载状态
+                showLoading();
+                
+                try {
+                    // 发送MCP请求
+                    const response = await fetch('/mcp/api/mcp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            id: "web_" + Date.now(),
+                            method: "tools/call",
+                            params: {
+                                name: "ai_analyze",
+                                arguments: {
+                                    user_request: input
+                                }
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('✅ MCP响应:', data);
+                    
+                    // 显示AI回复
+                    if (data.result && data.result.content && data.result.content.length > 0) {
+                        const content = data.result.content[0];
+                        if (content.type === 'text') {
+                            try {
+                                const parsed = JSON.parse(content.text);
+                                if (parsed.success && parsed.ai_analysis) {
+                                    // 如果AI分析成功，显示分析结果
+                                    addChatMessage('assistant', formatResponse(parsed.ai_analysis));
+                                    
+                                    // 根据AI分析结果执行相应操作
+                                    if (parsed.ai_analysis.action === 'query_schedule') {
+                                        // 查询日程
+                                        const date = parsed.ai_analysis.parameters.date || 'today';
+                                        const scheduleResponse = await fetch('/mcp/api/mcp', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                jsonrpc: "2.0",
+                                                id: "web_" + Date.now(),
+                                                method: "tools/call",
+                                                params: {
+                                                    name: "get_schedule",
+                                                    arguments: { date: date === 'today' ? '2025-08-17' : date }
+                                                }
+                                            })
+                                        });
+                                        
+                                        if (scheduleResponse.ok) {
+                                            const scheduleData = await scheduleResponse.json();
+                                            if (scheduleData.result && scheduleData.result.content) {
+                                                const scheduleContent = JSON.parse(scheduleData.result.content[0].text);
+                                                
+                                                // 先调用AI总结
+                                                const summaryResponse = await fetch('/mcp/api/mcp', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        jsonrpc: "2.0",
+                                                        id: "web_" + Date.now(),
+                                                        method: "tools/call",
+                                                        params: {
+                                                            name: "ai_summarize",
+                                                            arguments: {
+                                                                data_type: "schedule",
+                                                                data: scheduleContent,
+                                                                user_request: input
+                                                            }
+                                                        }
+                                                    })
+                                                });
+                                                
+                                                if (summaryResponse.ok) {
+                                                    const summaryData = await summaryResponse.json();
+                                                    if (summaryData.result && summaryData.result.content) {
+                                                        const summaryContent = JSON.parse(summaryData.result.content[0].text);
+                                                        if (summaryContent.success && summaryContent.summary) {
+                                                            addChatMessage('assistant', `<strong>🤖 AI智能总结：</strong><br>${summaryContent.summary}`);
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 然后显示详细数据
+                                                addChatMessage('assistant', `<strong>📊 详细数据：</strong><br>${formatScheduleData(scheduleContent)}`);
+                                            }
+                                        }
+                                    } else if (parsed.ai_analysis.action === 'query_projects') {
+                                        // 查询项目
+                                        const projectsResponse = await fetch('/mcp/api/mcp', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                jsonrpc: "2.0",
+                                                id: "web_" + Date.now(),
+                                                method: "tools/call",
+                                                params: {
+                                                    name: "get_projects",
+                                                    arguments: {}
+                                                }
+                                            })
+                                        });
+                                        
+                                        if (projectsResponse.ok) {
+                                            const projectsData = await projectsResponse.json();
+                                            if (projectsData.result && projectsData.result.content) {
+                                                const projectsContent = JSON.parse(projectsData.result.content[0].text);
+                                                
+                                                // 先调用AI总结
+                                                const summaryResponse = await fetch('/mcp/api/mcp', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        jsonrpc: "2.0",
+                                                        id: "web_" + Date.now(),
+                                                        method: "tools/call",
+                                                        params: {
+                                                            name: "ai_summarize",
+                                                            arguments: {
+                                                                data_type: "projects",
+                                                                data: projectsContent,
+                                                                user_request: input
+                                                            }
+                                                        }
+                                                    })
+                                                });
+                                                
+                                                if (summaryResponse.ok) {
+                                                    const summaryData = await summaryResponse.json();
+                                                    if (summaryData.result && summaryData.result.content) {
+                                                        const summaryContent = JSON.parse(summaryData.result.content[0].text);
+                                                        if (summaryContent.success && summaryContent.summary) {
+                                                            addChatMessage('assistant', `<strong>🤖 AI智能总结：</strong><br>${summaryContent.summary}`);
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                // 然后显示详细数据
+                                                addChatMessage('assistant', `<strong>📊 详细数据：</strong><br>${formatProjectsData(projectsContent)}`);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    addChatMessage('assistant', formatResponse(parsed));
+                                }
+                            } catch (e) {
+                                addChatMessage('assistant', content.text);
+                            }
+                        }
+                    } else {
+                        addChatMessage('assistant', 'AI分析完成，但返回格式异常');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 请求失败:', error);
+                    addChatMessage('assistant', `抱歉，处理您的请求时出现了错误：${error.message}`);
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // 添加聊天消息
+            function addChatMessage(type, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${type}`;
+                
+                const timestamp = new Date().toLocaleTimeString();
+                
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span>${type === 'user' ? '你' : 'AI助手'}</span>
+                        <span>${timestamp}</span>
+                    </div>
+                    <div class="message-content">${content}</div>
+                `;
+                
+                chatHistory.appendChild(messageDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+            
+            // 格式化AI响应
+            function formatResponse(result) {
+                let response = `<strong>操作类型：</strong>${result.action || '未知'}<br>`;
+                response += `<strong>操作说明：</strong>${result.explanation || '无说明'}<br>`;
+                
+                if (result.parameters && Object.keys(result.parameters).length > 0) {
+                    response += `<strong>参数：</strong>${JSON.stringify(result.parameters, null, 2)}<br>`;
+                }
+                
+                if (result.data) {
+                    response += `<strong>结果：</strong>操作成功完成`;
+                }
+                
+                return response;
+            }
+            
+            // 格式化日程数据
+            function formatScheduleData(scheduleData) {
+                if (!Array.isArray(scheduleData) || scheduleData.length === 0) {
+                    return '<strong>📅 日程查询结果：</strong><br>今天没有安排任何日程。';
+                }
+                
+                let response = '<strong>📅 今天的日程安排：</strong><br><br>';
+                
+                // 按时间段分组
+                const timeSlots = {};
+                scheduleData.forEach(item => {
+                    if (!timeSlots[item.time_slot]) {
+                        timeSlots[item.time_slot] = [];
+                    }
+                    timeSlots[item.time_slot].push(item);
+                });
+                
+                // 显示每个时间段的安排
+                Object.keys(timeSlots).sort().forEach(timeSlot => {
+                    const items = timeSlots[timeSlot];
+                    response += `<strong>🕐 ${timeSlot}</strong><br>`;
+                    
+                    items.forEach(item => {
+                        const plannedTask = item.planned_subtask_name || '未安排';
+                        const actualTask = item.actual_subtask_name || '未完成';
+                        const mood = item.mood || '无心情记录';
+                        
+                        response += `• 计划：${plannedTask} (${item.planned_project_name || '无项目'})<br>`;
+                        response += `• 实际：${actualTask} (${item.actual_project_name || '无项目'})<br>`;
+                        response += `• 心情：${mood}<br>`;
+                        if (item.planned_notes) {
+                            response += `• 备注：${item.planned_notes}<br>`;
+                        }
+                        response += '<br>';
+                    });
+                });
+                
+                return response;
+            }
+            
+            // 格式化项目数据
+            function formatProjectsData(projectsData) {
+                if (!Array.isArray(projectsData) || projectsData.length === 0) {
+                    return '<strong>📋 项目查询结果：</strong><br>没有找到任何项目。';
+                }
+                
+                let response = '<strong>📋 项目列表：</strong><br><br>';
+                
+                projectsData.forEach(project => {
+                    response += `<strong>🏷️ ${project.name}</strong><br>`;
+                    response += `• 描述：${project.description || '无描述'}<br>`;
+                    response += `• 状态：${project.status || '未知'}<br>`;
+                    response += `• 创建时间：${project.created_at || '未知'}<br>`;
+                    response += `• 子任务数量：${project.subtasks_count || 0}<br><br>`;
+                });
+                
+                return response;
+            }
+            
+            // 显示/隐藏加载状态
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+            }
+            
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 发送';
+            }
+            
+            console.log('✅ 页面初始化完成');
+        });
+    </script>
+</body>
+</html> 
