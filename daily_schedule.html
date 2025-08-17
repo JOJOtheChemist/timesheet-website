@@ -103,7 +103,7 @@
             font-size: 3rem;
             border-bottom: 2px solid rgba(79, 156, 255, 0.5);
             padding-bottom: 8px;
-            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+            text-shadow: none;
         }
 
         .schedule-header {
@@ -131,7 +131,7 @@
             font-weight: 600 !important;
             font-size: 12px !important;
             white-space: nowrap !important;
-            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5) !important;
+            text-shadow: none !important;
             font-family: inherit !important;
         }
 
@@ -150,7 +150,7 @@
             max-height: 32px !important;
             box-sizing: border-box !important;
             font-family: inherit !important;
-            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5) !important;
+            text-shadow: none !important;
         }
 
         .date-picker input:focus {
@@ -178,7 +178,7 @@
 
         .flatpickr-month {
             color: #4f9cff !important;
-            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5) !important;
+            text-shadow: none !important;
         }
 
         .flatpickr-current-month {
@@ -430,17 +430,17 @@
         }
 
         .schedule-table tbody tr:hover {
-            background-color: #f8f9fa;
+            background-color: #ff69b4;
         }
         
         /* 当行中有单元格被选中时，整行显示高亮背景 */
         .schedule-table tbody tr:has(.selected) {
-            background-color: #f8f9fa;
+            background-color: #87ceeb;
         }
         
         /* 兼容性支持：直接选择包含selected类的行 */
         .schedule-table tbody tr.selected-row {
-            background-color: #f8f9fa !important;
+            background-color: #87ceeb !important;
         }
         
         /* 选中行中的时间标记不显示黑色阴影 */
@@ -650,25 +650,25 @@
         /* 计划模式高亮"计划" */
         .header-with-arrows.plan-mode #task-plan {
             color: #4f9cff;
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+            text-shadow: none;
         }
         
         /* 实际模式高亮"实际" */
         .header-with-arrows.actual-mode #task-actual {
             color: #4f9cff;
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+            text-shadow: none;
         }
         
         /* 全部显示模式：两个都高亮 */
         .header-with-arrows.all-mode #task-plan,
         .header-with-arrows.all-mode #task-actual {
             color: #4f9cff;
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.5), 0 0 5px rgba(79, 156, 255, 0.5);
+            text-shadow: none;
         }
         
-        /* 确保所有文字都有黑色阴影 */
+        /* 确保所有文字都没有黑色阴影 */
         #task-plan, #task-actual, #task-task, #task-slash {
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+            text-shadow: none;
             transition: all 0.3s ease;
         }
         
@@ -740,7 +740,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             opacity: 1;
-            text-shadow: none !important; /* 选中时移除黑色阴影 */
+            text-shadow: none !important;
         }
 
         .notes-column {
@@ -1924,7 +1924,7 @@
         <!-- 主要内容区域 -->
         <div class="main-content">
             <div class="schedule-header">
-                <h1 style="color: #4f9cff; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">📋 日程安排表</h1>
+                <h1 style="color: #4f9cff; text-shadow: none;">📋 日程安排表</h1>
                 <div class="date-picker">
                     <label for="dateSelect">选择日期:</label>
                     <input type="text" id="dateSelect" placeholder="选择日期">
@@ -1938,7 +1938,7 @@
             <table class="schedule-table">
                 <thead>
                     <tr>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">时间</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: none;">时间</th>
                         <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">
                             <div class="header-with-arrows">
                                 <div class="arrow-cell">
@@ -1958,8 +1958,8 @@
                                     <img src="/static/images/svg/pixel-right-arrow.svg" class="arrow-img arrow-left" alt="Left Arrow">
                                 </div>
                         </th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">备注</th>
-                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);">心情</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: none;">备注</th>
+                        <th style="background-color: transparent; color: #8f8fb7; text-shadow: none;">心情</th>
                     </tr>
                 </thead>
                 </table>
@@ -2125,7 +2125,7 @@
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-subtask-color="${plannedSubtaskEmpty ? '#6c757d' : plannedSubtaskColor}"
                                      data-field-type="planned"
-                                     style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedSubtaskColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="border-color: transparent; color: ${plannedSubtaskEmpty ? '#6c757d' : plannedSubtaskColor}; text-shadow: none;">
                                     ${scheduleItem.planned_subtask_name || '点击选择计划任务'}
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -2147,7 +2147,7 @@
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-subtask-color="${actualSubtaskEmpty ? '#6c757d' : actualSubtaskColor}"
                                      data-field-type="actual"
-                                     style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualSubtaskColor}; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="border-color: transparent; color: ${actualSubtaskEmpty ? '#6c757d' : actualSubtaskColor}; text-shadow: none;">
                                     ${scheduleItem.actual_subtask_name || '点击选择实际任务'}
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -2185,7 +2185,7 @@
                                      data-schedule-id=""
                                      data-subtask-id=""
                                      data-field-type="planned"
-                                     style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="color: #6c757d; text-shadow: none;">
                                     点击选择计划任务
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -2206,7 +2206,7 @@
                                      data-schedule-id=""
                                      data-subtask-id=""
                                      data-field-type="actual"
-                                     style="color: #6c757d; text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);">
+                                     style="color: #6c757d; text-shadow: none;">
                                     点击选择实际任务
                                     <img src="/static/images/easyhard/easy.png" class="task-difficulty-icon" alt="难度图标">
                                 </div>
@@ -3531,9 +3531,9 @@
             // 高亮整行
             row.classList.add('selected-row');
             
-            // 取消选中状态的背景高亮
-            selectedTimeSlotElement.style.background = 'transparent';
-            selectedTimeSlotElement.style.borderColor = 'transparent';
+                            // 取消选中状态的背景高亮
+                selectedTimeSlotElement.style.background = 'transparent';
+                selectedTimeSlotElement.style.borderColor = 'transparent';
             
             // 让子任务单元格获得焦点，以便接收键盘事件
             selectedTimeSlotElement.focus();
@@ -3973,7 +3973,7 @@
                 // 应用彩色文字效果，使用子任务颜色，如果没有则使用项目颜色
                 const textColor = subtaskColor !== '#ffffff' ? subtaskColor : projectColor;
                 timeSlotElement.style.color = textColor;
-                timeSlotElement.style.textShadow = '2px 2px 0 rgba(0, 0, 0, 1)';
+                timeSlotElement.style.textShadow = 'none';
                 
                 // 同时更新对应的备注单元格的data属性，确保数据一致性
                 const row = timeSlotElement.closest('tr');
