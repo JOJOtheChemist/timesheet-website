@@ -3055,6 +3055,7 @@
         let notesSaveTimeout = null;
         let editingElement = null;
         let originalText = '';
+        let isComposing = false;
         
         // 时间槽选择相关变量
         let selectedTimeSlot = null;
@@ -3073,6 +3074,8 @@
                 element.addEventListener('blur', handleNotesBlur);
                 element.addEventListener('keydown', handleNotesKeydown);
                 element.addEventListener('input', handleNotesInput);
+                element.addEventListener('compositionstart', () => { isComposing = true; });
+                element.addEventListener('compositionend', () => { isComposing = false; });
             });
             
             // 为心情列添加键盘事件监听器（在父元素上）
@@ -3292,25 +3295,24 @@
                 // Tab键：保存但不跳转，让用户手动控制
                 finishEditing(event.target, true);
             } else if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                // 向下箭头：保存并移动到下一行
-                finishEditing(event.target, true);
-                setTimeout(() => moveHighlight('down'), 100);
+                if (isComposing) return; // 处于输入法候选时不处理
+                // 仅当光标在文本末尾时，才移动到下一行
+                if (isCaretAtEnd(event.target)) {
+                    event.preventDefault();
+                    finishEditing(event.target, true);
+                    setTimeout(() => moveHighlight('down'), 100);
+                } // 否则允许浏览器默认行为：在文本中移动光标
             } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                // 向上箭头：保存并移动到上一行
-                finishEditing(event.target, true);
-                setTimeout(() => moveHighlight('up'), 100);
-            } else if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                // 向左箭头：保存并移动到左一列
-                finishEditing(event.target, true);
-                setTimeout(() => moveHighlight('left'), 100);
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                // 向右箭头：保存并移动到右一列
-                finishEditing(event.target, true);
-                setTimeout(() => moveHighlight('right'), 100);
+                if (isComposing) return;
+                // 仅当光标在文本开头时，才移动到上一行
+                if (isCaretAtStart(event.target)) {
+                    event.preventDefault();
+                    finishEditing(event.target, true);
+                    setTimeout(() => moveHighlight('up'), 100);
+                }
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                // 左右方向键在编辑时只移动光标，不进行单元格跳转
+                return;
             } else if (event.key === 'Ctrl' && event.key === 'S') {
                 event.preventDefault();
                 // Ctrl+S：手动保存
@@ -6572,6 +6574,27 @@
             });
         }
     });
+
+    // 光标位置辅助函数：判断是否在开始/结束
+    function isCaretAtStart(element) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return false;
+        const range = selection.getRangeAt(0).cloneRange();
+        const preRange = range.cloneRange();
+        preRange.selectNodeContents(element);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        return preRange.toString().length === 0;
+    }
+
+    function isCaretAtEnd(element) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return false;
+        const range = selection.getRangeAt(0).cloneRange();
+        const postRange = range.cloneRange();
+        postRange.selectNodeContents(element);
+        postRange.setStart(range.endContainer, range.endOffset);
+        return postRange.toString().length === 0;
+    }
 
     </script>
     
