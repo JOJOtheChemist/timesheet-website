@@ -3278,6 +3278,10 @@
         // 处理备注键盘事件
         function handleNotesKeydown(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
+                // 输入法候选确认时不拦截，不跳转
+                if (isComposing) {
+                    return;
+                }
                 event.preventDefault();
                 // Enter键：保存并跳转到下一行
                 finishEditing(event.target, true, event);
