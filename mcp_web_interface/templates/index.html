@@ -12,6 +12,11 @@
         <header class="header">
             <h1><i class="fas fa-robot"></i> MCP 智能日程助手</h1>
             <p>使用自然语言与AI助手交互，管理你的日程安排</p>
+            <div class="header-actions">
+                <a href="/schedule-assistant" class="btn btn-primary">
+                    <i class="fas fa-calendar-alt"></i> 日程 ReAct 助手
+                </a>
+            </div>
         </header>
 
         <main class="main-content">
@@ -149,12 +154,16 @@
                 showLoading();
                 
                 try {
+                    // 为AI分析添加20秒超时控制，避免长时间无响应
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 20000);
                     // 发送MCP请求
                     const response = await fetch('/mcp/api/mcp', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
+                        signal: controller.signal,
                         body: JSON.stringify({
                             jsonrpc: "2.0",
                             id: "web_" + Date.now(),
@@ -167,6 +176,7 @@
                             }
                         })
                     });
+                    clearTimeout(timeoutId);
                     
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -198,7 +208,7 @@
                                                 method: "tools/call",
                                                 params: {
                                                     name: "get_schedule",
-                                                    arguments: { date: date === 'today' ? '2025-08-17' : date }
+                                                     arguments: { date: date === 'today' ? new Date().toISOString().slice(0, 10) : date }
                                                 }
                                             })
                                         });
@@ -309,7 +319,11 @@
                     
                 } catch (error) {
                     console.error('❌ 请求失败:', error);
-                    addChatMessage('assistant', `抱歉，处理您的请求时出现了错误：${error.message}`);
+                    if (error && (error.name === 'AbortError' || `${error}`.includes('AbortError'))) {
+                        addChatMessage('assistant', 'AI分析超时（>20s）。请稍后重试，或简化问题描述。');
+                    } else {
+                        addChatMessage('assistant', `抱歉，处理您的请求时出现了错误：${error.message}`);
+                    }
                 } finally {
                     hideLoading();
                 }

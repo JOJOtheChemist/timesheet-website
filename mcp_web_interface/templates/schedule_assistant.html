@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日程 ReAct 助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .chat-container {
+            display: flex;
+            height: 600px;
+        }
+
+        .chat-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 15px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sidebar-section {
+            margin-bottom: 30px;
+        }
+
+        .sidebar-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .example-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #e9ecef;
+        }
+
+        .example-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .example-item h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .example-item p {
+            color: #666;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid #fcc;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #363;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid #cfc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 日程 ReAct 助手</h1>
+            <p>智能解析自然语言，自动填写日程表</p>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-sidebar">
+                <div class="sidebar-section">
+                    <h3>💡 使用示例</h3>
+                    <div class="example-item" onclick="setExample('我昨天2点睡觉、今天12点起床、昨晚是听抖音asmr睡着的')">
+                        <h4>多段睡眠记录</h4>
+                        <p>自动识别时间段，添加备注信息</p>
+                    </div>
+                    <div class="example-item" onclick="setExample('计划接下来要研究一下agent')">
+                        <h4>计划任务创建</h4>
+                        <p>智能匹配子任务，创建计划记录</p>
+                    </div>
+                    <div class="example-item" onclick="setExample('今天下午3点开会讨论项目进度，持续2小时')">
+                        <h4>会议安排</h4>
+                        <p>自动计算时间范围，创建日程</p>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>🔧 功能说明</h3>
+                    <p style="font-size: 0.9em; color: #666; line-height: 1.5;">
+                        助手通过 ReAct 范式思考，调用 MCP 工具：
+                        <br>• 自动识别时间、子任务、备注
+                        <br>• 支持多段睡眠记录
+                        <br>• 智能匹配已有子任务
+                        <br>• 自动创建新子任务
+                    </p>
+                </div>
+            </div>
+
+            <div class="chat-main">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-content">
+                            <div>你好！我是日程 ReAct 助手。请告诉我你的日程安排，我会自动帮你填写到日程表中。</div>
+                            <div class="message-time">现在</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="loading" id="loading">
+            <div style="font-size:12px;color:#888;margin-bottom:6px;">提示：点击“分析”先识别时间与任务，确认后再“写入”。</div>
+                    <div class="spinner"></div>
+                    正在处理你的请求...
+                </div>
+
+                <div class="chat-input-container">
+                    <form class="chat-input-form" id="chatForm">
+                        <button type="button" class="send-button" id="planButton" style="background:#10b981;">分析</button>
+                        <button type="button" class="send-button" id="commitButton" style="background:#ef4444;">写入</button>
+                        <input type="text" class="chat-input" id="chatInput" placeholder="输入你的日程安排..." autocomplete="off">
+                        <button type="submit" class="send-button" id="sendButton">发送</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const loading = document.getElementById('loading');
+
+        function addMessage(content, isUser = false, timestamp = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            // 处理换行符
+            const formattedContent = content.replace(/\n/g, '<br>');
+            messageContent.innerHTML = formattedContent;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = timestamp || new Date().toLocaleTimeString();
+            
+            messageContent.appendChild(timeDiv);
+            messageDiv.appendChild(messageContent);
+            chatMessages.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function setExample(text) {
+            chatInput.value = text;
+            chatInput.focus();
+        }
+
+        async function sendMessage(userInput) {
+            // 简易session_id：长期保存在localStorage
+            let sid = localStorage.getItem('sa_session_id');
+            if (!sid) {
+                sid = Math.random().toString(36).slice(2) + Date.now();
+                localStorage.setItem('sa_session_id', sid);
+            }
+            if (!sid) {
+                sid = Math.random().toString(36).slice(2) + Date.now();
+                localStorage.setItem('sa_session_id', sid);
+            }
+            if (!userInput.trim()) return;
+
+            // 添加用户消息
+            addMessage(userInput, true);
+            
+            // 显示加载状态
+            loading.classList.add('show');
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+
+            try {
+                // 改为优先使用流式接口
+                const resp = await fetch('/schedule-assistant/api/schedule-assistant/chat-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_input: userInput, session_id: sid })
+                });
+                if (resp.ok && resp.headers.get('content-type')?.includes('text/plain')) {
+                    // 工具：创建助手与工具气泡
+                    const createAssistantBubble = () => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'message assistant';
+                        const content = document.createElement('div');
+                        content.className = 'message-content';
+                        const textDiv = document.createElement('div');
+                        textDiv.innerHTML = '';
+                        const timeDiv = document.createElement('div');
+                        timeDiv.className = 'message-time';
+                        timeDiv.textContent = new Date().toLocaleTimeString();
+                        content.appendChild(textDiv);
+                        content.appendChild(timeDiv);
+                        wrapper.appendChild(content);
+                        chatMessages.appendChild(wrapper);
+                        return textDiv;
+                    };
+                    const createToolBubble = (label, body) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'message assistant';
+                        const content = document.createElement('div');
+                        content.className = 'message-content';
+                        const textDiv = document.createElement('div');
+                        const safeBody = (body || '').replace(/\n/g, '<br>');
+                        textDiv.innerHTML = `<b>🔧 ${label}</b><br>${safeBody}`;
+                        const timeDiv = document.createElement('div');
+                        timeDiv.className = 'message-time';
+                        timeDiv.textContent = new Date().toLocaleTimeString();
+                        content.appendChild(textDiv);
+                        content.appendChild(timeDiv);
+                        wrapper.appendChild(content);
+                        chatMessages.appendChild(wrapper);
+                    };
+
+                    // 当前助手气泡
+                    let currentAssistantTextDiv = createAssistantBubble();
+
+                    const reader = resp.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let buffer = '';
+                    let anyOutput = false;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, { stream: true });
+                        buffer += chunk;
+                        anyOutput = true;
+
+                        // 逐行解析，遇到工具/observation生成新气泡
+                        let nl;
+                        while ((nl = buffer.indexOf('\n')) !== -1) {
+                            const line = buffer.slice(0, nl);
+                            buffer = buffer.slice(nl + 1);
+                            const trimmed = line.trim();
+
+                            // 1) 观察值
+                            if (trimmed.startsWith('<observation>') && trimmed.endsWith('</observation>')) {
+                                const body = trimmed.replace(/^<observation>/, '').replace(/<\/observation>$/, '');
+                                createToolBubble('Observation', body);
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                                // 新开一个助手气泡，承接后续模型文本
+                                currentAssistantTextDiv = createAssistantBubble();
+                                continue;
+                            }
+
+                            // 2) 工具调用结果标记: [tool:name] body
+                            if (trimmed.startsWith('[tool:')) {
+                                const m = trimmed.match(/^\[tool:([^\]]+)\]\s*(.*)$/);
+                                if (m) {
+                                    const label = m[1];
+                                    const body = m[2] || '';
+                                    createToolBubble(label, body);
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                    currentAssistantTextDiv = createAssistantBubble();
+                                    continue;
+                                }
+                            }
+
+                            // 其余当做普通助手文本
+                            const safe = trimmed.replace(/\n/g, '<br>');
+                            currentAssistantTextDiv.innerHTML += (safe.length ? safe : '&nbsp;') + '<br>';
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    }
+                    // 残留buffer写入
+                    if (buffer.trim().length) {
+                        const safe = buffer.replace(/\n/g, '<br>');
+                        currentAssistantTextDiv.innerHTML += safe;
+                    }
+                    if (!anyOutput) {
+                        currentAssistantTextDiv.textContent = '（无输出）';
+                    }
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    // 兜底走非流式API
+                    const response = await fetch('/schedule-assistant/api/schedule-assistant/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_input: userInput })
+                    });
+                    const data = await response.json();
+                    if (data.success) addMessage(data.result); else addMessage(`❌ 错误: ${data.error?.message || '未知错误'}`);
+                }
+            } catch (error) {
+                console.error('发送消息失败:', error);
+                addMessage(`❌ 网络错误: ${error.message}`);
+            } finally {
+                // 隐藏加载状态
+                loading.classList.remove('show');
+                sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userInput = chatInput.value.trim();
+            if (userInput) {
+                chatInput.value = '';
+                await sendMessage(userInput);
+            }
+        });
+
+        // 回车发送
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // 页面加载完成后聚焦输入框
+        window.addEventListener('load', () => {
+            chatInput.focus();
+        });
+
+        // 新增：分析/写入按钮
+        const planButton = document.getElementById('planButton');
+        const commitButton = document.getElementById('commitButton');
+        let lastPlan = null;
+        let lastAppliedPlan = null;
+        let lastNeedsConfirm = false;
+
+        planButton.addEventListener('click', async () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            loading.classList.add('show');
+            try {
+                const sid = localStorage.getItem('sa_session_id');
+                const r = await fetch('/schedule-assistant/api/schedule-assistant/plan', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_input: text, session_id: sid })
+                });
+                const data = await r.json();
+                if (data.success) {
+                    lastPlan = data.plan;
+                    lastAppliedPlan = data.applied_plan || data.plan;
+                    lastNeedsConfirm = !!data.needs_confirmation;
+                    addMessage(`🔎 规划：\n${JSON.stringify(data.plan, null, 2)}`);
+                    addMessage(`🧩 匹配：\n${JSON.stringify(data.matched || [], null, 2)}`);
+                    if (lastNeedsConfirm) {
+                        addMessage('⚠️ 需要确认：请检查匹配到的子任务（matched），确认后再点击“写入”。');
+                    } else {
+                        addMessage(`✅ 已自动套用子任务，可直接写入：\n${JSON.stringify(lastAppliedPlan, null, 2)}`);
+                    }
+                } else {
+                    addMessage(`❌ 规划失败: ${data.error || r.status}`);
+                }
+            } catch (e) {
+                addMessage(`❌ 规划异常: ${e.message}`);
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+
+        commitButton.addEventListener('click', async () => {
+            const planForCommit = lastAppliedPlan || lastPlan;
+            if (!planForCommit) { addMessage('⚠️ 还没有可提交的规划，请先“分析”。'); return; }
+            loading.classList.add('show');
+            try {
+                const r = await fetch('/schedule-assistant/api/schedule-assistant/commit-plan', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ plan: planForCommit })
+                });
+                const data = await r.json();
+                if (data.success) {
+                    addMessage(`✅ 已写入：\n${JSON.stringify(data.results, null, 2)}`);
+                } else {
+                    addMessage(`❌ 写入失败: ${data.error || r.status}`);
+                }
+            } catch (e) {
+                addMessage(`❌ 写入异常: ${e.message}`);
+            } finally {
+                loading.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html> 
