@@ -106,6 +106,16 @@ def init_db():
                 INDEX idx_actual_subtask_id (actual_subtask_id)
             )
         ''')
+
+        # 确保唯一索引：同一天同一时间槽只允许一条记录（计划/实际共用一行）
+        try:
+            cursor.execute('''
+                ALTER TABLE daily_schedule
+                ADD UNIQUE KEY uniq_date_slot (schedule_date, time_slot)
+            ''')
+        except Exception:
+            # 可能已存在则忽略
+            pass
         
         # 检查是否需要迁移旧数据
         cursor.execute("SHOW COLUMNS FROM daily_schedule LIKE 'subtask_id'")
@@ -241,17 +251,25 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
 
 @app.post("/api/schedule")
 async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db)):
-    """创建新的日程记录"""
+    """创建新的日程记录（同一时间槽幂等：存在则更新）"""
     try:
         cursor = db.cursor(dictionary=True)
         
+        # 使用 upsert，若该时间槽已存在则更新对应字段
         cursor.execute('''
             INSERT INTO daily_schedule (
-                schedule_date, time_slot, 
+                schedule_date, time_slot,
                 planned_subtask_id, planned_notes,
                 actual_subtask_id, actual_notes, mood
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                planned_subtask_id = VALUES(planned_subtask_id),
+                planned_notes = VALUES(planned_notes),
+                actual_subtask_id = VALUES(actual_subtask_id),
+                actual_notes = VALUES(actual_notes),
+                mood = VALUES(mood),
+                updated_at = CURRENT_TIMESTAMP
         ''', (
             schedule.schedule_date, schedule.time_slot,
             schedule.planned_subtask_id, schedule.planned_notes,
@@ -260,8 +278,13 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
         
         db.commit()
         
-        # 返回创建的记录
-        schedule.id = cursor.lastrowid
+        # 返回创建/更新的记录：重新查询该时间槽行
+        cursor.execute('''
+            SELECT id FROM daily_schedule WHERE schedule_date=%s AND time_slot=%s
+        ''', (schedule.schedule_date, schedule.time_slot))
+        row = cursor.fetchone()
+        if row:
+            schedule.id = row['id']
         return schedule
         
     except Exception as e:
