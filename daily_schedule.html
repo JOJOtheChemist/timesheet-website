@@ -3302,17 +3302,17 @@
                 if (isComposing) return; // 处于输入法候选时不处理
                 // 仅当光标在文本末尾时，才移动到下一行
                 if (isCaretAtEnd(event.target)) {
-                    event.preventDefault();
-                    finishEditing(event.target, true);
-                    setTimeout(() => moveHighlight('down'), 100);
+                event.preventDefault();
+                finishEditing(event.target, true);
+                setTimeout(() => moveHighlight('down'), 100);
                 } // 否则允许浏览器默认行为：在文本中移动光标
             } else if (event.key === 'ArrowUp') {
                 if (isComposing) return;
                 // 仅当光标在文本开头时，才移动到上一行
                 if (isCaretAtStart(event.target)) {
-                    event.preventDefault();
-                    finishEditing(event.target, true);
-                    setTimeout(() => moveHighlight('up'), 100);
+                event.preventDefault();
+                finishEditing(event.target, true);
+                setTimeout(() => moveHighlight('up'), 100);
                 }
             } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
                 // 左右方向键在编辑时只移动光标，不进行单元格跳转
@@ -6605,6 +6605,46 @@
     <!-- 背景图切换器脚本 -->
     <script src="components/background-switcher/background-switcher.js"></script>
     
+    <!-- 认证登录组件脚本（解耦，Shadow DOM Modal） -->
+    <script src="components/auth-modal/auth-modal.js"></script>
+    
+    <script>
+    (function(){
+        const token = localStorage.getItem('ts_auth_token');
+        const container = document.querySelector('.container');
+        const gateId = 'ts-login-gate';
+        function showGate(){
+            if (document.getElementById(gateId)) return;
+            if (container) container.style.display = 'none';
+            const btn = document.createElement('button');
+            btn.id = gateId;
+            btn.textContent = '登录';
+            btn.style.position = 'fixed';
+            btn.style.top = '20px';
+            btn.style.right = '20px';
+            btn.style.zIndex = '99998';
+            btn.style.padding = '10px 14px';
+            btn.style.borderRadius = '8px';
+            btn.style.border = '1px solid rgba(79,156,255,.4)';
+            btn.style.background = '#0b152b';
+            btn.style.color = '#9cc7ff';
+            btn.style.cursor = 'pointer';
+            document.body.appendChild(btn);
+            btn.addEventListener('click', function(){ window.tsAuth && window.tsAuth.openLogin && window.tsAuth.openLogin(); });
+            document.addEventListener('ts-auth:login', function(){
+                btn.remove();
+                if (container) container.style.display = '';
+                location.reload();
+            }, { once: true });
+        }
+        if (!token) {
+            showGate();
+        } else {
+            if (container) container.style.display = '';
+        }
+    })();
+    </script>
+    
 
 </body>
-</html> 
+</html>

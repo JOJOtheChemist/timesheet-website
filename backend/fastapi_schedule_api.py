@@ -5,9 +5,20 @@ from typing import List, Optional, Dict, Any
 import mysql.connector
 from mysql.connector import pooling
 import json
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import uvicorn
 from contextlib import asynccontextmanager
+import jwt
+from passlib.context import CryptContext
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+# 认证与安全配置
+JWT_SECRET = "change_this_secret_in_env"
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+http_bearer = HTTPBearer(auto_error=False)
+DEV_RETURN_RESET_TOKEN = True
 
 # 生命周期管理
 @asynccontextmanager
@@ -54,6 +65,27 @@ class ScheduleItem(BaseModel):
 class ScheduleResponse(BaseModel):
     schedule_data: List[ScheduleItem]
 
+# 认证模型
+class UserRegister(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class ResetRequest(BaseModel):
+    username: str
+
+class ResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
 # MySQL数据库连接池配置
 db_config = {
     'host': 'localhost',
@@ -75,12 +107,56 @@ connection_pool = mysql.connector.pooling.MySQLConnectionPool(
 def get_db():
     return connection_pool.get_connection()
 
+# 密码与JWT工具
+def hash_password(plain_password: str) -> str:
+    return password_context.hash(plain_password)
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    return password_context.verify(plain_password, password_hash)
+
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return token
+
+def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer)) -> Optional[Dict[str, Any]]:
+    if not credentials:
+        return None
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except Exception:
+        return None
+
+def require_user(payload: Optional[Dict[str, Any]] = Depends(get_current_user)) -> Dict[str, Any]:
+    if not payload:
+        raise HTTPException(status_code=401, detail="未认证")
+    return payload
+
 # 初始化数据库
 def init_db():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
     
     try:
+        # 用户表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                email VARCHAR(255),
+                reset_token VARCHAR(255),
+                reset_expires DATETIME,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_username (username)
+            )
+        ''')
+
         # 检查daily_schedule表是否存在，如果不存在则创建
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS daily_schedule (
@@ -180,8 +256,110 @@ async def options_handler(full_path: str):
     """处理CORS预检请求"""
     return {"message": "CORS preflight request handled"}
 
+# 认证路由
+@app.post("/api/auth/register", response_model=Dict[str, Any])
+async def register(user: UserRegister, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE username=%s", (user.username,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="用户名已存在")
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
+            (user.username, hash_password(user.password), user.email)
+        )
+        db.commit()
+        return {"message": "注册成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+async def login(user: UserLogin, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT id, username, password_hash FROM users WHERE username=%s", (user.username,))
+        row = cursor.fetchone()
+        if not row or not verify_password(user.password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        token = create_access_token({"sub": row["id"], "username": row["username"]})
+        return TokenResponse(access_token=token)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"登录失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.get("/api/auth/me", response_model=Dict[str, Any])
+async def me(current_user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="未认证")
+    return {"id": current_user.get("sub"), "username": current_user.get("username")}
+
+@app.post("/api/auth/request-reset", response_model=Dict[str, Any])
+async def request_reset(body: ResetRequest, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE username=%s", (body.username,))
+        row = cursor.fetchone()
+        if not row:
+            # 即使不存在也返回成功，防止用户枚举
+            return {"message": "如果账号存在，重置令牌已生成"}
+        token = create_access_token({"reset": row["id"], "username": body.username}, expires_delta=timedelta(minutes=30))
+        expires_at = datetime.utcnow() + timedelta(minutes=30)
+        cursor.execute("UPDATE users SET reset_token=%s, reset_expires=%s WHERE id=%s", (token, expires_at, row["id"]))
+        db.commit()
+        response: Dict[str, Any] = {"message": "重置令牌已生成，有效期30分钟"}
+        if DEV_RETURN_RESET_TOKEN:
+            response["reset_token"] = token
+        return response
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"请求重置失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.post("/api/auth/reset-password", response_model=Dict[str, Any])
+async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    try:
+        cursor = db.cursor(dictionary=True)
+        # 验证token
+        try:
+            payload = jwt.decode(body.token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            user_id = payload.get("reset")
+        except Exception:
+            raise HTTPException(status_code=400, detail="无效或过期的令牌")
+        # 匹配数据库中的令牌并检查过期
+        cursor.execute("SELECT id, reset_expires FROM users WHERE id=%s AND reset_token=%s", (user_id, body.token))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="无效或过期的令牌")
+        if row["reset_expires"] and datetime.utcnow() > row["reset_expires"]:
+            raise HTTPException(status_code=400, detail="令牌已过期")
+        # 更新密码并清除令牌
+        cursor.execute("UPDATE users SET password_hash=%s, reset_token=NULL, reset_expires=NULL WHERE id=%s", (hash_password(body.new_password), user_id))
+        db.commit()
+        return {"message": "密码已重置，请使用新密码登录"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"重置失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+# 下面保留原有业务路由（受保护）
 @app.get("/api/schedule/{schedule_date}")
-async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     """获取指定日期的日程数据"""
     try:
         cursor = db.cursor(dictionary=True)
@@ -250,7 +428,7 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
         db.close()
 
 @app.post("/api/schedule")
-async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     """创建新的日程记录（同一时间槽幂等：存在则更新）"""
     try:
         cursor = db.cursor(dictionary=True)
@@ -295,7 +473,7 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
         db.close()
 
 @app.put("/api/schedule/{schedule_id}")
-async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     """更新现有日程记录"""
     try:
         cursor = db.cursor(dictionary=True)
@@ -364,7 +542,7 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.co
         db.close()
 
 @app.delete("/api/schedule/{schedule_id}")
-async def delete_schedule(schedule_id: int, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def delete_schedule(schedule_id: int, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     """删除日程记录"""
     try:
         cursor = db.cursor(dictionary=True)
@@ -385,7 +563,7 @@ async def delete_schedule(schedule_id: int, db: mysql.connector.MySQLConnection 
         db.close()
 
 @app.get("/api/projects")
-async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     """获取项目列表，按分类组织"""
     try:
         cursor = db.cursor(dictionary=True)
