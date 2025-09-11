@@ -6607,6 +6607,28 @@
     
     <!-- 认证登录组件脚本（解耦，Shadow DOM Modal） -->
     
+    <script>
+    (function(){
+        var btn = document.createElement('button');
+        btn.textContent = '退出登录';
+        btn.style.position = 'fixed';
+        btn.style.bottom = '16px';
+        btn.style.right = '16px';
+        btn.style.zIndex = '99998';
+        btn.style.padding = '8px 12px';
+        btn.style.borderRadius = '8px';
+        btn.style.border = '1px solid rgba(79,156,255,.4)';
+        btn.style.background = '#0b152b';
+        btn.style.color = '#9cc7ff';
+        btn.style.cursor = 'pointer';
+        btn.title = '清除登录状态并返回登录页';
+        btn.addEventListener('click', function(){
+            try { localStorage.removeItem('ts_auth_token'); } catch(e) {}
+            location.href = 'login.html';
+        });
+        document.body.appendChild(btn);
+    })();
+    </script>
     
 
 </body>
