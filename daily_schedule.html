@@ -6609,6 +6609,31 @@
     
     <script>
     (function(){
+        if (!window.__tsAuthFetchPatched) {
+            window.__tsAuthFetchPatched = true;
+            const originalFetch = window.fetch.bind(window);
+            window.fetch = function(resource, init) {
+                try {
+                    const token = localStorage.getItem('ts_auth_token');
+                    const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+                    const isApi = url.startsWith('/api/') || url.startsWith(location.origin + '/api/');
+                    if (token && isApi) {
+                        const opts = Object.assign({}, init || {});
+                        opts.headers = Object.assign({}, opts.headers || {});
+                        if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
+                            opts.headers['Authorization'] = 'Bearer ' + token;
+                        }
+                        return originalFetch(resource, opts);
+                    }
+                } catch (e) {}
+                return originalFetch(resource, init);
+            };
+        }
+    })();
+    </script>
+    
+    <script>
+    (function(){
         var btn = document.createElement('button');
         btn.textContent = '退出登录';
         btn.style.position = 'fixed';
