@@ -7,37 +7,60 @@
 	<script src="https://cdn.tailwindcss.com"></script>
 	<style>
 		body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#e5e7eb}
-		.card{background:#0e1726;border:1px solid rgba(79,156,255,.3);border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
-		.btn{padding:10px 14px;border-radius:8px;border:1px solid rgba(79,156,255,.4);background:#152745;color:#cfe4ff;cursor:pointer}
+		.card{width:360px;background:#0e1726;border:1px solid rgba(79,156,255,.3);border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+		.label{font-size:12px;color:#9ca3af;margin:8px 0 4px;display:block}
+		.input{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(79,156,255,.25);background:#0b152b;color:#e5e7eb}
+		.btn{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:1px solid rgba(79,156,255,.4);background:#152745;color:#cfe4ff;cursor:pointer}
+		.link{color:#9cc7ff;cursor:pointer}
+		.msg{margin-top:10px;font-size:12px}
+		.msg.error{color:#fca5a5}
+		.msg.info{color:#93c5fd}
 	</style>
 </head>
 <body>
 	<div class="card">
 		<h1 class="text-xl mb-3" style="color:#4f9cff">账户登录</h1>
-		<p class="mb-4 text-sm text-gray-300">点击下方按钮打开登录窗口。登录成功后将自动跳转到上一页面。</p>
-		<button id="openLogin" class="btn">打开登录</button>
-		<p id="error" class="mt-3 text-sm" style="color:#fca5a5"></p>
+		<form id="loginForm">
+			<label class="label">用户名</label>
+			<input class="input" name="username" required value="">
+			<label class="label">密码</label>
+			<input class="input" name="password" type="password" required value="">
+			<button class="btn" type="submit" id="submitBtn">登录</button>
+			<div id="msg" class="msg"></div>
+		</form>
+		<div class="mt-3 text-sm" style="color:#9ca3af">
+			还没有账号？<span id="toRegister" class="link">注册</span> ｜ 忘记密码？<span id="toReset" class="link">找回</span>
+		</div>
 	</div>
 
-	<script src="components/auth-modal/auth-modal.js"></script>
 	<script>
 	(function(){
-		function getParam(name){
-			const url = new URL(location.href);
-			return url.searchParams.get(name);
-		}
+		function getParam(name){ const url = new URL(location.href); return url.searchParams.get(name); }
 		const redirect = getParam('redirect') || 'daily_schedule.html';
-		const btn = document.getElementById('openLogin');
-		btn.addEventListener('click', function(){
-			if (window.tsAuth && window.tsAuth.openLogin) window.tsAuth.openLogin();
+		const form = document.getElementById('loginForm');
+		const submitBtn = document.getElementById('submitBtn');
+		const msg = document.getElementById('msg');
+		function setLoading(b){ submitBtn.disabled = !!b; submitBtn.textContent = b ? '处理中...' : '登录'; }
+		function showError(text){ msg.className='msg error'; msg.textContent=text; }
+		function showInfo(text){ msg.className='msg info'; msg.textContent=text; }
+		form.addEventListener('submit', async function(e){
+			e.preventDefault(); setLoading(true); msg.textContent='';
+			try{
+				const fd = new FormData(form);
+				const body = { username: fd.get('username'), password: fd.get('password') };
+				const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+				const data = await res.json();
+				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
+				localStorage.setItem('ts_auth_token', data.access_token);
+				location.href = redirect;
+			}catch(err){ showError(err.message || '网络错误'); }
+			finally{ setLoading(false); }
 		});
-		document.addEventListener('ts-auth:login', function(){
-			location.href = redirect;
-		}, { once: true });
 		// 若已登录则直接跳转
-		if (localStorage.getItem('ts_auth_token')) {
-			location.replace(redirect);
-		}
+		if (localStorage.getItem('ts_auth_token')) { location.replace(redirect); }
+		// 注册/找回入口（如需扩展，可跳转到专用页面或弹窗）
+		document.getElementById('toRegister').addEventListener('click', function(){ alert('请联系管理员开通账号，或后续添加注册页'); });
+		document.getElementById('toReset').addEventListener('click', function(){ alert('请联系管理员重置密码，或后续添加找回页'); });
 	})();
 	</script>
 </body>
