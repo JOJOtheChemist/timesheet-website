@@ -165,9 +165,11 @@
 				clearError();
 				const res = await fetch('/api/projects'); if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
 				const data = await res.json();
-				// 构建分类选项
+				// 构建分类选项（基础分类 ∪ 用户分类）
 				const cats = data || [];
-				categoryOptions = [{value:'',label:'(未分类)'}].concat(cats.map(c=>({value:c.name,label:c.name})));
+				const baseCats = ['娱乐','学习','工作','生活','社交','运动'];
+				const catNames = Array.from(new Set(baseCats.concat(cats.map(c=>c.name).filter(Boolean))));
+				categoryOptions = [{value:'',label:'(未分类)'}].concat(catNames.map(n=>({value:n,label:n})));
 				tbody.innerHTML = '';
 				cats.forEach(cat => {
 					(cat.projects||[]).forEach(p => {
