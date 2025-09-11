@@ -77,17 +77,9 @@
 			finally{ setLoading(false); }
 		});
 
-		// 如果已有token，则显示提示、填充表单并倒计时 3 秒后进入日程页
+		// 如果已有token，则直接进入日程页（不倒计时）
 		if (localStorage.getItem('ts_auth_token')) {
-			loggedNotice.style.display = '';
-			enterBtn.style.display = '';
-			enterBtn.addEventListener('click', function(){ location.href = TARGET; });
-			// 启动倒计时
-			let n = 3; countdownEl.textContent = String(n);
-			const t = setInterval(function(){
-				n -= 1; countdownEl.textContent = String(n);
-				if (n <= 0) { clearInterval(t); location.href = TARGET; }
-			}, 1000);
+			location.replace(TARGET);
 		}
 
 		// 注册/找回入口（留待扩展）
