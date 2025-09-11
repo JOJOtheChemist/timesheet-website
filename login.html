@@ -22,13 +22,13 @@
 	<div class="card">
 		<h1 class="text-xl mb-3" style="color:#4f9cff">账户登录</h1>
 		<div id="loggedNotice" class="notice" style="display:none">
-			检测到已登录，若需切换账号请直接登录新账号；否则点击下方按钮进入日程页。
+			检测到已登录，将在 <span id="countdown">3</span> 秒后进入日程页。若需切换账号请直接在下方表单输入新账号密码登录。
 		</div>
 		<form id="loginForm" autocomplete="off">
 			<label class="label">用户名</label>
-			<input class="input" name="username" required value="" autocomplete="username">
+			<input class="input" id="username" name="username" required value="" autocomplete="username">
 			<label class="label">密码</label>
-			<input class="input" name="password" type="password" required value="" autocomplete="current-password">
+			<input class="input" id="password" name="password" type="password" required value="" autocomplete="current-password">
 			<button class="btn" type="submit" id="submitBtn">登录</button>
 			<div id="msg" class="msg"></div>
 		</form>
@@ -46,9 +46,21 @@
 		const msg = document.getElementById('msg');
 		const enterBtn = document.getElementById('enterBtn');
 		const loggedNotice = document.getElementById('loggedNotice');
+		const countdownEl = document.getElementById('countdown');
+		const usernameEl = document.getElementById('username');
+		const passwordEl = document.getElementById('password');
 		function setLoading(b){ submitBtn.disabled = !!b; submitBtn.textContent = b ? '处理中...' : '登录'; }
 		function showError(text){ msg.className='msg error'; msg.textContent=text; }
 		function showInfo(text){ msg.className='msg info'; msg.textContent=text; }
+
+		// 读取上次登录缓存（若存在）
+		try{
+			const cachedUser = localStorage.getItem('ts_auth_username') || '';
+			const cachedPass = localStorage.getItem('ts_auth_password') || '';
+			if (cachedUser) usernameEl.value = cachedUser;
+			if (cachedPass) passwordEl.value = cachedPass;
+		}catch(e){}
+
 		form.addEventListener('submit', async function(e){
 			e.preventDefault(); setLoading(true); msg.textContent='';
 			try{
@@ -58,16 +70,26 @@
 				const data = await res.json();
 				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
 				localStorage.setItem('ts_auth_token', data.access_token);
+				// 缓存用户名和密码以便下次默认填充（注意：明文存储仅用于本地便捷，生产建议不要保存密码）
+				try{ localStorage.setItem('ts_auth_username', body.username); localStorage.setItem('ts_auth_password', body.password); }catch(e){}
 				location.href = TARGET;
 			}catch(err){ showError(err.message || '网络错误'); }
 			finally{ setLoading(false); }
 		});
-		// 如果已有token，则显示提示与“进入日程页”按钮，不自动跳走
+
+		// 如果已有token，则显示提示、填充表单并倒计时 3 秒后进入日程页
 		if (localStorage.getItem('ts_auth_token')) {
 			loggedNotice.style.display = '';
 			enterBtn.style.display = '';
 			enterBtn.addEventListener('click', function(){ location.href = TARGET; });
+			// 启动倒计时
+			let n = 3; countdownEl.textContent = String(n);
+			const t = setInterval(function(){
+				n -= 1; countdownEl.textContent = String(n);
+				if (n <= 0) { clearInterval(t); location.href = TARGET; }
+			}, 1000);
 		}
+
 		// 注册/找回入口（留待扩展）
 		document.getElementById('toRegister').addEventListener('click', function(){ alert('请联系管理员开通账号，或后续添加注册页'); });
 		document.getElementById('toReset').addEventListener('click', function(){ alert('请联系管理员重置密码，或后续添加找回页'); });
