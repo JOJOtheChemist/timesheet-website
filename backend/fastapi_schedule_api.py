@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     # 关闭时执行
     print("Schedule API shutting down...")
 
-app = FastAPI(title="Schedule API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Schedule API", version="1.1.0", lifespan=lifespan)
 
 # 启用 CORS
 app.add_middleware(
@@ -136,7 +136,7 @@ def require_user(payload: Optional[Dict[str, Any]] = Depends(get_current_user)) 
         raise HTTPException(status_code=401, detail="未认证")
     return payload
 
-# 初始化数据库
+# 初始化数据库（含按用户隔离的迁移）
 def init_db():
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
@@ -157,18 +157,46 @@ def init_db():
             )
         ''')
 
-        # 检查daily_schedule表是否存在，如果不存在则创建
+        # 业务表按需创建（简化版）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS categories (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                color VARCHAR(20)
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS projects (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                category_id INT,
+                name VARCHAR(255),
+                description TEXT,
+                color VARCHAR(20)
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS subtasks (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                project_id INT,
+                name VARCHAR(255),
+                priority VARCHAR(50),
+                urgency_importance VARCHAR(50),
+                difficulty VARCHAR(50),
+                color VARCHAR(20)
+            )
+        ''')
+
+        # daily_schedule 表（包含 user_id）
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS daily_schedule (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
                 schedule_date DATE NOT NULL,
                 time_slot VARCHAR(10) NOT NULL,
-                # 计划字段
                 planned_subtask_id INT,
                 planned_subtask_name VARCHAR(255),
                 planned_notes TEXT,
                 planned_project_color VARCHAR(20),
-                # 实际字段
                 actual_subtask_id INT,
                 actual_subtask_name VARCHAR(255),
                 actual_notes TEXT,
@@ -183,60 +211,32 @@ def init_db():
             )
         ''')
 
-        # 确保唯一索引：同一天同一时间槽只允许一条记录（计划/实际共用一行）
-        try:
-            cursor.execute('''
-                ALTER TABLE daily_schedule
-                ADD UNIQUE KEY uniq_date_slot (schedule_date, time_slot)
-            ''')
-        except Exception:
-            # 可能已存在则忽略
-            pass
-        
-        # 检查是否需要迁移旧数据
-        cursor.execute("SHOW COLUMNS FROM daily_schedule LIKE 'subtask_id'")
-        if cursor.fetchone():
-            print("检测到旧表结构，开始迁移数据...")
+        # 通用：为 categories/projects/subtasks/daily_schedule 添加 user_id 列（若不存在），并将历史数据标记为 yeya 用户（id=1）
+        for table in ["categories", "projects", "subtasks", "daily_schedule"]:
             try:
-                # 添加新字段
-                cursor.execute('''
-                    ALTER TABLE daily_schedule 
-                    ADD COLUMN planned_subtask_id INT AFTER time_slot,
-                    ADD COLUMN planned_subtask_name VARCHAR(255) AFTER planned_subtask_id,
-                    ADD COLUMN planned_notes TEXT AFTER planned_subtask_name,
-                    ADD COLUMN planned_project_color VARCHAR(20) AFTER planned_notes,
-                    ADD COLUMN actual_subtask_id INT AFTER planned_project_color,
-                    ADD COLUMN actual_subtask_name VARCHAR(255) AFTER actual_subtask_id,
-                    ADD COLUMN actual_notes TEXT AFTER actual_subtask_name,
-                    ADD COLUMN actual_project_color VARCHAR(20) AFTER actual_notes
-                ''')
-                
-                # 迁移旧数据到新字段
-                cursor.execute('''
-                    UPDATE daily_schedule 
-                    SET planned_subtask_id = subtask_id,
-                        planned_subtask_name = subtask_name,
-                        planned_notes = notes,
-                        planned_project_color = project_color
-                    WHERE subtask_id IS NOT NULL OR notes IS NOT NULL
-                ''')
-                
-                # 删除旧字段
-                cursor.execute('''
-                    ALTER TABLE daily_schedule 
-                    DROP COLUMN subtask_id,
-                    DROP COLUMN subtask_name,
-                    DROP COLUMN notes,
-                    DROP COLUMN project_color
-                ''')
-                
-                print("数据迁移完成！")
+                cursor.execute(f"SHOW COLUMNS FROM {table} LIKE 'user_id'")
+                if not cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN user_id INT NOT NULL DEFAULT 1 AFTER id")
+                    print(f"{table} 添加 user_id 列")
             except Exception as e:
-                print(f"数据迁移失败: {str(e)}")
-                conn.rollback()
+                print(f"为 {table} 添加 user_id 列时出错: {e}")
         
+        # 更新 daily_schedule 的唯一键为按用户唯一
+        try:
+            cursor.execute("SHOW INDEX FROM daily_schedule WHERE Key_name='uniq_date_slot'")
+            if cursor.fetchall():
+                cursor.execute("ALTER TABLE daily_schedule DROP INDEX uniq_date_slot")
+        except Exception:
+            pass
+        try:
+            cursor.execute("SHOW INDEX FROM daily_schedule WHERE Key_name='uniq_user_date_slot'")
+            if not cursor.fetchall():
+                cursor.execute("ALTER TABLE daily_schedule ADD UNIQUE KEY uniq_user_date_slot (user_id, schedule_date, time_slot)")
+        except Exception as e:
+            print(f"设置按用户唯一索引失败: {e}")
+
         conn.commit()
-        print("Database tables initialized successfully!")
+        print("Database tables initialized and migrated for user scoping!")
         
     except Exception as e:
         print(f"Database initialization error: {str(e)}")
@@ -256,7 +256,7 @@ async def options_handler(full_path: str):
     """处理CORS预检请求"""
     return {"message": "CORS preflight request handled"}
 
-# 认证路由
+# 认证路由（保持不变）
 @app.post("/api/auth/register", response_model=Dict[str, Any])
 async def register(user: UserRegister, db: mysql.connector.MySQLConnection = Depends(get_db)):
     try:
@@ -310,7 +310,6 @@ async def request_reset(body: ResetRequest, db: mysql.connector.MySQLConnection 
         cursor.execute("SELECT id FROM users WHERE username=%s", (body.username,))
         row = cursor.fetchone()
         if not row:
-            # 即使不存在也返回成功，防止用户枚举
             return {"message": "如果账号存在，重置令牌已生成"}
         token = create_access_token({"reset": row["id"], "username": body.username}, expires_delta=timedelta(minutes=30))
         expires_at = datetime.utcnow() + timedelta(minutes=30)
@@ -331,20 +330,17 @@ async def request_reset(body: ResetRequest, db: mysql.connector.MySQLConnection 
 async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection = Depends(get_db)):
     try:
         cursor = db.cursor(dictionary=True)
-        # 验证token
         try:
             payload = jwt.decode(body.token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("reset")
         except Exception:
             raise HTTPException(status_code=400, detail="无效或过期的令牌")
-        # 匹配数据库中的令牌并检查过期
         cursor.execute("SELECT id, reset_expires FROM users WHERE id=%s AND reset_token=%s", (user_id, body.token))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=400, detail="无效或过期的令牌")
         if row["reset_expires"] and datetime.utcnow() > row["reset_expires"]:
             raise HTTPException(status_code=400, detail="令牌已过期")
-        # 更新密码并清除令牌
         cursor.execute("UPDATE users SET password_hash=%s, reset_token=NULL, reset_expires=NULL WHERE id=%s", (hash_password(body.new_password), user_id))
         db.commit()
         return {"message": "密码已重置，请使用新密码登录"}
@@ -357,14 +353,12 @@ async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection
         cursor.close()
         db.close()
 
-# 下面保留原有业务路由（受保护）
+# 业务路由（受保护，按用户隔离）
 @app.get("/api/schedule/{schedule_date}")
 async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
-    """获取指定日期的日程数据"""
     try:
         cursor = db.cursor(dictionary=True)
         
-        # 通过JOIN获取完整的日程数据，包括子任务和项目信息
         cursor.execute('''
             SELECT 
                 ds.id,
@@ -375,30 +369,25 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
                 ds.actual_subtask_id,
                 ds.actual_notes,
                 ds.mood,
-                -- 计划子任务信息
                 ps.name as planned_subtask_name,
                 ps.color as planned_subtask_color,
                 pp.name as planned_project_name,
                 pp.color as planned_project_color,
-                -- 实际子任务信息
                 asub.name as actual_subtask_name,
                 asub.color as actual_subtask_color,
                 ap.name as actual_project_name,
                 ap.color as actual_project_color
             FROM daily_schedule ds
-            -- 左连接计划子任务和项目
-            LEFT JOIN subtasks ps ON ds.planned_subtask_id = ps.id
-            LEFT JOIN projects pp ON ps.project_id = pp.id
-            -- 左连接实际子任务和项目
-            LEFT JOIN subtasks asub ON ds.actual_subtask_id = asub.id
-            LEFT JOIN projects ap ON asub.project_id = ap.id
-            WHERE ds.schedule_date = %s
+            LEFT JOIN subtasks ps ON ds.planned_subtask_id = ps.id AND ps.user_id = ds.user_id
+            LEFT JOIN projects pp ON ps.project_id = pp.id AND pp.user_id = ds.user_id
+            LEFT JOIN subtasks asub ON ds.actual_subtask_id = asub.id AND asub.user_id = ds.user_id
+            LEFT JOIN projects ap ON asub.project_id = ap.id AND ap.user_id = ds.user_id
+            WHERE ds.user_id = %s AND ds.schedule_date = %s
             ORDER BY ds.time_slot
-        ''', (schedule_date,))
+        ''', (current_user["sub"], schedule_date))
         
         rows = cursor.fetchall()
         schedule_data = []
-        
         for row in rows:
             schedule_data.append({
                 "id": row['id'],
@@ -418,9 +407,7 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
                 "actual_notes": row['actual_notes'],
                 "mood": row['mood']
             })
-        
         return ScheduleResponse(schedule_data=schedule_data)
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     finally:
@@ -429,18 +416,16 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
 
 @app.post("/api/schedule")
 async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
-    """创建新的日程记录（同一时间槽幂等：存在则更新）"""
     try:
         cursor = db.cursor(dictionary=True)
-        
-        # 使用 upsert，若该时间槽已存在则更新对应字段
         cursor.execute('''
             INSERT INTO daily_schedule (
+                user_id,
                 schedule_date, time_slot,
                 planned_subtask_id, planned_notes,
                 actual_subtask_id, actual_notes, mood
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 planned_subtask_id = VALUES(planned_subtask_id),
                 planned_notes = VALUES(planned_notes),
@@ -449,22 +434,19 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
                 mood = VALUES(mood),
                 updated_at = CURRENT_TIMESTAMP
         ''', (
+            current_user["sub"],
             schedule.schedule_date, schedule.time_slot,
             schedule.planned_subtask_id, schedule.planned_notes,
             schedule.actual_subtask_id, schedule.actual_notes, schedule.mood
         ))
-        
         db.commit()
-        
-        # 返回创建/更新的记录：重新查询该时间槽行
         cursor.execute('''
-            SELECT id FROM daily_schedule WHERE schedule_date=%s AND time_slot=%s
-        ''', (schedule.schedule_date, schedule.time_slot))
+            SELECT id FROM daily_schedule WHERE user_id=%s AND schedule_date=%s AND time_slot=%s
+        ''', (current_user["sub"], schedule.schedule_date, schedule.time_slot))
         row = cursor.fetchone()
         if row:
             schedule.id = row['id']
         return schedule
-        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create schedule: {str(e)}")
@@ -474,66 +456,49 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
 
 @app.put("/api/schedule/{schedule_id}")
 async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
-    """更新现有日程记录"""
     try:
         cursor = db.cursor(dictionary=True)
-        
-        # 构建动态更新语句，只更新有值的字段
         update_fields = []
         update_values = []
-        
-        # 对于subtask_id字段，允许null值（用于删除）
-        if hasattr(schedule, 'planned_subtask_id') and schedule.planned_subtask_id is not None:
-            update_fields.append("planned_subtask_id = %s")
-            update_values.append(schedule.planned_subtask_id)
-        elif hasattr(schedule, 'planned_subtask_id') and schedule.planned_subtask_id is None:
-            update_fields.append("planned_subtask_id = NULL")
-            
-        if hasattr(schedule, 'planned_notes') and schedule.planned_notes is not None:
-            update_fields.append("planned_notes = %s")
-            update_values.append(schedule.planned_notes)
-        elif hasattr(schedule, 'planned_notes') and schedule.planned_notes is None:
-            update_fields.append("planned_notes = NULL")
-            
-        if hasattr(schedule, 'actual_subtask_id') and schedule.actual_subtask_id is not None:
-            update_fields.append("actual_subtask_id = %s")
-            update_values.append(schedule.actual_subtask_id)
-        elif hasattr(schedule, 'actual_subtask_id') and schedule.actual_subtask_id is None:
-            update_fields.append("actual_subtask_id = NULL")
-            
-        if hasattr(schedule, 'actual_notes') and schedule.actual_notes is not None:
-            update_fields.append("actual_notes = %s")
-            update_values.append(schedule.actual_notes)
-        elif hasattr(schedule, 'actual_notes') and schedule.actual_notes is None:
-            update_fields.append("actual_notes = NULL")
-            
-        if hasattr(schedule, 'mood') and schedule.mood is not None:
-            update_fields.append("mood = %s")
-            update_values.append(schedule.mood)
-        elif hasattr(schedule, 'mood') and schedule.mood is None:
-            update_fields.append("mood = NULL")
-        
+        if hasattr(schedule, 'planned_subtask_id'):
+            if schedule.planned_subtask_id is not None:
+                update_fields.append("planned_subtask_id = %s"); update_values.append(schedule.planned_subtask_id)
+            else:
+                update_fields.append("planned_subtask_id = NULL")
+        if hasattr(schedule, 'planned_notes'):
+            if schedule.planned_notes is not None:
+                update_fields.append("planned_notes = %s"); update_values.append(schedule.planned_notes)
+            else:
+                update_fields.append("planned_notes = NULL")
+        if hasattr(schedule, 'actual_subtask_id'):
+            if schedule.actual_subtask_id is not None:
+                update_fields.append("actual_subtask_id = %s"); update_values.append(schedule.actual_subtask_id)
+            else:
+                update_fields.append("actual_subtask_id = NULL")
+        if hasattr(schedule, 'actual_notes'):
+            if schedule.actual_notes is not None:
+                update_fields.append("actual_notes = %s"); update_values.append(schedule.actual_notes)
+            else:
+                update_fields.append("actual_notes = NULL")
+        if hasattr(schedule, 'mood'):
+            if schedule.mood is not None:
+                update_fields.append("mood = %s"); update_values.append(schedule.mood)
+            else:
+                update_fields.append("mood = NULL")
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")
-        
         update_fields.append("updated_at = CURRENT_TIMESTAMP")
-        update_values.append(schedule_id)
-        
+        update_values.extend([schedule_id, current_user["sub"]])
         cursor.execute(f'''
             UPDATE daily_schedule 
             SET {', '.join(update_fields)}
-            WHERE id = %s
+            WHERE id = %s AND user_id = %s
         ''', update_values)
-        
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Schedule not found")
-        
         db.commit()
-        
-        # 返回更新后的记录
         schedule.id = schedule_id
         return schedule
-        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update schedule: {str(e)}")
@@ -543,18 +508,13 @@ async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.co
 
 @app.delete("/api/schedule/{schedule_id}")
 async def delete_schedule(schedule_id: int, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
-    """删除日程记录"""
     try:
         cursor = db.cursor(dictionary=True)
-        
-        cursor.execute('DELETE FROM daily_schedule WHERE id = %s', (schedule_id,))
-        
+        cursor.execute('DELETE FROM daily_schedule WHERE id = %s AND user_id = %s', (schedule_id, current_user["sub"]))
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Schedule not found")
-        
         db.commit()
         return {"message": "Schedule deleted successfully"}
-        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete schedule: {str(e)}")
@@ -564,37 +524,29 @@ async def delete_schedule(schedule_id: int, db: mysql.connector.MySQLConnection 
 
 @app.get("/api/projects")
 async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
-    """获取项目列表，按分类组织"""
     try:
         cursor = db.cursor(dictionary=True)
-        
-        # 获取所有分类
-        cursor.execute('SELECT id, name, color FROM categories ORDER BY id')
+        cursor.execute('SELECT id, name, color FROM categories WHERE user_id=%s ORDER BY id', (current_user["sub"],))
         categories = cursor.fetchall()
-        
-        # 获取所有项目
         cursor.execute('''
             SELECT id, category_id, name, description, color 
             FROM projects 
+            WHERE user_id=%s
             ORDER BY category_id, id
-        ''')
+        ''', (current_user["sub"],))
         projects = cursor.fetchall()
-        
-        # 获取所有子任务
         cursor.execute('''
             SELECT id, project_id, name, priority, urgency_importance, difficulty, color
             FROM subtasks 
+            WHERE user_id=%s
             ORDER BY project_id, id
-        ''')
+        ''', (current_user["sub"],))
         subtasks = cursor.fetchall()
-        
-        # 按分类组织项目数据
         result = []
         for category in categories:
             category_projects = []
             for project in projects:
                 if project["category_id"] == category["id"]:
-                    # 获取该项目的子任务
                     project_subtasks = [
                         {
                             "id": subtask["id"],
@@ -602,13 +554,12 @@ async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), cu
                             "priority": subtask["priority"],
                             "urgency_importance": subtask["urgency_importance"],
                             "difficulty": subtask["difficulty"],
-                            "difficulty_class": subtask["difficulty"].lower().replace("级", "").replace("级", ""),
-                            "color": subtask["color"]  # 使用子任务自己的颜色
+                            "difficulty_class": (subtask.get("difficulty") or "").lower().replace("级", ""),
+                            "color": subtask["color"]
                         }
                         for subtask in subtasks
                         if subtask["project_id"] == project["id"]
                     ]
-                    
                     category_projects.append({
                         "id": project["id"],
                         "name": project["name"],
@@ -616,16 +567,13 @@ async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), cu
                         "color": project["color"],
                         "subtasks": project_subtasks
                     })
-            
             result.append({
                 "id": category["id"],
                 "name": category["name"],
                 "color": category["color"],
                 "projects": category_projects
             })
-        
         return result
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch projects: {str(e)}")
     finally:
@@ -634,14 +582,7 @@ async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), cu
 
 @app.get("/health")
 async def health_check():
-    """健康检查端点"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-
-# 启动时初始化数据库
-# @app.on_event("startup")
-# async def startup_event():
-#     init_db()
-#     print("Schedule API Database initialized successfully!")
 
 if __name__ == "__main__":
     print("Starting Schedule API on port 5001...")
