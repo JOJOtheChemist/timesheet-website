@@ -109,6 +109,28 @@
 			tr.appendChild(cell(subtask?.difficulty, { 'data-type':'difficulty' }));
 			return tr;
 		}
+		function blankRow(){ return row({name:''},{name:'',urgency_importance:'',difficulty:''},{name:''}); }
+		function countBlankRows(){
+			let count = 0;
+			tbody.querySelectorAll('tr').forEach(tr => {
+				const texts = Array.from(tr.querySelectorAll('.cell-edit')).map(d=>d.textContent.trim());
+				if (texts.join('') === '') count++;
+			});
+			return count;
+		}
+		function ensureBlankRows(min=6){
+			let blanks = countBlankRows();
+			while (blanks < min){ tbody.appendChild(blankRow()); blanks++; }
+			bindEditHandlers();
+		}
+		function maybeAppendAfterEdit(div){
+			const tr = div.closest('tr');
+			const isBlank = Array.from(tr.querySelectorAll('.cell-edit')).every(d=>d.textContent.trim()==='');
+			if (!isBlank){
+				const blanks = countBlankRows();
+				if (blanks < 6){ tbody.appendChild(blankRow()); bindEditHandlers(); }
+			}
+		}
 		async function load(){
 			try{
 				clearError();
@@ -128,14 +150,16 @@
 					});
 				});
 				bindEditHandlers();
+				ensureBlankRows(6);
 			}catch(e){ showError(e.message||String(e)); }
 		}
 		function bindEditHandlers(){
 			tbody.querySelectorAll('.cell-edit').forEach(div => {
+				if (div.__bound) return; div.__bound = true;
 				div.addEventListener('focus', ()=>{ div.dataset.original = div.textContent.trim(); });
 				div.addEventListener('blur', ()=>{
 					const orig = div.dataset.original||''; const now = div.textContent.trim();
-					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; }
+					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; maybeAppendAfterEdit(div); }
 				});
 			});
 		}
