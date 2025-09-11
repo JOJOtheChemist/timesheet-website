@@ -87,7 +87,6 @@
 		const err = document.getElementById('errorBox');
 		const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
 		const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
-		const PRIORITY = ['高','中','低'];
 		let categoryOptions = [];
 		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
 		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
