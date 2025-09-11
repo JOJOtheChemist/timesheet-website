@@ -35,8 +35,7 @@
 
 	<script>
 	(function(){
-		function getParam(name){ const url = new URL(location.href); return url.searchParams.get(name); }
-		const redirect = getParam('redirect') || 'daily_schedule.html';
+		const TARGET = 'daily_schedule.html';
 		const form = document.getElementById('loginForm');
 		const submitBtn = document.getElementById('submitBtn');
 		const msg = document.getElementById('msg');
@@ -52,13 +51,13 @@
 				const data = await res.json();
 				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
 				localStorage.setItem('ts_auth_token', data.access_token);
-				location.href = redirect;
+				location.href = TARGET;
 			}catch(err){ showError(err.message || '网络错误'); }
 			finally{ setLoading(false); }
 		});
-		// 若已登录则直接跳转
-		if (localStorage.getItem('ts_auth_token')) { location.replace(redirect); }
-		// 注册/找回入口（如需扩展，可跳转到专用页面或弹窗）
+		// 若已登录则直接进入日程页
+		if (localStorage.getItem('ts_auth_token')) { location.replace(TARGET); }
+		// 注册/找回入口（留待扩展）
 		document.getElementById('toRegister').addEventListener('click', function(){ alert('请联系管理员开通账号，或后续添加注册页'); });
 		document.getElementById('toReset').addEventListener('click', function(){ alert('请联系管理员重置密码，或后续添加找回页'); });
 	})();

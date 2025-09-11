@@ -6607,18 +6607,6 @@
     
     <!-- 认证登录组件脚本（解耦，Shadow DOM Modal） -->
     
-    <script>
-    (function(){
-        try{
-            var token = localStorage.getItem('ts_auth_token');
-            if (!token) {
-                var url = new URL(location.href);
-                var dest = 'login.html?redirect=' + encodeURIComponent(url.pathname.replace(/^\//,'') + url.search + url.hash);
-                location.replace(dest);
-            }
-        }catch(e){}
-    })();
-    </script>
     
 
 </body>
