@@ -1838,8 +1838,8 @@
                     if (btn && !btn.__bound) {
                         btn.__bound = true;
                         btn.addEventListener('click', function(){
-                            // 占位：后续可打开子项目/子任务编辑界面
-                            alert('打开“编辑子项目-子任务”界面（可后续接入具体编辑逻辑）');
+                            // 跳转到子项目-子任务编辑页面
+                            location.href = 'edit_subtasks.html';
                         });
                     }
                 })();

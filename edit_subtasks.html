@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>编辑子项目-子任务</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+	<style>
+		body{font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height:100vh; padding:20px; position:relative; z-index:0;}
+		body::before{content:""; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:-1}
+		.container{max-width:1600px; margin:0 auto;}
+		.panel{background: rgba(10, 10, 26, 0.5); border: 4px solid rgba(79,156,255,0.5); border-radius:10px; box-shadow:none; overflow: hidden;}
+		.panel-header{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:rgba(0,0,0,0.3); border-bottom:2px solid rgba(79,156,255,0.5)}
+		.panel-title{color:#4f9cff; font-size:16px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
+		.toolbar{display:flex; gap:8px}
+		.btn{padding:6px 10px; border-radius:4px; font-size:12px; border:2px solid rgba(79,156,255,0.5); background:rgba(79,156,255,0.15); color:#e5e7eb; cursor:pointer}
+		.btn:hover{background:rgba(79,156,255,0.4); color:#fff}
+		.table-wrap{padding:12px 16px}
+		table{width:100%; border-collapse:collapse; color:#e5e7eb}
+		th,td{border:1px solid rgba(79,156,255,0.25); padding:8px; font-size:12px}
+		th{background:transparent; color:#8f8fb7; text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
+		tr:hover{background:rgba(79,156,255,0.08)}
+		.cell-edit{background:transparent; outline:none; min-width:60px}
+		.notice{margin:10px 16px 0; font-size:12px; color:#9cc7ff}
+		.error{background:#f8d7da; color:#721c24; padding:8px 12px; border-radius:6px; margin:10px 16px}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<div class="panel">
+			<div class="panel-header">
+				<div class="panel-title">编辑子项目-子任务</div>
+				<div class="toolbar">
+					<button id="backBtn" class="btn">返回日程页</button>
+				</div>
+			</div>
+			<div id="errorBox" class="error" style="display:none"></div>
+			<div class="notice">提示：表格为就地编辑，当前为本地修改预览。确认后续保存方案再接入后端写接口。</div>
+			<div class="table-wrap">
+				<table id="editTable">
+					<thead>
+						<tr>
+							<th style="width:200px">项目名称</th>
+							<th style="width:260px">子任务</th>
+							<th style="width:120px">分类</th>
+							<th style="width:120px">紧急重要</th>
+							<th style="width:120px">困难程度</th>
+						</tr>
+					</thead>
+					<tbody id="editTbody">
+						<tr><td colspan="5" style="text-align:center; padding:16px; color:#9ca3af">加载中...</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<script>
+	(function(){
+		// 全局fetch包装，附加Authorization
+		if (!window.__tsAuthFetchPatched) {
+			window.__tsAuthFetchPatched = true;
+			const originalFetch = window.fetch.bind(window);
+			window.fetch = function(resource, init) {
+				try{
+					const token = localStorage.getItem('ts_auth_token');
+					const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+					const isApi = url.startsWith('/api/') || url.startsWith(location.origin + '/api/');
+					if (token && isApi) {
+						const opts = Object.assign({}, init||{});
+						opts.headers = Object.assign({}, opts.headers||{});
+						if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
+							opts.headers['Authorization'] = 'Bearer ' + token;
+						}
+						return originalFetch(resource, opts);
+					}
+				}catch(e){}
+				return originalFetch(resource, init);
+			};
+		}
+	})();
+	</script>
+	<script>
+	(function(){
+		const tbody = document.getElementById('editTbody');
+		const err = document.getElementById('errorBox');
+		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
+		// 若未登录，跳转到登录
+		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
+		
+		function showError(message){ err.style.display='block'; err.textContent=message; }
+		function clearError(){ err.style.display='none'; err.textContent=''; }
+		function cell(content, attrs={}){
+			const td = document.createElement('td');
+			const div = document.createElement('div');
+			div.className = 'cell-edit';
+			div.contentEditable = true;
+			div.textContent = content || '';
+			Object.entries(attrs).forEach(([k,v])=>div.setAttribute(k,v));
+			td.appendChild(div); return td;
+		}
+		function row(project, subtask, category){
+			const tr = document.createElement('tr');
+			tr.appendChild(cell(project?.name, { 'data-type':'project', 'data-id': project?.id||'' }));
+			tr.appendChild(cell(subtask?.name, { 'data-type':'subtask', 'data-id': subtask?.id||'' }));
+			tr.appendChild(cell(category?.name, { 'data-type':'category', 'data-id': category?.id||'' }));
+			tr.appendChild(cell(subtask?.urgency_importance, { 'data-type':'urgency' }));
+			tr.appendChild(cell(subtask?.difficulty, { 'data-type':'difficulty' }));
+			return tr;
+		}
+		async function load(){
+			try{
+				clearError();
+				const res = await fetch('/api/projects');
+				if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
+				const data = await res.json();
+				tbody.innerHTML = '';
+				// data is categories -> projects -> subtasks
+				data.forEach(cat => {
+					(cat.projects||[]).forEach(p => {
+						if ((p.subtasks||[]).length === 0){
+							const tr = row(p, null, cat);
+							tbody.appendChild(tr);
+						} else {
+							p.subtasks.forEach(s => { tbody.appendChild(row(p, s, cat)); });
+						}
+					});
+				});
+				bindEditHandlers();
+			}catch(e){ showError(e.message||String(e)); }
+		}
+		function bindEditHandlers(){
+			tbody.querySelectorAll('.cell-edit').forEach(div => {
+				div.addEventListener('focus', ()=>{ div.dataset.original = div.textContent.trim(); });
+				div.addEventListener('blur', ()=>{
+					const orig = div.dataset.original||''; const now = div.textContent.trim();
+					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; }
+				});
+			});
+		}
+		load();
+	})();
+	</script>
+</body>
+</html> 
