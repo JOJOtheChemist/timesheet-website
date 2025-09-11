@@ -1826,11 +1826,24 @@
        
         <!-- 项目组件 -->
         <div class="project-component">
-            <div class="project-component-header">
+            <div class="project-component-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                 <h3>📋 项目筛选组件</h3>
+                <button id="edit-subitems-btn" class="filter-button default" style="white-space:nowrap;">编辑子项目-子任务</button>
              </div>
 
             <div class="filter-container">
+                <script>
+                (function(){
+                    var btn = document.getElementById('edit-subitems-btn');
+                    if (btn && !btn.__bound) {
+                        btn.__bound = true;
+                        btn.addEventListener('click', function(){
+                            // 占位：后续可打开子项目/子任务编辑界面
+                            alert('打开“编辑子项目-子任务”界面（可后续接入具体编辑逻辑）');
+                        });
+                    }
+                })();
+                </script>
                 <!-- 筛选按钮组 -->
                 <div class="filter-grid">
                     <!-- 推荐排序 -->
