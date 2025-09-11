@@ -22,6 +22,7 @@
 		th{background:transparent; color:#8f8fb7; text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
 		tr:hover{background:rgba(79,156,255,0.08)}
 		.cell-edit{background:transparent; outline:none; min-width:60px}
+		.sel{background:#0b152b; border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:6px; border-radius:4px; width:100%}
 		.notice{margin:10px 16px 0; font-size:12px; color:#9cc7ff}
 		.error{background:#f8d7da; color:#721c24; padding:8px 12px; border-radius:6px; margin:10px 16px}
 	</style>
@@ -36,16 +37,16 @@
 				</div>
 			</div>
 			<div id="errorBox" class="error" style="display:none"></div>
-			<div class="notice">提示：表格为就地编辑，当前为本地修改预览。确认后续保存方案再接入后端写接口。</div>
+			<div class="notice">提示：表格为就地编辑，修改后将自动保存到数据库（当前用户隔离）。</div>
 			<div class="table-wrap">
 				<table id="editTable">
 					<thead>
 						<tr>
 							<th style="width:200px">项目名称</th>
 							<th style="width:260px">子任务</th>
-							<th style="width:120px">分类</th>
-							<th style="width:120px">紧急重要</th>
-							<th style="width:120px">困难程度</th>
+							<th style="width:160px">分类</th>
+							<th style="width:160px">紧急重要</th>
+							<th style="width:160px">困难程度</th>
 						</tr>
 					</thead>
 					<tbody id="editTbody">
@@ -58,7 +59,6 @@
 
 	<script>
 	(function(){
-		// 全局fetch包装，附加Authorization
 		if (!window.__tsAuthFetchPatched) {
 			window.__tsAuthFetchPatched = true;
 			const originalFetch = window.fetch.bind(window);
@@ -85,83 +85,99 @@
 	(function(){
 		const tbody = document.getElementById('editTbody');
 		const err = document.getElementById('errorBox');
+		const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
+		const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
+		const PRIORITY = ['高','中','低'];
+		let categoryOptions = [];
 		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
-		// 若未登录，跳转到登录
 		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
 		
 		function showError(message){ err.style.display='block'; err.textContent=message; }
 		function clearError(){ err.style.display='none'; err.textContent=''; }
-		function cell(content, attrs={}){
-			const td = document.createElement('td');
-			const div = document.createElement('div');
-			div.className = 'cell-edit';
-			div.contentEditable = true;
-			div.textContent = content || '';
-			Object.entries(attrs).forEach(([k,v])=>div.setAttribute(k,v));
-			td.appendChild(div); return td;
+		function sel(options, value){
+			const s = document.createElement('select'); s.className='sel';
+			options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt.value; o.textContent=opt.label; if (opt.value===value) o.selected=true; s.appendChild(o); });
+			return s;
 		}
+		function catSelect(value){ return sel(categoryOptions.length?categoryOptions:[{value:'',label:'(未分类)'}], value||''); }
+		function urgencySelect(value){ return sel(URGENCY.map(v=>({value:v,label:v})), value||'重要不紧急'); }
+		function diffSelect(value){ return sel(DIFF.map(v=>({value:v,label:v})), value||'中级'); }
+		function cellEditable(content){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; div.textContent=content||''; td.appendChild(div); return td; }
+		function cellSelect(selectEl){ const td=document.createElement('td'); td.appendChild(selectEl); return td; }
 		function row(project, subtask, category){
 			const tr = document.createElement('tr');
-			tr.appendChild(cell(project?.name, { 'data-type':'project', 'data-id': project?.id||'' }));
-			tr.appendChild(cell(subtask?.name, { 'data-type':'subtask', 'data-id': subtask?.id||'' }));
-			tr.appendChild(cell(category?.name, { 'data-type':'category', 'data-id': category?.id||'' }));
-			tr.appendChild(cell(subtask?.urgency_importance, { 'data-type':'urgency' }));
-			tr.appendChild(cell(subtask?.difficulty, { 'data-type':'difficulty' }));
+			tr.appendChild(cellEditable(project?.name));
+			tr.appendChild(cellEditable(subtask?.name));
+			tr.appendChild(cellSelect(catSelect(category?.name||'')));
+			tr.appendChild(cellSelect(urgencySelect(subtask?.urgency_importance)));
+			tr.appendChild(cellSelect(diffSelect(subtask?.difficulty)));
 			return tr;
 		}
 		function blankRow(){ return row({name:''},{name:'',urgency_importance:'',difficulty:''},{name:''}); }
 		function countBlankRows(){
 			let count = 0;
 			tbody.querySelectorAll('tr').forEach(tr => {
-				const texts = Array.from(tr.querySelectorAll('.cell-edit')).map(d=>d.textContent.trim());
-				if (texts.join('') === '') count++;
+				const texts = Array.from(tr.querySelectorAll('.cell-edit')).map(d=>d.textContent.trim()).join('');
+				const selects = Array.from(tr.querySelectorAll('select')).map(s=>s.value||'').join('');
+				if ((texts+selects).trim()==='') count++;
 			});
 			return count;
 		}
-		function ensureBlankRows(min=6){
-			let blanks = countBlankRows();
-			while (blanks < min){ tbody.appendChild(blankRow()); blanks++; }
-			bindEditHandlers();
+		function ensureBlankRows(min=6){ let blanks = countBlankRows(); while (blanks < min){ tbody.appendChild(blankRow()); blanks++; } bindHandlers(); }
+		function maybeAppendAfterEdit(tr){ const blanks = countBlankRows(); if (blanks < 6){ tbody.appendChild(blankRow()); bindHandlers(); } }
+		function readRowData(tr){
+			const tds = tr.children;
+			return {
+				project_name: tds[0].querySelector('.cell-edit')?.textContent.trim() || null,
+				subtask_name: tds[1].querySelector('.cell-edit')?.textContent.trim() || null,
+				category_name: tds[2].querySelector('select')?.value || null,
+				urgency_importance: tds[3].querySelector('select')?.value || '重要不紧急',
+				difficulty: tds[4].querySelector('select')?.value || '中级'
+			};
 		}
-		function maybeAppendAfterEdit(div){
-			const tr = div.closest('tr');
-			const isBlank = Array.from(tr.querySelectorAll('.cell-edit')).every(d=>d.textContent.trim()==='');
-			if (!isBlank){
-				const blanks = countBlankRows();
-				if (blanks < 6){ tbody.appendChild(blankRow()); bindEditHandlers(); }
-			}
-		}
-		async function load(){
+		async function saveRow(tr){
+			const payload = readRowData(tr);
+			if (!payload.project_name && !payload.subtask_name && !payload.category_name) return;
 			try{
-				clearError();
-				const res = await fetch('/api/projects');
-				if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
+				const res = await fetch('/api/editor/row', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
 				const data = await res.json();
-				tbody.innerHTML = '';
-				// data is categories -> projects -> subtasks
-				data.forEach(cat => {
-					(cat.projects||[]).forEach(p => {
-						if ((p.subtasks||[]).length === 0){
-							const tr = row(p, null, cat);
-							tbody.appendChild(tr);
-						} else {
-							p.subtasks.forEach(s => { tbody.appendChild(row(p, s, cat)); });
-						}
-					});
-				});
-				bindEditHandlers();
-				ensureBlankRows(6);
+				if (!res.ok) throw new Error(data.detail || '保存失败');
+				tr.style.outline = '1px solid rgba(79,156,255,0.6)'; setTimeout(()=>{ tr.style.outline = ''; }, 800);
 			}catch(e){ showError(e.message||String(e)); }
 		}
-		function bindEditHandlers(){
+		function bindHandlers(){
+			// 文本单元格
 			tbody.querySelectorAll('.cell-edit').forEach(div => {
 				if (div.__bound) return; div.__bound = true;
 				div.addEventListener('focus', ()=>{ div.dataset.original = div.textContent.trim(); });
 				div.addEventListener('blur', ()=>{
 					const orig = div.dataset.original||''; const now = div.textContent.trim();
-					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; maybeAppendAfterEdit(div); }
+					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; maybeAppendAfterEdit(div.closest('tr')); saveRow(div.closest('tr')); }
 				});
 			});
+			// 下拉选择
+			tbody.querySelectorAll('select').forEach(sel => {
+				if (sel.__bound) return; sel.__bound = true;
+				sel.addEventListener('change', ()=>{ saveRow(sel.closest('tr')); });
+			});
+		}
+		async function load(){
+			try{
+				clearError();
+				const res = await fetch('/api/projects'); if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
+				const data = await res.json();
+				// 构建分类选项
+				const cats = data || [];
+				categoryOptions = [{value:'',label:'(未分类)'}].concat(cats.map(c=>({value:c.name,label:c.name})));
+				tbody.innerHTML = '';
+				cats.forEach(cat => {
+					(cat.projects||[]).forEach(p => {
+						if ((p.subtasks||[]).length === 0){ tbody.appendChild(row(p, null, cat)); }
+						else { p.subtasks.forEach(s => { tbody.appendChild(row(p, s, cat)); }); }
+					});
+				});
+				bindHandlers(); ensureBlankRows(6);
+			}catch(e){ showError(e.message||String(e)); }
 		}
 		load();
 	})();
