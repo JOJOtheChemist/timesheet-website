@@ -15,19 +15,24 @@
 		.msg{margin-top:10px;font-size:12px}
 		.msg.error{color:#fca5a5}
 		.msg.info{color:#93c5fd}
+		.notice{background:#0b152b;border:1px solid rgba(79,156,255,.25);padding:8px;border-radius:8px;margin-bottom:10px;color:#9cc7ff;font-size:12px}
 	</style>
 </head>
 <body>
 	<div class="card">
 		<h1 class="text-xl mb-3" style="color:#4f9cff">账户登录</h1>
-		<form id="loginForm">
+		<div id="loggedNotice" class="notice" style="display:none">
+			检测到已登录，若需切换账号请直接登录新账号；否则点击下方按钮进入日程页。
+		</div>
+		<form id="loginForm" autocomplete="off">
 			<label class="label">用户名</label>
-			<input class="input" name="username" required value="">
+			<input class="input" name="username" required value="" autocomplete="username">
 			<label class="label">密码</label>
-			<input class="input" name="password" type="password" required value="">
+			<input class="input" name="password" type="password" required value="" autocomplete="current-password">
 			<button class="btn" type="submit" id="submitBtn">登录</button>
 			<div id="msg" class="msg"></div>
 		</form>
+		<button id="enterBtn" class="btn" style="display:none;margin-top:10px">进入日程页</button>
 		<div class="mt-3 text-sm" style="color:#9ca3af">
 			还没有账号？<span id="toRegister" class="link">注册</span> ｜ 忘记密码？<span id="toReset" class="link">找回</span>
 		</div>
@@ -39,6 +44,8 @@
 		const form = document.getElementById('loginForm');
 		const submitBtn = document.getElementById('submitBtn');
 		const msg = document.getElementById('msg');
+		const enterBtn = document.getElementById('enterBtn');
+		const loggedNotice = document.getElementById('loggedNotice');
 		function setLoading(b){ submitBtn.disabled = !!b; submitBtn.textContent = b ? '处理中...' : '登录'; }
 		function showError(text){ msg.className='msg error'; msg.textContent=text; }
 		function showInfo(text){ msg.className='msg info'; msg.textContent=text; }
@@ -55,8 +62,12 @@
 			}catch(err){ showError(err.message || '网络错误'); }
 			finally{ setLoading(false); }
 		});
-		// 若已登录则直接进入日程页
-		if (localStorage.getItem('ts_auth_token')) { location.replace(TARGET); }
+		// 如果已有token，则显示提示与“进入日程页”按钮，不自动跳走
+		if (localStorage.getItem('ts_auth_token')) {
+			loggedNotice.style.display = '';
+			enterBtn.style.display = '';
+			enterBtn.addEventListener('click', function(){ location.href = TARGET; });
+		}
 		// 注册/找回入口（留待扩展）
 		document.getElementById('toRegister').addEventListener('click', function(){ alert('请联系管理员开通账号，或后续添加注册页'); });
 		document.getElementById('toReset').addEventListener('click', function(){ alert('请联系管理员重置密码，或后续添加找回页'); });
