@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
@@ -85,6 +86,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 静态文件挂载将在所有API路由定义后添加
 
 # 数据模型
 class ScheduleItem(BaseModel):
@@ -828,6 +831,9 @@ async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), cu
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+# 挂载静态文件（必须在所有API路由之后）
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 if __name__ == "__main__":
     print("Starting Schedule API on port 5001...")
