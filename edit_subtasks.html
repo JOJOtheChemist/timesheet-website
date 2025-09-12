@@ -402,8 +402,8 @@ thead::after {
 	</script>
 	<script>
 	(function(){
-		const tbody = document.getElementById('editTbody');
-		const err = document.getElementById('errorBox');
+		// 全局变量声明
+		let tbody, err;
 		const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
 		const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
 		let categoryOptions = [];
@@ -411,7 +411,8 @@ thead::after {
 		let userScrolled = false;
 		let autoScrollEnabled = true;
 		let scrollCheckInterval;
-		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
+		
+		// 检查认证
 		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
 		
 
@@ -454,8 +455,8 @@ thead::after {
 			return difficultyColors[difficulty] || '';
 		}
 
-		function showError(message){ err.style.display='block'; err.textContent=message; }
-		function clearError(){ err.style.display='none'; err.textContent=''; }
+		function showError(message){ if (err) { err.style.display='block'; err.textContent=message; } }
+		function clearError(){ if (err) { err.style.display='none'; err.textContent=''; } }
 		function sel(options, value){
 			const s = document.createElement('select'); s.className='sel';
 			options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt.value; o.textContent=opt.label; if (opt.value===value) o.selected=true; s.appendChild(o); });
@@ -516,8 +517,8 @@ thead::after {
 			});
 			return count;
 		}
-		function ensureBlankRows(min=6){ let blanks = countBlankRows(); while (blanks < min){ tbody.appendChild(blankRow()); blanks++; } bindHandlers(); }
-		function maybeAppendAfterEdit(tr){ const blanks = countBlankRows(); if (blanks < 6){ tbody.appendChild(blankRow()); bindHandlers(); } }
+		function ensureBlankRows(min=6){ if (!tbody) return; let blanks = countBlankRows(); while (blanks < min){ tbody.appendChild(blankRow()); blanks++; } bindHandlers(); }
+		function maybeAppendAfterEdit(tr){ if (!tbody) return; const blanks = countBlankRows(); if (blanks < 6){ tbody.appendChild(blankRow()); bindHandlers(); } }
 		function readRowData(tr){
 			const tds = tr.children;
 			return {
@@ -582,7 +583,8 @@ thead::after {
 				});
 			});
 			// 下拉选择
-			tbody.querySelectorAll('select').forEach(sel => {
+			if (!tbody) return;
+		tbody.querySelectorAll('select').forEach(sel => {
 				if (sel.__bound) return; sel.__bound = true;
 				// 初始颜色设置
 				updateSelectColor(sel);
@@ -603,11 +605,12 @@ thead::after {
 				const baseCats = ['娱乐','学习','工作','生活','社交','运动'];
 				const catNames = Array.from(new Set(baseCats.concat(cats.map(c=>c.name).filter(Boolean))));
 				categoryOptions = [{value:'',label:'(未分类)'}].concat(catNames.map(n=>({value:n,label:n})));
-				tbody.innerHTML = '';
+				if (!tbody) return;
+		tbody.innerHTML = '';
 				cats.forEach(cat => {
 					(cat.projects||[]).forEach(p => {
-						if ((p.subtasks||[]).length === 0){ tbody.appendChild(row(p, null, cat)); }
-						else { p.subtasks.forEach(s => { tbody.appendChild(row(p, s, cat)); }); }
+						if ((p.subtasks||[]).length === 0){ if (tbody) tbody.appendChild(row(p, null, cat)); }
+						else { p.subtasks.forEach(s => { if (tbody) tbody.appendChild(row(p, s, cat)); }); }
 					});
 				});
 				bindHandlers(); ensureBlankRows(6);
@@ -797,6 +800,16 @@ thead::after {
 
                 // 页面加载完成后初始化
                 document.addEventListener('DOMContentLoaded', function() {
+                    // 获取DOM元素
+                    tbody = document.getElementById('editTbody');
+                    err = document.getElementById('errorBox');
+                    
+                    // 添加返回按钮事件
+                    const backBtn = document.getElementById('backBtn');
+                    if (backBtn) {
+                        backBtn.addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
+                    }
+                    
                     adjustChatHeight();
                     ensureHeaderVisible();
                     setupScrollListener();
