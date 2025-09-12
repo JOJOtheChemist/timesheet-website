@@ -842,3 +842,41 @@ if __name__ == "__main__":
     print("API documentation available at: http://140.143.194.215:5001/docs")
     print("API will be accessible from external networks")
     uvicorn.run(app, host="0.0.0.0", port=5001, reload=False) 
+
+@app.post("/api/agent/chat/stream")
+async def agent_chat_stream(body: AgentChatRequest, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
+    """LLM智能任务管理Agent流式返回：理解用户意图并创建任务"""
+    user_id = current_user["sub"]
+    
+    async def generate():
+        try:
+            # 使用LLM agent处理用户消息
+            agent_result = run_agent_with_user_context(body.message or "", user_id)
+            
+            # 先返回thought
+            if agent_result.get("thought"):
+                yield f"data: {json.dumps({'type': 'thought', 'content': agent_result['thought']}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.1)  # 小延迟让用户看到thought
+            
+            # 然后返回回复
+            reply = agent_result.get("reply", "处理完成")
+            yield f"data: {json.dumps({'type': 'reply', 'content': reply}, ensure_ascii=False)}\n\n"
+            
+            # 最后返回任务信息
+            task_created = agent_result.get("task_created", False)
+            task_info = agent_result.get("task_info", {})
+            
+            if task_created and task_info:
+                if isinstance(task_info, list) and len(task_info) > 0:
+                    ids = task_info[0].get("ids", {})
+                else:
+                    ids = task_info.get("ids", {}) if isinstance(task_info, dict) else {}
+                
+                yield f"data: {json.dumps({'type': 'task_info', 'content': {'category_id': ids.get('category_id'), 'project_id': ids.get('project_id'), 'subtask_id': ids.get('subtask_id')}}, ensure_ascii=False)}\n\n"
+            
+            yield "data: [DONE]\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/plain")

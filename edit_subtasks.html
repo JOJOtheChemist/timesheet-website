@@ -691,15 +691,19 @@ thead::after {
 			function addMessage(content, isUser = true, thought = null) {
 				const messageDiv = document.createElement('div');
 				messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
-				messageDiv.textContent = content;
 				
-				// 如果有thought内容，添加小字显示
+				// 如果有thought内容，先显示thought
 				if (thought && !isUser) {
 					const thoughtDiv = document.createElement('div');
 					thoughtDiv.className = 'message-thought';
 					thoughtDiv.textContent = '🤔 ' + thought;
 					messageDiv.appendChild(thoughtDiv);
 				}
+				
+				// 然后显示主要内容
+				const contentDiv = document.createElement('div');
+				contentDiv.textContent = content;
+				messageDiv.appendChild(contentDiv);
 				
 				if (chatMessages) {
 					chatMessages.appendChild(messageDiv);
@@ -733,6 +737,14 @@ thead::after {
 					}
 				}, 1000);
 				
+				// 创建bot回复容器
+				const botMessageDiv = document.createElement('div');
+				botMessageDiv.className = 'message bot-message';
+				if (chatMessages) {
+					chatMessages.appendChild(botMessageDiv);
+					chatMessages.scrollTop = chatMessages.scrollHeight;
+				}
+				
 				try {
 					const token = localStorage.getItem('ts_auth_token');
 					const res = await fetch('/api/agent/chat', { 
@@ -751,8 +763,23 @@ thead::after {
 						waitingDiv.parentNode.removeChild(waitingDiv);
 					}
 					
-					// 显示回复和thought
-					addMessage(data.reply, false, data.thought);
+					// 显示thought（如果有）
+					if (data.thought) {
+						const thoughtDiv = document.createElement('div');
+						thoughtDiv.className = 'message-thought';
+						thoughtDiv.textContent = '�� ' + data.thought;
+						botMessageDiv.appendChild(thoughtDiv);
+					}
+					
+					// 显示回复内容
+					const contentDiv = document.createElement('div');
+					contentDiv.textContent = data.reply;
+					botMessageDiv.appendChild(contentDiv);
+					
+					// 滚动到底部
+					if (chatMessages) {
+						chatMessages.scrollTop = chatMessages.scrollHeight;
+					}
 					
 					// 如果任务创建成功，刷新数据
 					if (data.project_id || data.subtask_id || data.category_id) { 
