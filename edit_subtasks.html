@@ -376,457 +376,498 @@ thead::after {
 		</div>
 	</div>
 
-	<script>
+	
+		<script>
 	(function(){
-		if (!window.__tsAuthFetchPatched) {
-			window.__tsAuthFetchPatched = true;
-			const originalFetch = window.fetch.bind(window);
-			window.fetch = function(resource, init) {
-				try{
-					const token = localStorage.getItem('ts_auth_token');
-					const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
-					const isApi = url.startsWith('/api/') || url.startsWith(location.origin + '/api/');
-					if (token && isApi) {
-						const opts = Object.assign({}, init||{});
-						opts.headers = Object.assign({}, opts.headers||{});
-						if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
-							opts.headers['Authorization'] = 'Bearer ' + token;
-						}
-						return originalFetch(resource, opts);
+		// 等待DOM加载完成
+		document.addEventListener('DOMContentLoaded', function() {
+			// 获取DOM元素
+			const tbody = document.getElementById('editTbody');
+			const err = document.getElementById('errorBox');
+			const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
+			const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
+			let categoryOptions = [];
+			
+			// 检查认证
+			if (!localStorage.getItem('ts_auth_token')) { 
+				location.replace('login.html'); 
+				return; 
+			}
+			
+			// 添加返回按钮事件
+			const backBtn = document.getElementById('backBtn');
+			if (backBtn) {
+				backBtn.addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
+			}
+			
+			// 获取类别颜色样式
+			function getCategoryColor(categoryName) {
+				const categoryColors = {
+					'娱乐': 'category-娱乐',
+					'学习': 'category-学习', 
+					'工作': 'category-工作',
+					'生活': 'category-生活',
+					'社交': 'category-社交',
+					'运动': 'category-运动'
+				};
+				return categoryColors[categoryName] || '';
+			}
+			
+			// 获取重要性颜色样式
+			function getUrgencyColor(urgency) {
+				const urgencyColors = {
+					'紧急重要': 'urgency-紧急重要',
+					'紧急不重要': 'urgency-紧急不重要',
+					'重要不紧急': 'urgency-重要不紧急',
+					'不重要不紧急': 'urgency-不重要不紧急',
+					'重要紧急': 'urgency-重要紧急'
+				};
+				return urgencyColors[urgency] || '';
+			}
+			
+			// 获取难度颜色样式
+			function getDifficultyColor(difficulty) {
+				const difficultyColors = {
+					'简单': 'difficulty-简单',
+					'中等': 'difficulty-中等',
+					'中级': 'difficulty-中级',
+					'困难': 'difficulty-困难',
+					'地狱': 'difficulty-地狱',
+					'S级': 'difficulty-S级',
+					'高级': 'difficulty-高级'
+				};
+				return difficultyColors[difficulty] || '';
+			}
+			
+			function showError(message){ 
+				if (err) {
+					err.style.display='block'; 
+					err.textContent=message; 
+				}
+			}
+			function clearError(){ 
+				if (err) {
+					err.style.display='none'; 
+					err.textContent=''; 
+				}
+			}
+			function sel(options, value){
+				const s = document.createElement('select'); s.className='sel';
+				options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt.value; o.textContent=opt.label; if (opt.value===value) o.selected=true; s.appendChild(o); });
+				return s;
+			}
+			function catSelect(value){ return sel(categoryOptions.length?categoryOptions:[{value:'',label:'(未分类)'}], value||''); }
+			function urgencySelect(value){ return sel(URGENCY.map(v=>({value:v,label:v})), value||'重要不紧急'); }
+			function diffSelect(value){ return sel(DIFF.map(v=>({value:v,label:v})), value||'中级'); }
+			function cellEditable(content){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; div.textContent=content||''; td.appendChild(div); return td; }
+			function cellSelect(selectEl){ const td=document.createElement('td'); td.appendChild(selectEl); return td; }
+			function row(project, subtask, category){
+				const tr = document.createElement('tr');
+				tr.appendChild(cellEditable(project?.name||''));
+				tr.appendChild(cellEditable(subtask?.name||''));
+				
+				// 类别选择器
+				const categoryCell = cellSelect(catSelect(category?.name||''));
+				const categorySelect = categoryCell.querySelector('select');
+				if (categorySelect && category?.name) {
+					const colorClass = getCategoryColor(category.name);
+					if (colorClass) {
+						categorySelect.className += ' category-color ' + colorClass;
 					}
-				}catch(e){}
-				return originalFetch(resource, init);
-			};
-		}
-	})();
-	</script>
-	<script>
-	(function(){
-		const tbody = document.getElementById('editTbody');
-		const err = document.getElementById('errorBox');
-		const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
-		const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
-		let categoryOptions = [];
-		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
-		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
-		
-
-		// 获取类别颜色样式
-		function getCategoryColor(categoryName) {
-			const categoryColors = {
-				'娱乐': 'category-娱乐',
-				'学习': 'category-学习', 
-				'工作': 'category-工作',
-				'生活': 'category-生活',
-				'社交': 'category-社交',
-				'运动': 'category-运动'
-			};
-			return categoryColors[categoryName] || '';
-		}
-
-		// 获取重要性颜色样式
-		function getUrgencyColor(urgency) {
-			const urgencyColors = {
-				'紧急重要': 'urgency-紧急重要',
-				'紧急不重要': 'urgency-紧急不重要',
-				'重要不紧急': 'urgency-重要不紧急',
-				'不重要不紧急': 'urgency-不重要不紧急',
-				'重要紧急': 'urgency-重要紧急'
-			};
-			return urgencyColors[urgency] || '';
-		}
-
-		// 获取难度颜色样式
-		function getDifficultyColor(difficulty) {
-			const difficultyColors = {
-				'简单': 'difficulty-简单',
-				'中等': 'difficulty-中等',
-				'中级': 'difficulty-中级',
-				'困难': 'difficulty-困难',
-				'地狱': 'difficulty-地狱',
-				'S级': 'difficulty-S级',
-				'高级': 'difficulty-高级'
-			};
-			return difficultyColors[difficulty] || '';
-		}
-
-		function showError(message){ err.style.display='block'; err.textContent=message; }
-		function clearError(){ err.style.display='none'; err.textContent=''; }
-		function sel(options, value){
-			const s = document.createElement('select'); s.className='sel';
-			options.forEach(opt=>{ const o=document.createElement('option'); o.value=opt.value; o.textContent=opt.label; if (opt.value===value) o.selected=true; s.appendChild(o); });
-			return s;
-		}
-		function catSelect(value){ return sel(categoryOptions.length?categoryOptions:[{value:'',label:'(未分类)'}], value||''); }
-		function urgencySelect(value){ return sel(URGENCY.map(v=>({value:v,label:v})), value||'重要不紧急'); }
-		function diffSelect(value){ return sel(DIFF.map(v=>({value:v,label:v})), value||'中级'); }
-		function cellEditable(content){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; div.textContent=content||''; td.appendChild(div); return td; }
-		function cellSelect(selectEl){ const td=document.createElement('td'); td.appendChild(selectEl); return td; }
-		function row(project, subtask, category){
-			const tr = document.createElement('tr');
-			tr.appendChild(cellEditable(project?.name));
-			tr.appendChild(cellEditable(subtask?.name));
-			
-			// 类别单元格 - 添加颜色样式
-			const categoryCell = cellSelect(catSelect(category?.name||''));
-			const categorySelect = categoryCell.querySelector('select');
-			if (categorySelect && category?.name) {
-				const colorClass = getCategoryColor(category.name);
-				if (colorClass) {
-					categorySelect.className += ' category-color ' + colorClass;
 				}
+				tr.appendChild(categoryCell);
+				
+				// 重要性选择器
+				const urgencyCell = cellSelect(urgencySelect(subtask?.urgency_importance));
+				const urgencySelectEl = urgencyCell.querySelector('select');
+				if (urgencySelect && subtask?.urgency_importance) {
+					const colorClass = getUrgencyColor(subtask.urgency_importance);
+					if (colorClass) {
+						urgencySelect.className += ' urgency-color ' + colorClass;
+					}
+				}
+				tr.appendChild(urgencyCell);
+				
+				// 难度选择器
+				const difficultyCell = cellSelect(diffSelect(subtask?.difficulty));
+				const difficultySelect = difficultyCell.querySelector('select');
+				if (difficultySelect && subtask?.difficulty) {
+					const colorClass = getDifficultyColor(subtask.difficulty);
+					if (colorClass) {
+						difficultySelect.className += ' difficulty-color ' + colorClass;
+					}
+				}
+				tr.appendChild(difficultyCell);
+				
+				return tr;
 			}
-			tr.appendChild(categoryCell);
-			
-			// 重要性单元格 - 添加颜色样式
-			const urgencyCell = cellSelect(urgencySelect(subtask?.urgency_importance));
-			const urgencySelect = urgencyCell.querySelector('select');
-			if (urgencySelect && subtask?.urgency_importance) {
-				const colorClass = getUrgencyColor(subtask.urgency_importance);
-				if (colorClass) {
-					urgencySelect.className += ' urgency-color ' + colorClass;
-				}
-			}
-			tr.appendChild(urgencyCell);
-			
-			// 难度单元格 - 添加颜色样式
-			const difficultyCell = cellSelect(diffSelect(subtask?.difficulty));
-			const difficultySelect = difficultyCell.querySelector('select');
-			if (difficultySelect && subtask?.difficulty) {
-				const colorClass = getDifficultyColor(subtask.difficulty);
-				if (colorClass) {
-					difficultySelect.className += ' difficulty-color ' + colorClass;
-				}
-			}
-			tr.appendChild(difficultyCell);
-			
-			return tr;
-		}
-		function blankRow(){ return row({name:''},{name:'',urgency_importance:'',difficulty:''},{name:''}); }
-		function countBlankRows(){
-			let count = 0;
-			tbody.querySelectorAll('tr').forEach(tr => {
-				const texts = Array.from(tr.querySelectorAll('.cell-edit')).map(d=>d.textContent.trim()).join('');
-				const selects = Array.from(tr.querySelectorAll('select')).map(s=>s.value||'').join('');
-				if ((texts+selects).trim()==='') count++;
-			});
-			return count;
-		}
-		function ensureBlankRows(min=6){ let blanks = countBlankRows(); while (blanks < min){ tbody.appendChild(blankRow()); blanks++; } bindHandlers(); }
-		function maybeAppendAfterEdit(tr){ const blanks = countBlankRows(); if (blanks < 6){ tbody.appendChild(blankRow()); bindHandlers(); } }
-		function readRowData(tr){
-			const tds = tr.children;
-			return {
-				project_name: tds[0].querySelector('.cell-edit')?.textContent.trim() || null,
-				subtask_name: tds[1].querySelector('.cell-edit')?.textContent.trim() || null,
-				category_name: tds[2].querySelector('select')?.value || null,
-				urgency_importance: tds[3].querySelector('select')?.value || '重要不紧急',
-				difficulty: tds[4].querySelector('select')?.value || '中级'
-			};
-		}
-		async function saveRow(tr){
-			const payload = readRowData(tr);
-			if (!payload.project_name && !payload.subtask_name && !payload.category_name) return;
-			try{
-				const res = await fetch('/api/editor/row', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-				const data = await res.json();
-				if (!res.ok) throw new Error(data.detail || '保存失败');
-				tr.style.outline = '1px solid rgba(79,156,255,0.6)'; setTimeout(()=>{ tr.style.outline = ''; }, 800);
-			}catch(e){ showError(e.message||String(e)); }
-		}
-
-		// 更新选择框颜色样式
-		function updateSelectColor(selectElement) {
-			const value = selectElement.value;
-			const tr = selectElement.closest('tr');
-			
-			// 移除所有颜色类
-			selectElement.className = selectElement.className.replace(/\b(category|urgency|difficulty)-[\w\u4e00-\u9fa5]+\b/g, '').replace(/\s+/g, ' ').trim();
-			if (!selectElement.className.includes('sel')) {
-				selectElement.className += ' sel';
-			}
-			
-			// 根据列位置确定类型并添加相应颜色
-			const cellIndex = Array.from(tr.children).indexOf(selectElement.closest('td'));
-			
-			if (cellIndex === 2 && value) { // 类别列
-				const colorClass = getCategoryColor(value);
-				if (colorClass) {
-					selectElement.className += ' category-color ' + colorClass;
-				}
-			} else if (cellIndex === 3 && value) { // 重要性列
-				const colorClass = getUrgencyColor(value);
-				if (colorClass) {
-					selectElement.className += ' urgency-color ' + colorClass;
-				}
-			} else if (cellIndex === 4 && value) { // 难度列
-				const colorClass = getDifficultyColor(value);
-				if (colorClass) {
-					selectElement.className += ' difficulty-color ' + colorClass;
-				}
-			}
-		}
-
-		function bindHandlers(){
-			// 文本单元格
-			tbody.querySelectorAll('.cell-edit').forEach(div => {
-				if (div.__bound) return; div.__bound = true;
-				div.addEventListener('focus', ()=>{ div.dataset.original = div.textContent.trim(); });
-				div.addEventListener('blur', ()=>{
-					const orig = div.dataset.original||''; const now = div.textContent.trim();
-					if (orig !== now){ div.style.outline = '1px dashed #4f9cff'; div.title = '已修改(本地)'; maybeAppendAfterEdit(div.closest('tr')); saveRow(div.closest('tr')); }
+			function blankRow(){ return row({name:''},{name:'',urgency_importance:'',difficulty:''},{name:''}); }
+			function countBlankRows(){
+				if (!tbody) return 0;
+				let count = 0;
+				tbody.querySelectorAll('tr').forEach(tr => {
+					const texts = Array.from(tr.querySelectorAll('.cell-edit')).map(d=>d.textContent.trim()).join('');
+					const selects = Array.from(tr.querySelectorAll('select')).map(s=>s.value||'').join('');
+					if (!texts && !selects) count++;
 				});
-			});
-			// 下拉选择
-			tbody.querySelectorAll('select').forEach(sel => {
-				if (sel.__bound) return; sel.__bound = true;
-				// 初始颜色设置
-				updateSelectColor(sel);
-				sel.addEventListener('change', ()=>{
-					// 更新颜色样式
-					updateSelectColor(sel);
-					saveRow(sel.closest('tr'));
-				});
-			});
-		}
-		async function load(){
-			try{
-				clearError();
-				const res = await fetch('/api/projects'); if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
-				const data = await res.json();
-				// 构建分类选项（基础分类 ∪ 用户分类）
-				const cats = data || [];
-				const baseCats = ['娱乐','学习','工作','生活','社交','运动'];
-				const catNames = Array.from(new Set(baseCats.concat(cats.map(c=>c.name).filter(Boolean))));
-				categoryOptions = [{value:'',label:'(未分类)'}].concat(catNames.map(n=>({value:n,label:n})));
-				tbody.innerHTML = '';
-				cats.forEach(cat => {
-					(cat.projects||[]).forEach(p => {
-						if ((p.subtasks||[]).length === 0){ tbody.appendChild(row(p, null, cat)); }
-						else { p.subtasks.forEach(s => { tbody.appendChild(row(p, s, cat)); }); }
+				return count;
+			}
+			function ensureBlankRows(min=6){ 
+				if (!tbody) return;
+				let blanks = countBlankRows(); 
+				while (blanks < min){ 
+					tbody.appendChild(blankRow()); 
+					blanks++; 
+				} 
+				bindHandlers(); 
+			}
+			function maybeAppendAfterEdit(tr){ 
+				if (!tbody) return;
+				const blanks = countBlankRows(); 
+				if (blanks < 6){ 
+					tbody.appendChild(blankRow()); 
+					bindHandlers(); 
+				} 
+			}
+			function readRowData(tr){
+				const tds = tr.children;
+				return {
+					project_name: tds[0].querySelector('.cell-edit')?.textContent?.trim() || '',
+					subtask_name: tds[1].querySelector('.cell-edit')?.textContent?.trim() || '',
+					category_name: tds[2].querySelector('select')?.value || '',
+					urgency_importance: tds[3].querySelector('select')?.value || '重要不紧急',
+					difficulty: tds[4].querySelector('select')?.value || '中级'
+				};
+			}
+			async function saveRow(tr){
+				try{
+					const payload = readRowData(tr);
+					const token = localStorage.getItem('ts_auth_token');
+					const res = await fetch('/api/editor/row', { 
+						method:'POST', 
+						headers:{
+							'Content-Type':'application/json',
+							'Authorization': `Bearer ${token}`
+						}, 
+						body: JSON.stringify(payload) 
+					});
+					const data = await res.json();
+					if (data.message && data.message.includes('保存成功')) {
+						maybeAppendAfterEdit(tr);
+						clearError();
+					} else {
+						showError(data.detail || data.error || '保存失败');
+					}
+				}catch(e){ showError(e.message||String(e)); }
+			}
+			function updateSelectColor(selectElement) {
+				const value = selectElement.value;
+				const tr = selectElement.closest('tr');
+				if (!tr) return;
+				
+				// 清除旧的颜色类
+				selectElement.className = selectElement.className.replace(/\b(category|urgency|difficulty)-[\w\u4e00-\u9fa5]+\b/g, '').replace(/\s+/g, ' ').trim();
+				
+				// 根据单元格位置确定类型
+				const cellIndex = Array.from(tr.children).indexOf(selectElement.closest('td'));
+				
+				if (cellIndex === 2) { // 类别列
+					const colorClass = getCategoryColor(value);
+					if (colorClass) {
+						selectElement.className += ' category-color ' + colorClass;
+					}
+				} else if (cellIndex === 3) { // 重要性列
+					const colorClass = getUrgencyColor(value);
+					if (colorClass) {
+						selectElement.className += ' urgency-color ' + colorClass;
+					}
+				} else if (cellIndex === 4) { // 难度列
+					const colorClass = getDifficultyColor(value);
+					if (colorClass) {
+						selectElement.className += ' difficulty-color ' + colorClass;
+					}
+				}
+			}
+			function bindHandlers(){
+				if (!tbody) return;
+				tbody.querySelectorAll('.cell-edit').forEach(div => {
+					div.addEventListener('blur', function(){
+						const orig = div.dataset.original||'';
+						const now = div.textContent.trim();
+						if (orig !== now) {
+							div.dataset.original = now;
+							saveRow(div.closest('tr'));
+						}
+					});
+					div.addEventListener('focus', function(){
+						div.dataset.original = div.textContent.trim();
 					});
 				});
-				bindHandlers(); ensureBlankRows(6);
-			}catch(e){ showError(e.message||String(e)); }
-		}
-		
-		// 聊天功能
-		const chatMessages = document.getElementById('chatMessages');
-		const chatInput = document.getElementById('chatInput');
-		const chatSend = document.getElementById('chatSend');
-		
-		function addMessage(content, isUser = true) {
-			const messageDiv = document.createElement('div');
-			messageDiv.style.marginBottom = '8px';
-			messageDiv.style.padding = '8px 12px';
-			messageDiv.style.borderRadius = '6px';
-			messageDiv.style.backgroundColor = isUser ? 'rgba(79,156,255,0.2)' : 'rgba(255,255,255,0.1)';
-			messageDiv.style.borderLeft = isUser ? '3px solid #4f9cff' : '3px solid #666';
-			messageDiv.innerHTML = `<strong>${isUser ? '你' : '系统'}:</strong> ${content}`;
-			chatMessages.appendChild(messageDiv);
-			chatMessages.scrollTop = chatMessages.scrollHeight;
-		}
-		
-		async function sendMessage() {
-			const message = chatInput.value.trim();
-			if (!message) return;
-			addMessage(message, true);
-			chatInput.value = '';
-			try{
-				const res = await fetch('/api/agent/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message }) });
-				const data = await res.json();
-				if (!res.ok) throw new Error(data.detail || '发送失败');
-				addMessage(data.reply || '已处理', false);
-				// 如果有入库，刷新上方表格
-				if (data.project_id || data.subtask_id || data.category_id) { await load(); }
-			}catch(e){ addMessage('出错：' + (e.message||String(e)), false); }
-		}
-		
-		chatSend.addEventListener('click', sendMessage);
-		chatInput.addEventListener('keypress', (e) => {
-			if (e.key === 'Enter') sendMessage();
+				
+				if (!tbody) return;
+				tbody.querySelectorAll('select').forEach(sel => {
+					sel.addEventListener('change', function(){
+						updateSelectColor(this);
+						saveRow(this.closest('tr'));
+					});
+					// 初始设置颜色
+					updateSelectColor(sel);
+				});
+			}
+			async function load(){
+				try{
+					clearError();
+					const token = localStorage.getItem('ts_auth_token');
+					if (!token) {
+						showError('请先登录');
+						return;
+					}
+					const res = await fetch('/api/projects', {
+						headers: {
+							'Authorization': `Bearer ${token}`
+						}
+					}); 
+					if (!res.ok) throw new Error('加载项目数据失败: ' + res.status + ' ' + res.statusText);
+					const data = await res.json();
+					// 构建分类选项（基础分类 ∪ 用户分类）
+					const cats = data || [];
+					const baseCats = ['娱乐','学习','工作','生活','社交','运动'];
+					const catNames = Array.from(new Set(baseCats.concat(cats.map(c=>c.name).filter(Boolean))));
+					categoryOptions = [{value:'',label:'(未分类)'}].concat(catNames.map(n=>({value:n,label:n})));
+					if (!tbody) return;
+					tbody.innerHTML = '';
+					cats.forEach(cat => {
+						(cat.projects||[]).forEach(p => {
+							if ((p.subtasks||[]).length === 0){ 
+								if (tbody) tbody.appendChild(row(p, null, cat)); 
+							}
+							else { 
+								p.subtasks.forEach(s => { 
+									if (tbody) tbody.appendChild(row(p, s, cat)); 
+								}); 
+							}
+						});
+					});
+					bindHandlers(); 
+					ensureBlankRows(6);
+				}catch(e){ showError(e.message||String(e)); }
+			}
+			
+			// 聊天功能
+			const chatMessages = document.getElementById('chatMessages');
+			const chatInput = document.getElementById('chatInput');
+			const chatSend = document.getElementById('chatSend');
+			
+			function addMessage(content, isUser = true) {
+				const messageDiv = document.createElement('div');
+				messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
+				messageDiv.textContent = content;
+				if (chatMessages) {
+					chatMessages.appendChild(messageDiv);
+					chatMessages.scrollTop = chatMessages.scrollHeight;
+				}
+			}
+			
+			async function sendMessage() {
+				const message = chatInput.value.trim();
+				if (!message) return;
+				
+				addMessage(message, true);
+				if (chatInput) chatInput.value = '';
+				
+				try {
+					const token = localStorage.getItem('ts_auth_token');
+					const res = await fetch('/api/agent/chat', { 
+						method:'POST', 
+						headers:{
+							'Content-Type':'application/json',
+							'Authorization': `Bearer ${token}`
+						}, 
+						body: JSON.stringify({ message }) 
+					});
+					const data = await res.json();
+					addMessage(data.reply, false);
+					
+					// 如果任务创建成功，刷新数据
+					if (data.project_id || data.subtask_id || data.category_id) { 
+						await load(); 
+					}
+				} catch (error) {
+					addMessage('发送失败: ' + error.message, false);
+				}
+			}
+			
+			if (chatSend) {
+				chatSend.addEventListener('click', sendMessage);
+			}
+			if (chatInput) {
+				chatInput.addEventListener('keypress', function(e) {
+					if (e.key === 'Enter') {
+						sendMessage();
+					}
+				});
+			}
+			
+			// 自适应对话窗口高度
+			function adjustChatHeight() {
+				const chatSection = document.querySelector('.chat-section');
+				if (!chatSection) return;
+				
+				const windowHeight = window.innerHeight;
+				const panelHeaderHeight = document.querySelector('.panel-header')?.offsetHeight || 0;
+				const errorBoxHeight = document.getElementById('errorBox')?.offsetHeight || 0;
+				const noticeHeight = document.querySelector('.notice')?.offsetHeight || 0;
+				const totalFixedElementsHeight = panelHeaderHeight + errorBoxHeight + noticeHeight + 40;
+				
+				// 计算可用高度，对话窗口占50%
+				const availableHeight = windowHeight - totalFixedElementsHeight;
+				const chatHeight = Math.max(200, Math.min(availableHeight * 0.5, windowHeight * 0.6));
+				
+				chatSection.style.height = chatHeight + 'px';
+			}
+			
+			// 滚动控制变量
+			let userScrolled = false;
+			let autoScrollEnabled = true;
+			let scrollCheckInterval;
+			
+			// 检查是否在底部
+			function isAtBottom() {
+				const tableWrap = document.querySelector('.table-wrap');
+				if (!tableWrap) return true;
+				return tableWrap.scrollTop >= tableWrap.scrollHeight - tableWrap.clientHeight - 5;
+			}
+			
+			// 强制滚动到表格最底部
+			function forceScrollToBottom() {
+				const tableWrap = document.querySelector('.table-wrap');
+				if (!tableWrap || userScrolled) return;
+				
+				requestAnimationFrame(() => {
+					tableWrap.scrollTop = tableWrap.scrollHeight;
+					tableWrap.scrollTo({ top: tableWrap.scrollHeight, behavior: 'smooth' });
+					const lastRow = tableWrap.querySelector('#editTbody tr:last-child');
+					if (lastRow) {
+						lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+					}
+				});
+			}
+			
+			// 平滑滚动到底部
+			function smoothScrollToBottom() {
+				const tableWrap = document.querySelector('.table-wrap');
+				if (!tableWrap) return;
+				
+				userScrolled = false;
+				autoScrollEnabled = true;
+				
+				if (!userScrolled) {
+					tableWrap.scrollTo({ top: tableWrap.scrollHeight, behavior: 'smooth' });
+				}
+			}
+			
+			// 更新滚动按钮显示状态
+			function updateScrollButton() {
+				const scrollBtn = document.getElementById('scrollToBottomBtn');
+				const tableWrap = document.querySelector('.table-wrap');
+				if (!scrollBtn || !tableWrap) return;
+				
+				if (isAtBottom()) {
+					scrollBtn.style.display = 'none';
+				} else {
+					scrollBtn.style.display = 'block';
+				}
+			}
+			
+			// 设置滚动监听器
+			function setupScrollListener() {
+				const tableWrap = document.querySelector('.table-wrap');
+				if (!tableWrap) return;
+				
+				// 监听滚动事件
+				tableWrap.addEventListener('scroll', function() {
+					updateScrollButton();
+					
+					// 如果用户滚动到底部，重新启用自动滚动
+					if (isAtBottom()) {
+						userScrolled = false;
+						autoScrollEnabled = true;
+					} else {
+						// 用户手动滚动，禁用自动滚动
+						userScrolled = true;
+						autoScrollEnabled = false;
+					}
+				});
+				
+				// 监听鼠标滚轮事件
+				tableWrap.addEventListener('wheel', function() {
+					userScrolled = true;
+					autoScrollEnabled = false;
+				});
+				
+				// 监听触摸移动事件
+				tableWrap.addEventListener('touchmove', function() {
+					userScrolled = true;
+					autoScrollEnabled = false;
+				});
+			}
+			
+			// 确保表格头部可见
+			function ensureHeaderVisible() {
+				const thead = document.querySelector('thead');
+				if (thead) {
+					const ths = thead.querySelectorAll('th');
+					ths.forEach(th => {
+						th.style.position = 'sticky';
+						th.style.top = '0';
+						th.style.zIndex = '999';
+						th.style.backgroundColor = '#f8f9fa';
+						th.style.borderBottom = '2px solid #dee2e6';
+						th.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+						th.style.backdropFilter = 'blur(10px)';
+						th.style.borderLeft = '1px solid #dee2e6';
+						th.style.borderRight = '1px solid #dee2e6';
+					});
+				}
+			}
+			
+			// 窗口大小改变时重新调整
+			window.addEventListener('resize', function() {
+				adjustChatHeight();
+				forceScrollToBottom();
+			});
+			
+			// 页面加载完成后的初始化
+			adjustChatHeight();
+			ensureHeaderVisible();
+			setupScrollListener();
+			
+			// 添加向下滚动按钮点击事件
+			const scrollBtn = document.getElementById('scrollToBottomBtn');
+			if (scrollBtn) {
+				scrollBtn.addEventListener('click', function() {
+					smoothScrollToBottom();
+				});
+			}
+			
+			// 初始加载时自动滚动
+			setTimeout(forceScrollToBottom, 200);
+			
+			// 加载数据
+			load();
+			
+			// 定期检查滚动位置（仅在自动滚动启用时）
+			setInterval(function() {
+				if (!autoScrollEnabled) return;
+				
+				const tableWrap = document.querySelector('.table-wrap');
+				if (tableWrap && tableWrap.scrollHeight > tableWrap.clientHeight) {
+					if (!isAtBottom()) {
+						forceScrollToBottom();
+					}
+				}
+			}, 500);
 		});
-		
-                
-                // 动态调整对话窗口高度
-                function adjustChatHeight() {
-                    const chatSection = document.querySelector('.chat-section');
-                    const windowHeight = window.innerHeight;
-                    const panelHeaderHeight = document.querySelector('.panel-header')?.offsetHeight || 0;
-                    const errorBoxHeight = document.getElementById('errorBox')?.offsetHeight || 0;
-                    const noticeHeight = document.querySelector('.notice')?.offsetHeight || 0;
-                    const totalFixedElementsHeight = panelHeaderHeight + errorBoxHeight + noticeHeight + 40;
-                    
-                    const availableHeight = windowHeight - totalFixedElementsHeight;
-                    const chatHeight = Math.max(200, Math.min(availableHeight * 0.5, windowHeight * 0.6));
-                    
-                    if (chatSection) {
-                        chatSection.style.height = chatHeight + 'px';
-                    }
-
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (tableWrap) {
-                        tableWrap.style.maxHeight = (availableHeight - chatHeight) + 'px';
-                    }
-                }
-
-                // 滚动控制变量
-                let userScrolled = false;
-                let autoScrollEnabled = true;
-                let scrollCheckInterval;
-
-                // 检查是否在底部
-                function isAtBottom() {
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (!tableWrap) return true;
-                    return tableWrap.scrollTop >= tableWrap.scrollHeight - tableWrap.clientHeight - 5;
-                }
-
-                // 强制滚动到表格最底部
-                function forceScrollToBottom() {
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (!tableWrap || userScrolled) return;
-
-                    requestAnimationFrame(() => {
-                        tableWrap.scrollTop = tableWrap.scrollHeight;
-                        tableWrap.scrollTo({ top: tableWrap.scrollHeight, behavior: 'smooth' });
-                        const lastRow = tableWrap.querySelector('#editTbody tr:last-child');
-                        if (lastRow) {
-                            lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
-                        }
-                    });
-                }
-
-                // 平滑滚动到底部
-                function smoothScrollToBottom() {
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (!tableWrap) return;
-
-                    tableWrap.scrollTo({ 
-                        top: tableWrap.scrollHeight, 
-                        behavior: 'smooth' 
-                    });
-                    
-                    // 滚动完成后隐藏按钮
-                    setTimeout(() => {
-                        updateScrollButton();
-                    }, 500);
-                }
-
-                // 更新滚动按钮显示状态
-                function updateScrollButton() {
-                    const scrollBtn = document.getElementById('scrollToBottomBtn');
-                    if (!scrollBtn) return;
-
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (!tableWrap) return;
-
-                    if (isAtBottom()) {
-                        scrollBtn.classList.remove('show', 'pulse');
-                        userScrolled = false;
-                        autoScrollEnabled = true;
-                    } else {
-                        scrollBtn.classList.add('show');
-                        if (!userScrolled) {
-                            scrollBtn.classList.add('pulse');
-                        }
-                    }
-                }
-
-                // 设置滚动监听器
-                function setupScrollListener() {
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (!tableWrap) return;
-
-                    // 监听滚动事件
-                    tableWrap.addEventListener('scroll', function() {
-                        updateScrollButton();
-                        
-                        // 如果用户滚动到接近底部，重新启用自动滚动
-                        if (isAtBottom()) {
-                            userScrolled = false;
-                            autoScrollEnabled = true;
-                        } else if (tableWrap.scrollTop < tableWrap.scrollHeight - tableWrap.clientHeight - 50) {
-                            // 如果用户滚动到顶部或中间，禁用自动滚动
-                            userScrolled = true;
-                            autoScrollEnabled = false;
-                        }
-                    });
-
-                    // 监听鼠标滚轮事件
-                    tableWrap.addEventListener('wheel', function() {
-                        if (!isAtBottom()) {
-                            userScrolled = true;
-                            autoScrollEnabled = false;
-                        }
-                    });
-
-                    // 监听触摸事件
-                    tableWrap.addEventListener('touchmove', function() {
-                        if (!isAtBottom()) {
-                            userScrolled = true;
-                            autoScrollEnabled = false;
-                        }
-                    });
-                }
-
-                // 确保标题行始终可见
-                function ensureHeaderVisible() {
-                    const thead = document.querySelector('thead');
-                    if (thead) {
-                        thead.style.position = 'sticky';
-                        thead.style.top = '0';
-                        thead.style.zIndex = '999';
-                        thead.querySelectorAll('th').forEach(th => {
-                            th.style.background = 'rgba(79,156,255,0.2)';
-                            th.style.borderBottom = '2px solid rgba(79,156,255,0.5)';
-                            th.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
-                            th.style.backdropFilter = 'blur(8px)';
-                            th.style.borderLeft = '1px solid rgba(79,156,255,0.3)';
-                            th.style.borderRight = '1px solid rgba(79,156,255,0.3)';
-                        });
-                    }
-                }
-
-                // 监听窗口大小变化
-                window.addEventListener('resize', function() {
-                    adjustChatHeight();
-                    setTimeout(forceScrollToBottom, 100);
-                });
-
-                // 页面加载完成后初始化
-                document.addEventListener('DOMContentLoaded', function() {
-                    adjustChatHeight();
-                    ensureHeaderVisible();
-                    setupScrollListener();
-                    
-                    // 添加向下滚动按钮点击事件
-                    const scrollBtn = document.getElementById('scrollToBottomBtn');
-                    if (scrollBtn) {
-                        scrollBtn.addEventListener('click', function() {
-                            smoothScrollToBottom();
-                        });
-                    }
-                    
-                    // 初始加载时自动滚动
-                    setTimeout(forceScrollToBottom, 200);
-                });
-
-                // 定期检查滚动位置（仅在自动滚动启用时）
-                setInterval(function() {
-                    if (!autoScrollEnabled) return;
-                    
-                    const tableWrap = document.querySelector('.table-wrap');
-                    if (tableWrap && tableWrap.scrollHeight > tableWrap.clientHeight) {
-                        if (!isAtBottom()) {
-                            forceScrollToBottom();
-                        }
-                    }
-                }, 500);
-
-
-		load();
 	})();
-	</script>
-</body>
+	</script></body>
 </html>
