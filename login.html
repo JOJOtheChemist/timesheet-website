@@ -32,27 +32,74 @@
 			<button class="btn" type="submit" id="submitBtn">登录</button>
 			<div id="msg" class="msg"></div>
 		</form>
+		<form id="registerForm" autocomplete="off" style="display:none;margin-top:10px">
+			<label class="label">用户名</label>
+			<input class="input" id="r_username" name="username" required autocomplete="username">
+			<label class="label">密码</label>
+			<input class="input" id="r_password" name="password" type="password" required autocomplete="new-password">
+			<label class="label">确认密码</label>
+			<input class="input" id="r_password2" name="password2" type="password" required autocomplete="new-password">
+			<label class="label">邀请码</label>
+			<input class="input" id="r_invite" name="invite_code" required>
+			<button class="btn" type="submit" id="registerBtn">注册</button>
+			<div id="r_msg" class="msg"></div>
+		</form>
 		<button id="enterBtn" class="btn" style="display:none;margin-top:10px">进入日程页</button>
 		<div class="mt-3 text-sm" style="color:#9ca3af">
-			还没有账号？<span id="toRegister" class="link">注册</span> ｜ 忘记密码？<span id="toReset" class="link">找回</span>
+			<span id="toLogin" class="link">登录</span> ｜ <span id="toRegister" class="link">注册</span> ｜ <span id="toReset" class="link">重置密码</span>
 		</div>
+		<form id="resetForm" autocomplete="off" style="display:none;margin-top:10px">
+			<label class="label">用户名</label>
+			<input class="input" id="x_username" name="username" required autocomplete="username">
+			<label class="label">管理员校验码</label>
+			<input class="input" id="x_admin" name="admin_code" required>
+			<label class="label">新密码</label>
+			<input class="input" id="x_pwd1" name="new_password" type="password" required autocomplete="new-password">
+			<label class="label">确认新密码</label>
+			<input class="input" id="x_pwd2" name="new_password2" type="password" required autocomplete="new-password">
+			<button class="btn" type="submit" id="resetBtn">重置密码</button>
+			<div id="x_msg" class="msg"></div>
+		</form>
 	</div>
 
 	<script>
 	(function(){
 		const TARGET = 'daily_schedule.html';
 		const form = document.getElementById('loginForm');
+		const API_BASE = '';
+		const rform = document.getElementById('registerForm');
 		const submitBtn = document.getElementById('submitBtn');
+		const registerBtn = document.getElementById('registerBtn');
 		const msg = document.getElementById('msg');
+		const rmsg = document.getElementById('r_msg');
 		const enterBtn = document.getElementById('enterBtn');
 		const loggedNotice = document.getElementById('loggedNotice');
 		const countdownEl = document.getElementById('countdown');
 		const usernameEl = document.getElementById('username');
 		const passwordEl = document.getElementById('password');
+		const toRegister = document.getElementById('toRegister');
+		const toLogin = document.getElementById('toLogin');
+		const toReset = document.getElementById('toReset');
+		const resetForm = document.getElementById('resetForm');
+		const resetBtn = document.getElementById('resetBtn');
+		const xmsg = document.getElementById('x_msg');
+		const titleEl = document.querySelector('h1.text-xl');
+		async function fetchWithTimeout(url, options, timeoutMs){
+			const controller = new AbortController();
+			const id = setTimeout(()=>controller.abort(), timeoutMs || 12000);
+			try{
+				return await fetch(url, { ...(options||{}), signal: controller.signal });
+			} finally {
+				clearTimeout(id);
+			}
+		}
 		function setLoading(b){ submitBtn.disabled = !!b; submitBtn.textContent = b ? '处理中...' : '登录'; }
 		function showError(text){ msg.className='msg error'; msg.textContent=text; }
 		function showInfo(text){ msg.className='msg info'; msg.textContent=text; }
-
+		function setRegLoading(b){ registerBtn.disabled = !!b; registerBtn.textContent = b ? '处理中...' : '注册'; }
+		function showRegError(text){ rmsg.className='msg error'; rmsg.textContent=text; }
+		function showRegInfo(text){ rmsg.className='msg info'; rmsg.textContent=text; }
+		
 		// 读取上次登录缓存（若存在）
 		try{
 			const cachedUser = localStorage.getItem('ts_auth_username') || '';
@@ -60,31 +107,109 @@
 			if (cachedUser) usernameEl.value = cachedUser;
 			if (cachedPass) passwordEl.value = cachedPass;
 		}catch(e){}
-
+		
 		form.addEventListener('submit', async function(e){
 			e.preventDefault(); setLoading(true); msg.textContent='';
 			try{
 				const fd = new FormData(form);
 				const body = { username: fd.get('username'), password: fd.get('password') };
-				const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }, 12000);
 				const data = await res.json();
 				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
 				localStorage.setItem('ts_auth_token', data.access_token);
 				// 缓存用户名和密码以便下次默认填充（注意：明文存储仅用于本地便捷，生产建议不要保存密码）
 				try{ localStorage.setItem('ts_auth_username', body.username); localStorage.setItem('ts_auth_password', body.password); }catch(e){}
 				location.href = TARGET;
-			}catch(err){ showError(err.message || '网络错误'); }
+			}catch(err){
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					showError('服务器无响应，请稍后重试或检查 5001 端口连通性');
+				} else {
+					showError(err.message || '网络错误');
+				}
+			}
 			finally{ setLoading(false); }
 		});
-
+		
 		// 如果已有token，则直接进入日程页（不倒计时）
 		if (localStorage.getItem('ts_auth_token')) {
 			location.replace(TARGET);
 		}
-
-		// 注册/找回入口（留待扩展）
-		document.getElementById('toRegister').addEventListener('click', function(){ alert('请联系管理员开通账号，或后续添加注册页'); });
-		document.getElementById('toReset').addEventListener('click', function(){ alert('请联系管理员重置密码，或后续添加找回页'); });
+		
+		// 登录/注册/重置切换（底部固定显示）
+		toLogin.addEventListener('click', function(){
+			rform.style.display='none';
+			resetForm.style.display='none';
+			form.style.display='block';
+			if (titleEl) titleEl.textContent = '账户登录';
+		});
+		toRegister.addEventListener('click', function(){
+			form.style.display='none';
+			resetForm.style.display='none';
+			rform.style.display='block';
+			if (titleEl) titleEl.textContent = '账户注册';
+		});
+		toReset.addEventListener('click', function(){
+			form.style.display='none';
+			rform.style.display='none';
+			resetForm.style.display='block';
+			if (titleEl) titleEl.textContent = '账户找回';
+		});
+		// 注册提交流程
+		rform.addEventListener('submit', async function(e){
+			e.preventDefault(); setRegLoading(true); rmsg.textContent='';
+			try{
+				const fd = new FormData(rform);
+				const u = fd.get('username');
+				const p1 = fd.get('password');
+				const p2 = fd.get('password2');
+				const invite = fd.get('invite_code');
+				if(!u || !p1 || !p2 || !invite) throw new Error('请完整填写信息');
+				if(p1 !== p2) throw new Error('两次密码不一致');
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username:u, password:p1, invite_code:invite }) }, 12000);
+				const data = await res.json();
+				if(!res.ok) throw new Error(data.detail || data.message || '注册失败');
+				showRegInfo('注册成功，请返回登录');
+			}catch(err){
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					showRegError('服务器无响应，请稍后重试或检查 5001 端口连通性');
+				} else {
+					showRegError(err.message || '网络错误');
+				}
+			}
+			finally{ setRegLoading(false); }
+		});
+		
+		// 管理码找回
+		resetForm.addEventListener('submit', async function(e){
+			e.preventDefault(); resetBtn.disabled=true; xmsg.textContent='';
+			try{
+				const fd = new FormData(resetForm);
+				const p1 = fd.get('new_password');
+				const p2 = fd.get('new_password2');
+				if (!p1 || p1.length < 6) throw new Error('新密码至少6位');
+				if (p1 !== p2) throw new Error('两次密码不一致');
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/admin-recover`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: fd.get('username'), admin_code: fd.get('admin_code'), new_password: p1 }) }, 12000);
+				let detail = '';
+				try{ const ct = res.headers.get('content-type') || ''; detail = ct.includes('application/json') ? (await res.json()).detail || '' : (await res.text()); }catch(e){}
+				if(!res.ok){
+					let msg = detail || '重置失败';
+					if (res.status === 403) msg = '管理员校验码错误';
+					else if (res.status === 404) msg = '用户不存在';
+					else if (res.status === 405) msg = '请求方式不正确，请刷新后重试';
+					throw new Error(msg);
+				}
+				xmsg.className='msg info';
+				xmsg.textContent='重置成功，请返回登录使用新密码登录';
+			}catch(err){
+				xmsg.className='msg error';
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					xmsg.textContent = '服务器无响应，请稍后重试或检查 5001 端口连通性';
+				} else {
+					xmsg.textContent = err.message;
+				}
+			}
+			finally{ resetBtn.disabled=false; }
+		});
 	})();
 	</script>
 </body>

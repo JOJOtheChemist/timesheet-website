@@ -17,7 +17,9 @@
 				fetch: (url, options={}) => {
 					const token = localStorage.getItem(this.tokenKey);
 					const headers = Object.assign({}, options.headers || {});
-					if (token) headers['Authorization'] = 'Bearer ' + token;
+					const isLikelyJwt = typeof token === 'string' && token.split('.').length === 3;
+					if (!isLikelyJwt) { try { localStorage.removeItem(this.tokenKey); } catch(e) {} }
+					else if (token) headers['Authorization'] = 'Bearer ' + token;
 					return fetch(url, Object.assign({}, options, { headers }));
 				},
 				openLogin: () => this.open()
@@ -63,7 +65,10 @@
 			e.preventDefault(); this.setLoading(true);
 			try{
 				const form = new FormData(e.target);
-				const body = { username: form.get('username'), password: form.get('password'), email: form.get('email') };
+				const p1 = form.get('password');
+				const p2 = form.get('password2');
+				if (p1 !== p2) throw new Error('两次密码不一致');
+				const body = { username: form.get('username'), password: p1, invite_code: form.get('invite_code'), email: form.get('email') };
 				const res = await fetch(this.apiBase + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 				const data = await res.json();
 				if(!res.ok) throw new Error(data.detail || data.message || '注册失败');
@@ -154,6 +159,10 @@
 								<input class="input" name="email" type="email" placeholder="you@example.com">
 								<label class="label">密码</label>
 								<input class="input" name="password" type="password" required>
+								<label class="label">确认密码</label>
+								<input class="input" name="password2" type="password" required>
+								<label class="label">邀请码（可选）</label>
+								<input class="input" name="invite_code" type="text" placeholder="例如：INV123">
 								<button id="submitBtn" type="submit">提交</button>
 							</form>
 							<form id="resetForm" class="hidden" data-tab="reset">

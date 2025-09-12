@@ -745,12 +745,13 @@ thead::after {
 				
 				try {
 					const token = localStorage.getItem('ts_auth_token');
+					const isLikelyJwt = typeof token === 'string' && token.split('.').length === 3;
+					const headers = { 'Content-Type':'application/json' };
+					if (isLikelyJwt) headers['Authorization'] = `Bearer ${token}`;
+					else { try { localStorage.removeItem('ts_auth_token'); } catch(e) {} }
 					const res = await fetch('/api/agent/chat', { 
 						method:'POST', 
-						headers:{
-							'Content-Type':'application/json',
-							'Authorization': `Bearer ${token}`
-						}, 
+						headers,
 						body: JSON.stringify({ message }) 
 					});
 					const data = await res.json();

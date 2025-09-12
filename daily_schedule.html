@@ -6631,12 +6631,18 @@
                     const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
                     const isApi = url.startsWith('/api/') || url.startsWith(location.origin + '/api/');
                     if (token && isApi) {
+                        // Basic JWT format check: three dot-separated base64url parts
+                        const isLikelyJwt = typeof token === 'string' && token.split('.').length === 3;
+                        if (!isLikelyJwt) {
+                            try { localStorage.removeItem('ts_auth_token'); } catch(e) {}
+                        } else {
                         const opts = Object.assign({}, init || {});
                         opts.headers = Object.assign({}, opts.headers || {});
                         if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
                             opts.headers['Authorization'] = 'Bearer ' + token;
                         }
                         return originalFetch(resource, opts);
+                        }
                     }
                 } catch (e) {}
                 return originalFetch(resource, init);

@@ -13,6 +13,9 @@ import jwt
 from passlib.context import CryptContext
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import sys
+import os
+import random
+import string
 
 # 为 agent 解析器添加路径
 if '/home/ubuntu/langchain-agent' not in sys.path:
@@ -65,6 +68,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 http_bearer = HTTPBearer(auto_error=False)
 DEV_RETURN_RESET_TOKEN = True
+DEV_RETURN_NEW_PASSWORD = True
+ADMIN_RESET_CODE = os.getenv("ADMIN_RESET_CODE", "ADMIN-RESET-123")
 
 # 生命周期管理
 @asynccontextmanager
@@ -126,6 +131,7 @@ class UserRegister(BaseModel):
     username: str
     password: str
     email: Optional[str] = None
+    invite_code: str
 
 class UserLogin(BaseModel):
     username: str
@@ -140,6 +146,11 @@ class ResetRequest(BaseModel):
 
 class ResetConfirm(BaseModel):
     token: str
+    new_password: str
+
+class AdminRecover(BaseModel):
+    username: str
+    admin_code: str
     new_password: str
 
 class AgentChatRequest(BaseModel):
@@ -253,6 +264,16 @@ def init_db():
                 color VARCHAR(20)
             )
         ''')
+        # 新增：邀请码表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS invite_codes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                code VARCHAR(64) NOT NULL UNIQUE,
+                used_by INT NULL,
+                used_at DATETIME NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
 
         # daily_schedule 表（包含 user_id）
         cursor.execute('''
@@ -329,13 +350,23 @@ async def options_handler(full_path: str):
 async def register(user: UserRegister, db: mysql.connector.MySQLConnection = Depends(get_db)):
     try:
         cursor = db.cursor(dictionary=True)
+        # 校验邀请码
+        cursor.execute("SELECT id, used_by FROM invite_codes WHERE code=%s", (user.invite_code,))
+        invite = cursor.fetchone()
+        if not invite or invite.get("used_by"):
+            raise HTTPException(status_code=400, detail="无效或已使用的邀请码")
+        # 校验用户名
         cursor.execute("SELECT id FROM users WHERE username=%s", (user.username,))
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="用户名已存在")
+        # 创建用户
         cursor.execute(
             "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
             (user.username, hash_password(user.password), user.email)
         )
+        user_id = cursor.lastrowid
+        # 标记邀请码已使用
+        cursor.execute("UPDATE invite_codes SET used_by=%s, used_at=NOW() WHERE id=%s", (user_id, invite["id"]))
         db.commit()
         return {"message": "注册成功"}
     except HTTPException:
@@ -417,6 +448,31 @@ async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"重置失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.post("/api/auth/admin-recover", response_model=Dict[str, Any])
+async def admin_recover(body: AdminRecover, db: mysql.connector.MySQLConnection = Depends(get_db)):
+    if body.admin_code != ADMIN_RESET_CODE:
+        raise HTTPException(status_code=403, detail="管理员校验码错误")
+    try:
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE username=%s", (body.username,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        # 使用提供的新密码进行重置
+        if not body.new_password or len(body.new_password) < 6:
+            raise HTTPException(status_code=400, detail="新密码不符合要求")
+        cursor.execute("UPDATE users SET password_hash=%s WHERE id=%s", (hash_password(body.new_password), row["id"]))
+        db.commit()
+        return {"message": "密码已重置"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"管理员重置失败: {str(e)}")
     finally:
         cursor.close()
         db.close()
