@@ -19,7 +19,7 @@ if '/home/ubuntu/langchain-agent' not in sys.path:
 
 # LLM Agent 集成
 try:
-    from agent_subtask_llm_simple import run_llm_agent
+    from agent_task_planner import run_task_planner
     AGENT_AVAILABLE = True
     print("LLM Agent loaded successfully")
 except ImportError as e:
@@ -46,7 +46,7 @@ def run_agent_with_user_context(message: str, user_id: int) -> Dict[str, Any]:
         }
     
     try:
-        result = run_llm_agent(message, user_id=user_id)
+        result = run_task_planner(message, user_id=user_id)
         return result
     except Exception as e:
         return {
@@ -505,8 +505,12 @@ async def agent_chat(body: AgentChatRequest, db: mysql.connector.MySQLConnection
     task_info = agent_result.get("task_info", {})
     
     # 如果agent已经创建了任务，直接返回结果
-    if task_created and task_info.get("ids"):
-        ids = task_info["ids"]
+    if task_created and task_info:
+        # task_info是列表，取第一个任务的ids
+        if isinstance(task_info, list) and len(task_info) > 0:
+            ids = task_info[0].get("ids", {})
+        else:
+            ids = task_info.get("ids", {}) if isinstance(task_info, dict) else {}
         return AgentChatResponse(
             reply=reply,
             parsed=parsed_fields,
