@@ -363,6 +363,7 @@ thead::after {
 				<div class="panel-title">编辑子项目-子任务</div>
 				<div class="toolbar">
 					<button id="backBtn" class="btn">返回日程页</button>
+					<button id="selectModeBtn" class="btn">选择任务</button>
 				</div>
 			</div>
 			<div id="errorBox" class="error" style="display:none"></div>
@@ -372,6 +373,7 @@ thead::after {
 					<table id="editTable">
 						<thead>
 							<tr>
+								<th style="width:40px">选</th>
 								<th style="width:200px">项目名称</th>
 								<th style="width:260px">子任务</th>
 								<th style="width:160px">分类</th>
@@ -380,7 +382,7 @@ thead::after {
 							</tr>
 						</thead>
 						<tbody id="editTbody">
-							<tr><td colspan="5" style="text-align:center; padding:16px; color:#9ca3af">加载中...</td></tr>
+							<tr><td colspan="6" style="text-align:center; padding:16px; color:#9ca3af">加载中...</td></tr>
 						</tbody>
 					</table>
 				
@@ -388,7 +390,11 @@ thead::after {
 				<button id="scrollToBottomBtn" class="scroll-to-bottom-btn" title="滚动到底部">
 					▼
 				</button>
-</div>
+			</div>
+			<div id="selectionBar" style="display:none; padding:10px 16px; border-top:2px solid rgba(79,156,255,0.5); background:rgba(0,0,0,0.3); color:#9cc7ff;">
+				<span id="selectedCount">已选 0 项</span>
+				<button id="confirmDeleteBtn" class="btn" style="float:right">确认删除</button>
+			</div>
 			</div>
 			<div class="chat-section">
 				<div class="chat-header">
@@ -489,8 +495,40 @@ thead::after {
 			function diffSelect(value){ return sel(DIFF.map(v=>({value:v,label:v})), value||'中级'); }
 			function cellEditable(content){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; div.textContent=content||''; td.appendChild(div); return td; }
 			function cellSelect(selectEl){ const td=document.createElement('td'); td.appendChild(selectEl); return td; }
+			function cellCheckbox(){ const td=document.createElement('td'); const cb=document.createElement('input'); cb.type='checkbox'; cb.className='row-check'; cb.style.display = selectionMode? 'inline-block':'none'; td.style.textAlign='center'; td.appendChild(cb); return td; }
+			let selectionMode = false;
+			function updateSelectionUI(){
+				const checks = tbody ? tbody.querySelectorAll('.row-check') : [];
+				checks.forEach(cb=>{ cb.style.display = selectionMode? 'inline-block':'none'; });
+				document.getElementById('selectionBar').style.display = selectionMode? 'block':'none';
+				if (!selectionMode && checks.length){ checks.forEach(cb=>{ cb.checked=false; }); document.getElementById('selectedCount').textContent='已选 0 项'; }
+			}
+			document.getElementById('selectModeBtn').addEventListener('click', function(){ selectionMode = !selectionMode; updateSelectionUI(); });
+			document.getElementById('confirmDeleteBtn').addEventListener('click', async function(){
+				try{
+					if (!tbody) return;
+					const ids = Array.from(tbody.querySelectorAll('tr')).filter(tr=> tr.querySelector('.row-check')?.checked).map(tr=> tr.dataset.subtaskId ? parseInt(tr.dataset.subtaskId) : null).filter(Boolean);
+					if (!ids.length){ showError('请先勾选要删除的任务'); return; }
+					const token = localStorage.getItem('ts_auth_token');
+					const res = await fetch('/api/subtasks/delete', { method:'POST', headers:{ 'Authorization': `Bearer ${token}`, 'Content-Type':'application/json' }, body: JSON.stringify({ ids }) });
+					const data = await res.json();
+					if (!res.ok){ throw new Error(data.detail || '删除失败'); }
+					// 从DOM移除已删除的行
+					Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{ const id= tr.dataset.subtaskId ? parseInt(tr.dataset.subtaskId) : null; if (id && ids.includes(id)) tr.remove(); });
+					updateSelectionUI();
+					ensureBlankRows(3);
+					clearError();
+				}catch(e){ showError(e.message||String(e)); }
+			});
 			function row(project, subtask, category){
 				const tr = document.createElement('tr');
+				if (project && project.id) tr.dataset.projectId = project.id;
+				if (category && category.id) tr.dataset.categoryId = category.id;
+				if (subtask && subtask.id) tr.dataset.subtaskId = subtask.id;
+				if (project && project.name) tr.dataset.projectName = project.name;
+				if (subtask && subtask.name) tr.dataset.subtaskName = subtask.name;
+				if (category && category.name) tr.dataset.categoryName = category.name;
+				tr.appendChild(cellCheckbox());
 				tr.appendChild(cellEditable(project?.name||''));
 				tr.appendChild(cellEditable(subtask?.name||''));
 				
@@ -508,10 +546,10 @@ thead::after {
 				// 重要性选择器
 				const urgencyCell = cellSelect(urgencySelect(subtask?.urgency_importance));
 				const urgencySelectEl = urgencyCell.querySelector('select');
-				if (urgencySelect && subtask?.urgency_importance) {
+				if (urgencySelectEl && subtask?.urgency_importance) {
 					const colorClass = getUrgencyColor(subtask.urgency_importance);
 					if (colorClass) {
-						urgencySelect.className += ' urgency-color ' + colorClass;
+						urgencySelectEl.className += ' urgency-color ' + colorClass;
 					}
 				}
 				tr.appendChild(urgencyCell);
@@ -540,7 +578,7 @@ thead::after {
 				});
 				return count;
 			}
-			function ensureBlankRows(min=6){ 
+			function ensureBlankRows(min=3){ 
 				if (!tbody) return;
 				let blanks = countBlankRows(); 
 				while (blanks < min){ 
@@ -552,7 +590,7 @@ thead::after {
 			function maybeAppendAfterEdit(tr){ 
 				if (!tbody) return;
 				const blanks = countBlankRows(); 
-				if (blanks < 6){ 
+				if (blanks < 3){ 
 					tbody.appendChild(blankRow()); 
 					bindHandlers(); 
 				} 
@@ -564,7 +602,10 @@ thead::after {
 					subtask_name: tds[1].querySelector('.cell-edit')?.textContent?.trim() || '',
 					category_name: tds[2].querySelector('select')?.value || '',
 					urgency_importance: tds[3].querySelector('select')?.value || '重要不紧急',
-					difficulty: tds[4].querySelector('select')?.value || '中级'
+					difficulty: tds[4].querySelector('select')?.value || '中级',
+					category_id: tr?.dataset?.categoryId ? parseInt(tr.dataset.categoryId) : undefined,
+					project_id: tr?.dataset?.projectId ? parseInt(tr.dataset.projectId) : undefined,
+					subtask_id: tr?.dataset?.subtaskId ? parseInt(tr.dataset.subtaskId) : undefined
 				};
 			}
 			async function saveRow(tr){
@@ -581,6 +622,10 @@ thead::after {
 					});
 					const data = await res.json();
 					if (data.message && data.message.includes('保存成功')) {
+						// 回填最新IDs到行上（避免后续再次新增）
+						if (data.category_id) tr.dataset.categoryId = String(data.category_id);
+						if (data.project_id) tr.dataset.projectId = String(data.project_id);
+						if (data.subtask_id) tr.dataset.subtaskId = String(data.subtask_id);
 						maybeAppendAfterEdit(tr);
 						clearError();
 					} else {
@@ -618,6 +663,12 @@ thead::after {
 			}
 			function bindHandlers(){
 				if (!tbody) return;
+				tbody.querySelectorAll('.row-check').forEach(cb=>{
+					cb.addEventListener('change', function(){
+						const n = Array.from(tbody.querySelectorAll('.row-check')).filter(x=>x.checked).length;
+						document.getElementById('selectedCount').textContent = '已选 '+n+' 项';
+					});
+				});
 				tbody.querySelectorAll('.cell-edit').forEach(div => {
 					div.addEventListener('blur', function(){
 						const orig = div.dataset.original||'';
@@ -677,7 +728,7 @@ thead::after {
 						});
 					});
 					bindHandlers(); 
-					ensureBlankRows(6);
+					ensureBlankRows(3);
 				}catch(e){ showError(e.message||String(e)); }
 			}
 			

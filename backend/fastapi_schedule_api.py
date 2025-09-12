@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -125,6 +125,10 @@ class EditorRow(BaseModel):
     category_name: Optional[str] = None
     urgency_importance: Optional[str] = None
     difficulty: Optional[str] = None
+    # 可选：通过ID精确更新已有记录（编辑重命名/移动时避免新增）
+    category_id: Optional[int] = None
+    project_id: Optional[int] = None
+    subtask_id: Optional[int] = None
 
 # 认证模型
 class UserRegister(BaseModel):
@@ -489,9 +493,9 @@ async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection
     try:
         cursor = db.cursor(dictionary=True)
         user_id = current_user["sub"]
-        category_id = None
-        project_id = None
-        subtask_id = None
+        category_id = body.category_id
+        project_id = body.project_id
+        subtask_id = body.subtask_id
 
         # 分类
         if body.category_name:
@@ -519,22 +523,34 @@ async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection
                 )
                 project_id = cursor.lastrowid
         
-        # 子任务
-        if body.subtask_name and project_id:
-            cursor.execute("SELECT id FROM subtasks WHERE user_id=%s AND project_id=%s AND name=%s", (user_id, project_id, body.subtask_name))
-            row = cursor.fetchone()
-            if row:
-                subtask_id = row["id"]
+        # 子任务：若携带 subtask_id 则精确更新，否则按名称查找或创建
+        if project_id and (body.subtask_name is not None):
+            if subtask_id:
+                # 校验归属并执行更新（允许重命名与移动到新项目）
+                cursor.execute("SELECT id FROM subtasks WHERE id=%s AND user_id=%s", (subtask_id, user_id))
+                row = cursor.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="子任务不存在或无权限")
                 cursor.execute(
-                    "UPDATE subtasks SET urgency_importance=%s, difficulty=%s WHERE id=%s",
-                    (body.urgency_importance or "重要不紧急", body.difficulty or "中级", subtask_id)
+                    "UPDATE subtasks SET project_id=%s, name=%s, urgency_importance=%s, difficulty=%s WHERE id=%s",
+                    (project_id, body.subtask_name or "", body.urgency_importance or "重要不紧急", body.difficulty or "中级", subtask_id)
                 )
             else:
-                cursor.execute(
-                    "INSERT INTO subtasks (user_id, project_id, name, urgency_importance, difficulty, color) VALUES (%s,%s,%s,%s,%s,%s)",
-                    (user_id, project_id, body.subtask_name, body.urgency_importance or "重要不紧急", body.difficulty or "中级", "#9cc7ff")
-                )
-                subtask_id = cursor.lastrowid
+                # 旧逻辑：按名称查找或新增
+                cursor.execute("SELECT id FROM subtasks WHERE user_id=%s AND project_id=%s AND name=%s", (user_id, project_id, body.subtask_name))
+                row = cursor.fetchone()
+                if row:
+                    subtask_id = row["id"]
+                    cursor.execute(
+                        "UPDATE subtasks SET urgency_importance=%s, difficulty=%s WHERE id=%s",
+                        (body.urgency_importance or "重要不紧急", body.difficulty or "中级", subtask_id)
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO subtasks (user_id, project_id, name, urgency_importance, difficulty, color) VALUES (%s,%s,%s,%s,%s,%s)",
+                        (user_id, project_id, body.subtask_name, body.urgency_importance or "重要不紧急", body.difficulty or "中级", "#9cc7ff")
+                    )
+                    subtask_id = cursor.lastrowid
         
         db.commit()
         return {
@@ -543,6 +559,8 @@ async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection
             "project_id": project_id,
             "subtask_id": subtask_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
@@ -882,6 +900,51 @@ async def get_projects(db: mysql.connector.MySQLConnection = Depends(get_db), cu
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch projects: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.delete("/api/subtasks", response_model=Dict[str, Any])
+async def delete_subtasks(ids: List[int] = Query(...), db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
+    try:
+        if not ids:
+            return {"message": "无可删除的任务", "deleted": 0}
+        cursor = db.cursor()
+        # 仅删除当前用户的这些子任务
+        format_strings = ",".join(["%s"] * len(ids))
+        params = ids + [current_user["sub"]]
+        cursor.execute(f"DELETE FROM subtasks WHERE id IN ({format_strings}) AND user_id = %s", params)
+        deleted = cursor.rowcount
+        db.commit()
+        return {"message": "删除完成", "deleted": deleted}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.post("/api/subtasks/delete", response_model=Dict[str, Any])
+async def delete_subtasks_post(payload: Dict[str, Any], db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
+    try:
+        ids = payload.get("ids") or []
+        if not isinstance(ids, list):
+            raise HTTPException(status_code=400, detail="ids参数必须为数组")
+        ids = [int(i) for i in ids if str(i).isdigit()]
+        if not ids:
+            return {"message": "无可删除的任务", "deleted": 0}
+        cursor = db.cursor()
+        format_strings = ",".join(["%s"] * len(ids))
+        params = ids + [current_user["sub"]]
+        cursor.execute(f"DELETE FROM subtasks WHERE id IN ({format_strings}) AND user_id = %s", params)
+        deleted = cursor.rowcount
+        db.commit()
+        return {"message": "删除完成", "deleted": deleted}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"删除失败: {str(e)}")
     finally:
         cursor.close()
         db.close()
