@@ -6,8 +6,8 @@ body {
 /* 默认背景（夜间） */
 body {
     background-image: url('/static/images/蕨类/night.webp');
-    background-size: 105%;
-    background-position: center;
+    background-size: 100% auto; /* 宽度填充，高度按比例 */
+    background-position: center top;
     background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100vh;
@@ -16,29 +16,29 @@ body {
 /* 早晨背景 */
 body.background-morning {
     background-image: url('/static/images/蕨类/morning.webp');
-    background-size: 105%;
-    background-position: center;
+    background-size: 100% auto;
+    background-position: center top;
 }
 
 /* 白天背景 */
 body.background-day {
     background-image: url('/static/images/蕨类/day.webp');
-    background-size: 105%;
-    background-position: center;
+    background-size: 100% auto;
+    background-position: center top;
 }
 
 /* 傍晚背景 */
 body.background-dusk {
     background-image: url('/static/images/蕨类/dusk.webp');
-    background-size: 105%;
-    background-position: center;
+    background-size: 100% auto;
+    background-position: center top;
 }
 
 /* 夜间背景 */
 body.background-night {
     background-image: url('/static/images/蕨类/night.webp');
-    background-size: 105%;
-    background-position: center;
+    background-size: 100% auto;
+    background-position: center top;
 }
 
 /* 背景切换指示器 */

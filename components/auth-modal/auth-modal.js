@@ -191,3 +191,12 @@
 		document.body.appendChild(el);
 	}
 })(); 
+		}
+	}
+	if (!customElements.get('auth-modal')) customElements.define('auth-modal', AuthModal);
+	// Auto mount element
+	if (!document.querySelector('auth-modal')) {
+		const el = document.createElement('auth-modal');
+		document.body.appendChild(el);
+	}
+})(); 

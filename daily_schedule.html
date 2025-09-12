@@ -2170,7 +2170,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-field-type="planned"
-                                     contenteditable="false">${scheduleItem.planned_notes || '-'}</span>
+                                     contenteditable="false">${scheduleItem.planned_notes || '+'}</span>
                             </td>
                             <!-- 实际子任务 -->
                             <td class="task-column" onclick="selectTimeSlot(event, '${scheduleItem.time_slot}', '${scheduleItem.actual_subtask_id || ''}', '${scheduleItem.actual_subtask_name || '未知任务'}', 'actual')">
@@ -2192,7 +2192,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-field-type="actual"
-                                     contenteditable="false">${scheduleItem.actual_notes || '-'}</span>
+                                     contenteditable="false">${scheduleItem.actual_notes || '+'}</span>
                             </td>
                             <!-- 实际心情 -->
                             <td class="mood-column" onclick="selectMoodCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'actual')">
@@ -2201,7 +2201,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-field-type="actual"
-                                     contenteditable="false">${scheduleItem.mood || '-'}</span>
+                                     contenteditable="false">${scheduleItem.mood || '+'}</span>
                             </td>
                         `;
                         console.log(`时间槽 ${scheduleItem.time_slot}: 计划颜色 = ${plannedSubtaskColor}, 实际颜色 = ${actualSubtaskColor}`);
@@ -5215,7 +5215,7 @@
 
         function applyMoodStyle(moodElement, mood) {
             const { emoji } = getMoodStyle(mood);
-            moodElement.textContent = emoji ? `${emoji} ${mood}` : mood || '-';
+            moodElement.textContent = emoji ? `${emoji} ${mood}` : mood || '+';
             
             // 取消背景色与边框、还原文字颜色
             moodElement.style.backgroundColor = 'transparent';
@@ -5860,7 +5860,7 @@
         function updateMoodAfterSave(timeSlot, mood, scheduleId) {
             const moodElement = document.querySelector(`[data-time="${timeSlot}"] .mood-cell`);
             if (moodElement) {
-                moodElement.textContent = mood || '-';
+                moodElement.textContent = mood || '+';
                 moodElement.style.animation = 'saveSuccess 0.5s ease-in-out';
                 setTimeout(() => {
                     moodElement.style.animation = '';
@@ -6631,18 +6631,12 @@
                     const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
                     const isApi = url.startsWith('/api/') || url.startsWith(location.origin + '/api/');
                     if (token && isApi) {
-                        // Basic JWT format check: three dot-separated base64url parts
-                        const isLikelyJwt = typeof token === 'string' && token.split('.').length === 3;
-                        if (!isLikelyJwt) {
-                            try { localStorage.removeItem('ts_auth_token'); } catch(e) {}
-                        } else {
                         const opts = Object.assign({}, init || {});
                         opts.headers = Object.assign({}, opts.headers || {});
                         if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
                             opts.headers['Authorization'] = 'Bearer ' + token;
                         }
                         return originalFetch(resource, opts);
-                        }
                     }
                 } catch (e) {}
                 return originalFetch(resource, init);

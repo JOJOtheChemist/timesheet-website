@@ -6,6 +6,7 @@
 	<title>编辑子项目-子任务</title>
 	<script src="https://cdn.tailwindcss.com"></script>
 	<link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="components/background-switcher/background-switcher.css">
 	<style>
 		body{font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height:100vh; padding:20px; position:relative; z-index:0;}
 		body::before{content:""; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:-1}
@@ -30,6 +31,11 @@
 		.chat-header{padding:12px 16px; background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(79,156,255,0.3); color:#4f9cff; font-weight:600; flex-shrink:0;}
 		.chat-messages{flex:1; padding:12px 16px; overflow-y:auto; color:#e5e7eb; font-size:14px; line-height:1.5; max-height:400px;}
 		.chat-input-area{display:flex; padding:12px 16px; border-top:1px solid rgba(79,156,255,0.3); background:rgba(0,0,0,0.2); flex-shrink:0;}
+		.chat-input-area{flex-direction:column;}
+		.chat-input-row{display:flex;}
+		#chatQuickChips{ border:none; background:transparent; padding:0; }
+		#chatQuickChips .chip{ display:inline-block; padding:4px 8px; border:1px solid rgba(156,199,255,0.6); border-radius:6px; color:#9cc7ff; font-size:12px; cursor:pointer; }
+		#chatQuickChips .chip:hover{ background:rgba(79,156,255,0.15); }
 		.chat-input{flex:1; background:rgba(10,10,26,0.8); border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:8px 12px; border-radius:6px; margin-right:8px; outline:none;}
 		.chat-send{background:rgba(79,156,255,0.3); border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:8px 16px; border-radius:6px; cursor:pointer; transition:all 0.3s;}
 		.chat-send:hover{background:rgba(79,156,255,0.5);}
@@ -393,7 +399,7 @@ thead::after {
 				<button id="scrollToBottomBtn" class="scroll-to-bottom-btn" title="滚动到底部">
 					▼
 				</button>
-			</div>
+</div>
 			<div id="selectionBar" style="display:none; padding:10px 16px; border-top:2px solid rgba(79,156,255,0.5); background:rgba(0,0,0,0.3); color:#9cc7ff;">
 				<span id="selectedCount">已选 0 项</span>
 				<button id="confirmDeleteBtn" class="btn" style="float:right">确认删除</button>
@@ -401,14 +407,26 @@ thead::after {
 			</div>
 			<div class="chat-section">
 				<div class="chat-header">
-					<i class="fa fa-comments"></i> 对话窗口
+					<i class="fa fa-comments"></i> AI项目管理助手
 				</div>
 				<div class="chat-messages" id="chatMessages">
-					<div style="color:#9ca3af; font-style:italic;">对话窗口已准备就绪...</div>
+					<div style="color:#9ca3af; font-style:italic;">
+						我是“智能项目管理助手”，支持子任务 增加/删除/修改 与项目归属。你可以直接用自然语言描述。
+						示例：
+						1）我最近刷抖音种草了穿戴甲和皮草 → 生成主项目“美业”，子任务“穿戴甲”“皮草”。
+						2）考研专业课包含专业课一和专业课二，各自需要“刷题”“看网课” → 按项目分别生成对应子任务。
+						3）也可以说：删除子任务“皮草”；把“刷题”的重要性改为“紧急重要”。
+					</div>
 				</div>
 				<div class="chat-input-area">
+					<div id="chatQuickChips" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+						<span class="chip" data-template="我最近对{内容}感兴趣">我最近对{内容}感兴趣</span>
+						<span class="chip" data-template="备考目标：需要做{任务项}">备考目标：需要做{任务项}</span>
+					</div>
+					<div class="chat-input-row">
 					<input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." />
 					<button class="chat-send" id="chatSend">发送</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -497,7 +515,6 @@ thead::after {
 			function urgencySelect(value){ return sel(URGENCY.map(v=>({value:v,label:v})), value||'重要不紧急'); }
 			function diffSelect(value){ return sel(DIFF.map(v=>({value:v,label:v})), value||'中级'); }
 			function cellEditable(content){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; div.textContent=content||''; td.appendChild(div); return td; }
-			function cellEditableWithPlaceholder(content, placeholderText){ const td=document.createElement('td'); const div=document.createElement('div'); div.className='cell-edit'; div.contentEditable=true; if (content){ div.textContent=content; } else { div.textContent=placeholderText||''; div.classList.add('placeholder'); } td.appendChild(div); return td; }
 			function cellSelect(selectEl){ const td=document.createElement('td'); td.appendChild(selectEl); return td; }
 			function cellCheckbox(){ const td=document.createElement('td'); const cb=document.createElement('input'); cb.type='checkbox'; cb.className='row-check'; td.className='sel-col'; td.style.display = selectionMode? 'table-cell':'none'; td.style.textAlign='center'; td.appendChild(cb); return td; }
 			let selectionMode = false;
@@ -548,8 +565,8 @@ thead::after {
 				if (subtask && subtask.name) tr.dataset.subtaskName = subtask.name;
 				if (category && category.name) tr.dataset.categoryName = category.name;
 				tr.appendChild(cellCheckbox());
-				tr.appendChild(cellEditableWithPlaceholder(project?.name||'', '填入项目名称'));
-				tr.appendChild(cellEditableWithPlaceholder(subtask?.name||'', '填入子任务名称'));
+				tr.appendChild(cellEditable(project?.name||''));
+				tr.appendChild(cellEditable(subtask?.name||''));
 				
 				// 类别选择器
 				const categoryCell = cellSelect(catSelect(category?.name||''));
@@ -617,9 +634,9 @@ thead::after {
 			function readRowData(tr){
 				const tds = tr.children;
 				return {
-					project_name: (tds[1].querySelector('.cell-edit')?.classList.contains('placeholder') ? '' : (tds[1].querySelector('.cell-edit')?.textContent?.trim() || '')),
-					subtask_name: (tds[2].querySelector('.cell-edit')?.classList.contains('placeholder') ? '' : (tds[2].querySelector('.cell-edit')?.textContent?.trim() || '')),
-					category_name: tds[2].querySelector('select')?.value || '',
+					project_name: tds[1].querySelector('.cell-edit')?.textContent?.trim() || '',
+					subtask_name: tds[2].querySelector('.cell-edit')?.textContent?.trim() || '',
+					category_name: tds[3].querySelector('select')?.value || '',
 					urgency_importance: tds[4].querySelector('select')?.value || '重要不紧急',
 					difficulty: tds[5].querySelector('select')?.value || '中级',
 					category_id: tr?.dataset?.categoryId ? parseInt(tr.dataset.categoryId) : undefined,
@@ -780,6 +797,18 @@ thead::after {
 					chatMessages.scrollTop = chatMessages.scrollHeight;
 				}
 			}
+			// Quick chips click to insert template
+			document.addEventListener('click', function(e){
+				const t = e.target;
+				if (t && t.classList && t.classList.contains('chip')){
+					const tpl = t.getAttribute('data-template') || '';
+					const input = document.getElementById('chatInput');
+					if (input){
+						input.value = tpl;
+						input.focus();
+					}
+				}
+			});
 			
 			async function sendMessage() {
 				const message = chatInput.value.trim();
@@ -1033,6 +1062,14 @@ thead::after {
 				if (tableWrap && tableWrap.scrollHeight > tableWrap.clientHeight) {
 					if (!isAtBottom()) {
 						forceScrollToBottom();
+					}
+				}
+			}, 500);
+		});
+	})();
+	</script></body>
+</html>
+
 					}
 				}
 			}, 500);
