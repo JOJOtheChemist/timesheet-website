@@ -37,6 +37,30 @@ except Exception:
     def parse_task_fields(message: str) -> Dict[str, Optional[str]]:
         return {"project_name": None, "subtask_name": None, "category_name": None, "urgency_importance": None, "difficulty": None}
 
+PROJECT_COLOR_PALETTE = [
+    '#4f9cff', '#2ecc71', '#3498db', '#e74c3c', '#f39c12', '#95a5a6',
+    '#e67e22', '#ff6b6b', '#ff8e53', '#4ecdc4', '#ff69b4', '#1abc9c'
+]
+SUBTASK_COLOR_PALETTE = [
+    '#9cc7ff', '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#27ae60', '#95a5a6',
+    '#c0392b', '#2980b9', '#7f8c8d', '#d35400', '#9b59b6', '#1abc9c', '#e67e22',
+    '#34495e', '#16a085', '#8e44ad', '#f1c40f', '#e91e63', '#00bcd4', '#795548',
+    '#ff6b6b', '#ff8e53', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3',
+    '#54a0ff', '#5f27cd', '#00d2d3', '#9c27b0', '#2196f3', '#4CAF50', '#FF9800'
+]
+
+def choose_project_color() -> str:
+    try:
+        return random.choice(PROJECT_COLOR_PALETTE)
+    except Exception:
+        return '#4f9cff'
+
+def choose_subtask_color() -> str:
+    try:
+        return random.choice(SUBTASK_COLOR_PALETTE)
+    except Exception:
+        return '#9cc7ff'
+
 def run_agent_with_user_context(message: str, user_id: int) -> Dict[str, Any]:
     """运行LLM agent并返回结果"""
     if not AGENT_AVAILABLE:
@@ -389,13 +413,32 @@ async def login(user: UserLogin, db: mysql.connector.MySQLConnection = Depends(g
         cursor = db.cursor(dictionary=True)
         cursor.execute("SELECT id, username, password_hash FROM users WHERE username=%s", (user.username,))
         row = cursor.fetchone()
-        if not row or not verify_password(user.password, row["password_hash"]):
+        if not row:
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        # 兼容旧数据：若 password_hash 不像哈希，则按明文比较
+        stored_hash = row.get("password_hash") if isinstance(row, dict) else None
+        valid = False
+        try:
+            if stored_hash:
+                if str(stored_hash).startswith("$2"):
+                    # bcrypt 哈希
+                    valid = verify_password(user.password, stored_hash)
+                else:
+                    # 非标准前缀，视为明文
+                    valid = (user.password == str(stored_hash))
+            else:
+                valid = False
+        except Exception:
+            # 任意异常视为校验失败，不抛 500
+            valid = False
+        if not valid:
             raise HTTPException(status_code=401, detail="用户名或密码错误")
         token = create_access_token({"sub": row["id"], "username": row["username"]})
         return TokenResponse(access_token=token)
     except HTTPException:
         raise
     except Exception as e:
+        # 避免 500 文本过于简短，明确来源
         raise HTTPException(status_code=500, detail=f"登录失败: {str(e)}")
     finally:
         cursor.close()
@@ -520,7 +563,7 @@ async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection
             else:
                 cursor.execute(
                     "INSERT INTO projects (user_id, category_id, name, description, color) VALUES (%s, %s, %s, %s, %s)",
-                    (user_id, category_id, body.project_name, None, "#4f9cff")
+                    (user_id, category_id, body.project_name, None, choose_project_color())
                 )
                 project_id = cursor.lastrowid
         
@@ -549,7 +592,7 @@ async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection
                 else:
                     cursor.execute(
                         "INSERT INTO subtasks (user_id, project_id, name, urgency_importance, difficulty, color) VALUES (%s,%s,%s,%s,%s,%s)",
-                        (user_id, project_id, body.subtask_name, body.urgency_importance or "重要不紧急", body.difficulty or "中级", "#9cc7ff")
+                        (user_id, project_id, body.subtask_name, body.urgency_importance or "重要不紧急", body.difficulty or "中级", choose_subtask_color())
                     )
                     subtask_id = cursor.lastrowid
         

@@ -23,7 +23,7 @@
 <body>
 	<div style="display:flex;flex-direction:column;align-items:center;gap:30px;">
 		<div style="display:inline-block;padding:10px 18px;border:1px solid rgba(79,156,255,.6);border-radius:999px;background:rgba(0,0,0,0.35);color:#cfe4ff;font-weight:400;letter-spacing:1px;text-shadow:0 1px 2px rgba(0,0,0,.6);font-size:20px;">AI时间管理，成为长期主义者</div>
-		<div class="card">
+	<div class="card">
 		<h1 class="text-xl mb-3" style="color:#4f9cff">账户登录</h1>
 		<div id="loggedNotice" class="notice" style="display:none">
 			检测到已登录，将在 <span id="countdown">3</span> 秒后进入日程页。若需切换账号请直接在下方表单输入新账号密码登录。
@@ -152,7 +152,7 @@
 				});
 			});
 		}
-		
+
 		// 读取上次登录缓存（若存在）
 		try{
 			const cachedUser = localStorage.getItem('ts_auth_username') || '';
@@ -160,18 +160,32 @@
 			if (cachedUser) usernameEl.value = cachedUser;
 			if (cachedPass) passwordEl.value = cachedPass;
 		}catch(e){}
-		
+
 		form.addEventListener('submit', async function(e){
 			e.preventDefault(); setLoading(true); msg.textContent='';
 			try{
 				const fd = new FormData(form);
-				const body = { username: fd.get('username'), password: fd.get('password') };
-				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }, 12000);
-				const data = await res.json();
-				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
+				const username = String(fd.get('username')||'').trim();
+				const password = String(fd.get('password')||'').trim();
+				if (!username || !password) { throw new Error('请输入用户名和密码'); }
+				// 放宽校验：仅要求非空，把格式校验交给后端
+				// if 需要本地限制，再改回更严格规则
+				/* no-op */
+				// 确保不会携带旧 token 影响后台校验
+				try{ localStorage.removeItem('ts_auth_token'); }catch(e){}
+				const body = { username, password };
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body: JSON.stringify(body) }, 12000);
+				let data = null; let detail = '';
+				try { const ct = res.headers.get('content-type')||''; data = ct.includes('application/json') ? await res.json() : null; detail = data?.detail || (ct.includes('text') ? (await res.text()) : ''); } catch(_) {}
+				if(!res.ok){
+					if (detail && detail.includes('The string did not match the expected pattern')) {
+						throw new Error('用户名或密码格式不符合要求');
+					}
+					throw new Error(detail || data?.detail || '登录失败');
+				}
 				localStorage.setItem('ts_auth_token', data.access_token);
 				// 缓存用户名和密码以便下次默认填充（注意：明文存储仅用于本地便捷，生产建议不要保存密码）
-				try{ localStorage.setItem('ts_auth_username', body.username); localStorage.setItem('ts_auth_password', body.password); }catch(e){}
+				try{ localStorage.setItem('ts_auth_username', username); localStorage.setItem('ts_auth_password', password); }catch(e){}
 				location.href = TARGET;
 			}catch(err){
 				try{ localStorage.removeItem('ts_auth_token'); }catch(e){}
@@ -183,7 +197,7 @@
 			}
 			finally{ setLoading(false); }
 		});
-		
+
 		// 若本地有token：校验有效性再跳转；若格式不对或校验失败则自动清理
 		(async function(){
 			let t = localStorage.getItem('ts_auth_token');

@@ -2121,6 +2121,48 @@
             }
         }
 
+        // 加载序列化控制
+        let isLoadingSchedule = false;
+        let pendingLoadDate = null;
+
+        // 加载数据
+        async function loadScheduleData(date) {
+            try {
+                // 如果已有加载在进行，记录待加载日期并返回
+                if (isLoadingSchedule) {
+                    pendingLoadDate = date;
+                    return;
+                }
+                isLoadingSchedule = true;
+                pendingLoadDate = null;
+
+                hideError();
+                
+                // 显示加载状态
+                const tbody = document.getElementById('scheduleBody');
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">加载中...</td></tr>';
+                
+                // 获取数据
+                const data = await fetchScheduleData(date);
+                currentScheduleData = data;
+                
+                // 生成表格
+                generateScheduleTable(data);
+                
+            } catch (error) {
+                showError(`加载数据失败: ${error.message}`);
+                console.error('加载数据失败:', error);
+            } finally {
+                isLoadingSchedule = false;
+                if (pendingLoadDate && pendingLoadDate !== date) {
+                    const next = pendingLoadDate;
+                    pendingLoadDate = null;
+                    // 使用微任务队列避免递归调用
+                    Promise.resolve().then(() => loadScheduleData(next));
+                }
+            }
+        }
+
         // 生成48行的时间表格
         function generateScheduleTable(data) {
             const tbody = document.getElementById('scheduleBody');
@@ -2297,28 +2339,6 @@
         // 隐藏错误信息
         function hideError() {
             document.getElementById('errorMessage').style.display = 'none';
-        }
-
-        // 加载数据
-        async function loadScheduleData(date) {
-            try {
-                hideError();
-                
-                // 显示加载状态
-                const tbody = document.getElementById('scheduleBody');
-                tbody.innerHTML = '<tr><td colspan="5" class="loading">加载中...</td></tr>';
-                
-                // 获取数据
-                const data = await fetchScheduleData(date);
-                currentScheduleData = data;
-                
-                // 生成表格
-                generateScheduleTable(data);
-                
-            } catch (error) {
-                showError(`加载数据失败: ${error.message}`);
-                console.error('加载数据失败:', error);
-            }
         }
 
         // 初始化 Flatpickr 日期选择器
@@ -3063,7 +3083,7 @@
                 console.log(`设置背景图: ${randomBg} 给元素:`, badge);
             });
         }
-
+        
         // 备注编辑相关变量
         let notesSaveTimeout = null;
         let editingElement = null;
@@ -3450,9 +3470,9 @@
 
         // 保存备注到本地缓存（更新为使用心情式的防抖保存机制）
         function saveNotesToLocalCache(element, notes) {
-            const timeSlot = element.getAttribute('data-time-slot');
-            const scheduleId = element.getAttribute('data-schedule-id');
-            const fieldType = element.getAttribute('data-field-type');
+                const timeSlot = element.getAttribute('data-time-slot');
+                const scheduleId = element.getAttribute('data-schedule-id');
+                const fieldType = element.getAttribute('data-field-type');
             
             console.log('=== 保存备注到本地缓存（新机制） ===');
             console.log('时间槽:', timeSlot);
@@ -3475,7 +3495,7 @@
                 schedule_id: scheduleId || existingData.schedule_id || null
             };
             
-            if (fieldType === 'planned') {
+                if (fieldType === 'planned') {
                 updatedData.planned_notes = notes;
             } else if (fieldType === 'actual') {
                 updatedData.actual_notes = notes;
@@ -3773,6 +3793,8 @@
                     
                     // 构建更新数据，保留现有字段
                     const updateData = {
+                        schedule_date: currentSchedule.schedule_date || selectedDate,
+                        time_slot: currentSchedule.time_slot || timeSlot,
                         planned_subtask_id: currentSchedule.planned_subtask_id,
                         planned_notes: currentSchedule.planned_notes,
                         actual_subtask_id: currentSchedule.actual_subtask_id,
@@ -3846,6 +3868,8 @@
                     
                     // 构建更新数据，保留现有字段
                     const updateData = {
+                        schedule_date: currentSchedule.schedule_date || selectedDate,
+                        time_slot: currentSchedule.time_slot || timeSlot,
                         planned_subtask_id: currentSchedule.planned_subtask_id,
                         planned_notes: currentSchedule.planned_notes,
                         actual_subtask_id: currentSchedule.actual_subtask_id,
@@ -3925,6 +3949,8 @@
                     
                     // 构建更新数据，保留现有字段
                     const updateData = {
+                        schedule_date: currentSchedule.schedule_date || selectedDate,
+                        time_slot: currentSchedule.time_slot || timeSlot,
                         planned_subtask_id: currentSchedule.planned_subtask_id,
                         planned_notes: currentSchedule.planned_notes,
                         actual_subtask_id: currentSchedule.actual_subtask_id,
@@ -3962,7 +3988,7 @@
         // 本地缓存数据
         let localScheduleCache = new Map();
         let scheduleSaveTimeout = null;
-        
+
         // 用子任务填充时间槽
         function fillTimeSlotWithSubtask(subtaskId, subtaskName, projectName, projectId) {
             console.log('=== 开始填充子任务 ===');
@@ -4087,7 +4113,7 @@
                 
                 // 使用统一的延迟保存机制
                 scheduleDelayedSave();
-                
+
                 // 触发贪吃蛇吃食物特效
                 createStoryFragmentEffect(timeSlotElement, subtaskName, projectName);
                 
@@ -4240,7 +4266,7 @@
                     if (response.ok) {
                         console.log('子任务删除成功');
                         // 刷新数据
-                        await loadScheduleData(selectedDate);
+                await loadScheduleData(selectedDate);
                     } else {
                         const errorText = await response.text();
                         console.error('子任务删除失败:', errorText);
@@ -4417,30 +4443,42 @@
 
 
 
-        // 延迟保存到数据库
+        // 保存序列化控制变量
+        let isSaving = false;
+        let pendingSave = false;
+
+        // 立即保存到数据库（取消延迟）
         function scheduleDelayedSave() {
-            // 清除之前的定时器
             if (scheduleSaveTimeout) {
                 clearTimeout(scheduleSaveTimeout);
             }
-            
-            // 设置新的定时器，500ms后保存
-            scheduleSaveTimeout = setTimeout(() => {
-                saveLocalCacheToDatabase();
-            }, 500);
+            if (isSaving) {
+                pendingSave = true;
+                return;
+            }
+            saveLocalCacheToDatabase();
         }
 
         // 保存本地缓存到数据库
         async function saveLocalCacheToDatabase() {
+            if (isSaving) {
+                pendingSave = true;
+                return;
+            }
             if (localScheduleCache.size === 0) {
                 console.log('没有需要保存的数据');
                 return;
             }
-            
+
+            // 拍快照，防止保存过程中被修改
+            const snapshot = new Map(localScheduleCache);
+
             console.log('=== 开始保存本地缓存到数据库 ===');
-            console.log('缓存大小:', localScheduleCache.size);
-            console.log('缓存内容:', Array.from(localScheduleCache.entries()));
+            console.log('缓存大小:', snapshot.size);
+            console.log('缓存内容:', Array.from(snapshot.entries()));
             
+            isSaving = true;
+            pendingSave = false;
             try {
                 let savedCount = 0;
                 const moodUpdates = [];
@@ -4450,7 +4488,7 @@
                 const actualNotesUpdates = [];
                 
                 // 收集所有需要保存的数据
-                for (const [cacheKey, data] of localScheduleCache) {
+                for (const [cacheKey, data] of snapshot) {
                     console.log('缓存数据:', cacheKey, data);
                     
                     // 收集心情数据
@@ -4583,9 +4621,11 @@
                     console.log(`成功保存 ${actualNotesUpdates.length} 个实际备注数据`);
                 }
                 
-                // 清空缓存
-                localScheduleCache.clear();
-                console.log('所有数据保存完成，缓存已清空');
+                // 清空缓存（只清理已保存的快照键）
+                for (const key of snapshot.keys()) {
+                    localScheduleCache.delete(key);
+                }
+                console.log('所有数据保存完成，缓存已清理（按快照）');
                 
                 // 显示保存成功提示
                 let message = '';
@@ -4613,6 +4653,17 @@
                 console.error('=== 保存本地缓存失败 ===');
                 console.error('错误详情:', error);
                 showSaveErrorMessage('保存失败: ' + error.message);
+            } finally {
+                isSaving = false;
+                if (pendingSave || localScheduleCache.size > 0) {
+                    // 重置并再次尝试保存剩余的变更
+                    const needRetry = pendingSave;
+                    pendingSave = false;
+                    if (needRetry || localScheduleCache.size > 0) {
+                        // 使用微任务队列，避免递归栈
+                        Promise.resolve().then(() => saveLocalCacheToDatabase());
+                    }
+                }
             }
         }
 
@@ -4799,334 +4850,6 @@
             
             // 立即保存，不等待延迟
             saveLocalCacheToDatabase();
-        }
-        
-        // 显示调试信息
-        function showDebugInfo() {
-            const debugDiv = document.getElementById('debugInfo');
-            const cacheSizeSpan = document.getElementById('cacheSize');
-            const currentTimeSlotSpan = document.getElementById('currentTimeSlot');
-            const currentFieldTypeSpan = document.getElementById('currentFieldType');
-            
-            // 更新调试信息
-            cacheSizeSpan.textContent = localScheduleCache.size;
-            currentTimeSlotSpan.textContent = selectedTimeSlot || '无';
-            currentFieldTypeSpan.textContent = selectedFieldType || '无';
-            
-            // 切换显示状态
-            if (debugDiv.style.display === 'none') {
-                debugDiv.style.display = 'block';
-                
-                // 显示详细的缓存内容
-                console.log('=== 详细调试信息 ===');
-                console.log('本地缓存大小:', localScheduleCache.size);
-                console.log('当前选中时间槽:', selectedTimeSlot);
-                console.log('当前字段类型:', selectedFieldType);
-                console.log('本地缓存内容:', Array.from(localScheduleCache.entries()));
-                
-                if (localScheduleCache.size > 0) {
-                    let debugText = '本地缓存内容:\n\n';
-                    for (const [key, data] of localScheduleCache) {
-                        debugText += `键: ${key}\n`;
-                        debugText += `数据: ${JSON.stringify(data, null, 2)}\n\n`;
-                    }
-                    console.log(debugText);
-                }
-                
-                // 启动实时更新
-                startDebugUpdate();
-            } else {
-                debugDiv.style.display = 'none';
-                // 停止实时更新
-                stopDebugUpdate();
-            }
-        }
-        
-        // 实时更新调试信息
-        let debugUpdateInterval = null;
-        
-        function startDebugUpdate() {
-            if (debugUpdateInterval) {
-                clearInterval(debugUpdateInterval);
-            }
-            
-            debugUpdateInterval = setInterval(() => {
-                const cacheSizeSpan = document.getElementById('cacheSize');
-                const currentTimeSlotSpan = document.getElementById('currentTimeSlot');
-                const currentFieldTypeSpan = document.getElementById('currentFieldType');
-                const notesEditStatusSpan = document.getElementById('notesEditStatus');
-                
-                if (cacheSizeSpan) cacheSizeSpan.textContent = localScheduleCache.size;
-                if (currentTimeSlotSpan) currentTimeSlotSpan.textContent = selectedTimeSlot || '无';
-                if (currentFieldTypeSpan) currentFieldTypeSpan.textContent = selectedFieldType || '无';
-                if (notesEditStatusSpan) {
-                    notesEditStatusSpan.textContent = editingElement ? '正在编辑' : '未编辑';
-                    notesEditStatusSpan.style.color = editingElement ? '#dc3545' : '#28a745';
-                }
-            }, 1000);
-        }
-        
-        function stopDebugUpdate() {
-            if (debugUpdateInterval) {
-                clearInterval(debugUpdateInterval);
-                debugUpdateInterval = null;
-            }
-        }
-        
-        // 清空缓存
-        function clearCache() {
-            localScheduleCache.clear();
-            console.log('本地缓存已清空');
-            alert('本地缓存已清空');
-            
-            // 更新调试信息
-            const cacheSizeSpan = document.getElementById('cacheSize');
-            if (cacheSizeSpan) {
-                cacheSizeSpan.textContent = '0';
-            }
-        }
-        
-        // 测试备注保存
-        function testNotesSave() {
-            console.log('=== 测试备注保存功能 ===');
-            console.log('当前备注编辑状态:', editingElement ? '正在编辑' : '未编辑');
-            console.log('当前原始文本:', originalText);
-            console.log('当前本地缓存大小:', localScheduleCache.size);
-            
-            if (localScheduleCache.size > 0) {
-                console.log('本地缓存内容:');
-                for (const [key, data] of localScheduleCache) {
-                    console.log(`键: ${key}`);
-                    console.log(`数据: ${JSON.stringify(data, null, 2)}`);
-                }
-            }
-            
-            // 创建一个测试备注数据
-            const testNotesData = {
-                schedule_date: selectedDate,
-                time_slot: '09:00',
-                planned_notes: '测试备注内容',
-                actual_notes: '实际测试备注'
-            };
-            
-            const cacheKey = `${selectedDate}_09:00`;
-            localScheduleCache.set(cacheKey, testNotesData);
-            
-            console.log('已添加测试备注数据到缓存');
-            console.log('测试数据:', testNotesData);
-            console.log('当前缓存大小:', localScheduleCache.size);
-            
-            // 立即保存测试数据
-            saveLocalCacheToDatabase();
-        }
-        
-        // 专门测试空白备注保存
-        function testEmptyNotesSave() {
-            console.log('=== 测试空白备注保存 ===');
-            
-            // 查找一个备注单元格进行测试
-            const notesElement = document.querySelector('.notes-text[data-field-type="planned"]');
-            if (!notesElement) {
-                alert('未找到备注单元格进行测试');
-                return;
-            }
-            
-            console.log('找到测试备注单元格:', notesElement);
-            console.log('当前内容:', notesElement.textContent);
-            console.log('当前内容类型:', typeof notesElement.textContent);
-            console.log('当前内容长度:', notesElement.textContent.length);
-            
-            // 模拟开始编辑
-            console.log('模拟开始编辑...');
-            startEditing(notesElement);
-            
-            // 等待一下，然后模拟清空内容
-            setTimeout(() => {
-                console.log('模拟清空备注内容...');
-                notesElement.textContent = '';
-                
-                // 模拟失焦
-                setTimeout(() => {
-                    console.log('模拟失焦...');
-                    notesElement.blur();
-                }, 500);
-            }, 1000);
-        }
-        
-        // 强制保存空白备注
-        function forceSaveEmptyNotes() {
-            console.log('=== 强制保存空白备注 ===');
-            
-            // 手动创建一个空白备注的缓存数据
-            const timeSlot = '09:00';
-            const fieldType = 'planned';
-            const cacheKey = `${selectedDate}_${timeSlot}`;
-            
-            const emptyNotesData = {
-                schedule_date: selectedDate,
-                time_slot: timeSlot,
-                planned_notes: '', // 空字符串
-                planned_subtask_id: 'test_123'
-            };
-            
-            console.log('创建空白备注数据:', emptyNotesData);
-            localScheduleCache.set(cacheKey, emptyNotesData);
-            
-            console.log('当前缓存大小:', localScheduleCache.size);
-            console.log('缓存内容:', Array.from(localScheduleCache.entries()));
-            
-            // 立即保存
-            saveLocalCacheToDatabase();
-        }
-        
-        // 完整测试空白备注保存流程
-        function testCompleteEmptyNotesFlow() {
-            console.log('=== 完整测试空白备注保存流程 ===');
-            
-            // 1. 查找一个备注单元格
-            const notesElement = document.querySelector('.notes-text[data-field-type="planned"]');
-            if (!notesElement) {
-                alert('未找到备注单元格进行测试');
-                return;
-            }
-            
-            console.log('步骤1: 找到测试备注单元格');
-            console.log('当前内容:', notesElement.textContent);
-            console.log('当前内容类型:', typeof notesElement.textContent);
-            console.log('当前内容长度:', notesElement.textContent.length);
-            
-            // 2. 开始编辑
-            console.log('步骤2: 开始编辑');
-            startEditing(notesElement);
-            
-            // 3. 等待编辑开始，然后清空内容
-            setTimeout(() => {
-                console.log('步骤3: 清空备注内容');
-                notesElement.textContent = '';
-                console.log('清空后内容:', notesElement.textContent);
-                console.log('清空后内容长度:', notesElement.textContent.length);
-                
-                // 4. 等待一下，然后模拟失焦
-                setTimeout(() => {
-                    console.log('步骤4: 模拟失焦');
-                    notesElement.blur();
-                    
-                    // 5. 检查缓存状态
-                    setTimeout(() => {
-                        console.log('步骤5: 检查缓存状态');
-                        console.log('当前缓存大小:', localScheduleCache.size);
-                        if (localScheduleCache.size > 0) {
-                            console.log('缓存内容:');
-                            for (const [key, data] of localScheduleCache) {
-                                console.log(`键: ${key}`);
-                                console.log(`数据: ${JSON.stringify(data, null, 2)}`);
-                            }
-                        } else {
-                            console.log('缓存为空，备注可能没有保存');
-                        }
-                        
-                        // 6. 尝试强制保存
-                        if (localScheduleCache.size > 0) {
-                            console.log('步骤6: 尝试保存到数据库');
-                            saveLocalCacheToDatabase();
-                        }
-                    }, 1000);
-                }, 1000);
-            }, 1000);
-        }
-        
-        // 简单测试空白备注保存
-        function simpleTestEmptyNotes() {
-            console.log('=== 简单测试空白备注保存 ===');
-            
-            try {
-                // 直接创建一个空白备注的缓存数据
-                const timeSlot = '09:00';
-                const cacheKey = `${selectedDate}_${timeSlot}`;
-                
-                const emptyNotesData = {
-                    schedule_date: selectedDate,
-                    time_slot: timeSlot,
-                    planned_notes: '', // 空字符串
-                    planned_subtask_id: 'test_123',
-                    planned_subtask_name: '测试任务',
-                    planned_project_name: '测试项目'
-                };
-                
-                console.log('创建空白备注数据:', emptyNotesData);
-                console.log('数据JSON:', JSON.stringify(emptyNotesData));
-                
-                // 保存到本地缓存
-                localScheduleCache.set(cacheKey, emptyNotesData);
-                
-                console.log('已保存到本地缓存');
-                console.log('当前缓存大小:', localScheduleCache.size);
-                console.log('缓存内容:', Array.from(localScheduleCache.entries()));
-                
-                // 立即保存到数据库
-                console.log('开始保存到数据库...');
-                saveLocalCacheToDatabase();
-                
-            } catch (error) {
-                console.error('简单测试失败:', error);
-                alert(`测试失败: ${error.message}`);
-            }
-        }
-        
-        // 手动设置特定元素背景图片（用于测试）
-        function setBackgroundNow() {
-            setSpecificElementBackground();
-        }
-        
-        // 强制触发空白备注保存
-        function forceTriggerEmptyNotesSave() {
-            console.log('=== 强制触发空白备注保存 ===');
-            
-            try {
-                // 查找一个备注单元格
-                const notesElement = document.querySelector('.notes-text[data-field-type="planned"]');
-                if (!notesElement) {
-                    alert('未找到备注单元格');
-                    return;
-                }
-                
-                console.log('找到备注单元格:', notesElement);
-                console.log('当前内容:', notesElement.textContent);
-                console.log('当前内容长度:', notesElement.textContent.length);
-                
-                // 强制设置备注为空
-                notesElement.textContent = '';
-                console.log('强制设置备注为空');
-                console.log('设置后内容:', notesElement.textContent);
-                console.log('设置后内容长度:', notesElement.textContent.length);
-                
-                // 手动调用保存函数
-                console.log('手动调用保存函数...');
-                saveNotesToLocalCache(notesElement, '');
-                
-                // 检查缓存状态
-                setTimeout(() => {
-                    console.log('检查缓存状态...');
-                    console.log('当前缓存大小:', localScheduleCache.size);
-                    if (localScheduleCache.size > 0) {
-                        console.log('缓存内容:');
-                        for (const [key, data] of localScheduleCache) {
-                            console.log(`键: ${key}`);
-                            console.log(`数据: ${JSON.stringify(data, null, 2)}`);
-                        }
-                        
-                        // 立即保存到数据库
-                        console.log('立即保存到数据库...');
-                        saveLocalCacheToDatabase();
-                    } else {
-                        console.log('缓存为空，保存失败');
-                    }
-                }, 500);
-                
-            } catch (error) {
-                console.error('强制触发失败:', error);
-                alert(`强制触发失败: ${error.message}`);
-            }
         }
 
         function quickSetMood(mood) {
@@ -5950,7 +5673,7 @@
             } catch (error) {
                 console.error('更新单元格失败:', error);
                 // 如果更新失败，回退到刷新数据
-                await loadScheduleData(selectedDate);
+            await loadScheduleData(selectedDate);
             }
         }
         
