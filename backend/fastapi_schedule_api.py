@@ -151,6 +151,7 @@ class AgentChatResponse(BaseModel):
     category_id: Optional[int] = None
     project_id: Optional[int] = None
     subtask_id: Optional[int] = None
+    thought: Optional[str] = None
 
 # MySQL数据库连接池配置
 db_config = {
@@ -519,7 +520,8 @@ async def agent_chat(body: AgentChatRequest, db: mysql.connector.MySQLConnection
             parsed=parsed_fields,
             category_id=ids.get("category_id"),
             project_id=ids.get("project_id"),
-            subtask_id=ids.get("subtask_id")
+            subtask_id=ids.get("subtask_id"),
+            thought=agent_result.get("thought", "")
         )
     
     # 如果agent没有创建任务，但解析出了字段，尝试创建
