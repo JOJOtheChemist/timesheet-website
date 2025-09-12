@@ -307,7 +307,6 @@ thead::after {
 .urgency-紧急不重要 { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; border-color: rgba(255, 193, 7, 0.5); }
 .urgency-重要不紧急 { background-color: rgba(0, 123, 255, 0.2); color: #007bff; border-color: rgba(0, 123, 255, 0.5); }
 .urgency-不重要不紧急 { background-color: rgba(108, 117, 125, 0.2); color: #6c757d; border-color: rgba(108, 117, 125, 0.5); }
-.urgency-重要紧急 { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border-color: rgba(220, 53, 69, 0.5); }
 
 /* 难度颜色样式 */
 .difficulty-color {
@@ -414,7 +413,7 @@ thead::after {
 			// 获取DOM元素
 			const tbody = document.getElementById('editTbody');
 			const err = document.getElementById('errorBox');
-			const URGENCY = ['紧急重要','重要紧急','重要不紧急','不重要不紧急'];
+			const URGENCY = ['紧急重要','重要不紧急','紧急不重要','不重要不紧急'];
 			const DIFF = ['简单','中等','中级','困难','地狱','S级','高级'];
 			let categoryOptions = [];
 			
@@ -447,10 +446,9 @@ thead::after {
 			function getUrgencyColor(urgency) {
 				const urgencyColors = {
 					'紧急重要': 'urgency-紧急重要',
-					'紧急不重要': 'urgency-紧急不重要',
 					'重要不紧急': 'urgency-重要不紧急',
-					'不重要不紧急': 'urgency-不重要不紧急',
-					'重要紧急': 'urgency-重要紧急'
+					'紧急不重要': 'urgency-紧急不重要',
+					'不重要不紧急': 'urgency-不重要不紧急'
 				};
 				return urgencyColors[urgency] || '';
 			}
