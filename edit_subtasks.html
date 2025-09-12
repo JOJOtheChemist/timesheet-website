@@ -279,6 +279,52 @@ thead::after {
 }
 
 
+
+/* 类别颜色样式 */
+.category-color {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.category-娱乐 { background-color: rgba(255, 182, 193, 0.3); color: #ff69b4; border-color: rgba(255, 105, 180, 0.5); }
+.category-学习 { background-color: rgba(135, 206, 250, 0.3); color: #87ceeb; border-color: rgba(135, 206, 250, 0.5); }
+.category-工作 { background-color: rgba(255, 215, 0, 0.3); color: #ffd700; border-color: rgba(255, 215, 0, 0.5); }
+.category-生活 { background-color: rgba(144, 238, 144, 0.3); color: #90ee90; border-color: rgba(144, 238, 144, 0.5); }
+.category-社交 { background-color: rgba(255, 160, 122, 0.3); color: #ffa07a; border-color: rgba(255, 160, 122, 0.5); }
+.category-运动 { background-color: rgba(255, 99, 71, 0.3); color: #ff6347; border-color: rgba(255, 99, 71, 0.5); }
+
+/* 重要性颜色样式 */
+.urgency-color {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.urgency-紧急重要 { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border-color: rgba(220, 53, 69, 0.5); }
+.urgency-紧急不重要 { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; border-color: rgba(255, 193, 7, 0.5); }
+.urgency-重要不紧急 { background-color: rgba(0, 123, 255, 0.2); color: #007bff; border-color: rgba(0, 123, 255, 0.5); }
+.urgency-不重要不紧急 { background-color: rgba(108, 117, 125, 0.2); color: #6c757d; border-color: rgba(108, 117, 125, 0.5); }
+.urgency-重要紧急 { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border-color: rgba(220, 53, 69, 0.5); }
+
+/* 难度颜色样式 */
+.difficulty-color {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.difficulty-简单 { background-color: rgba(40, 167, 69, 0.2); color: #28a745; }
+.difficulty-中等 { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.difficulty-中级 { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.difficulty-困难 { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; }
+.difficulty-地狱 { background-color: rgba(102, 16, 242, 0.2); color: #6610f2; }
+.difficulty-S级 { background-color: rgba(102, 16, 242, 0.2); color: #6610f2; }
+.difficulty-高级 { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; }
+
 	</style>
 </head>
 <body>
@@ -364,6 +410,46 @@ thead::after {
 		document.getElementById('backBtn').addEventListener('click', function(){ location.href = 'daily_schedule.html'; });
 		if (!localStorage.getItem('ts_auth_token')) { location.replace('login.html'); return; }
 		
+
+		// 获取类别颜色样式
+		function getCategoryColor(categoryName) {
+			const categoryColors = {
+				'娱乐': 'category-娱乐',
+				'学习': 'category-学习', 
+				'工作': 'category-工作',
+				'生活': 'category-生活',
+				'社交': 'category-社交',
+				'运动': 'category-运动'
+			};
+			return categoryColors[categoryName] || '';
+		}
+
+		// 获取重要性颜色样式
+		function getUrgencyColor(urgency) {
+			const urgencyColors = {
+				'紧急重要': 'urgency-紧急重要',
+				'紧急不重要': 'urgency-紧急不重要',
+				'重要不紧急': 'urgency-重要不紧急',
+				'不重要不紧急': 'urgency-不重要不紧急',
+				'重要紧急': 'urgency-重要紧急'
+			};
+			return urgencyColors[urgency] || '';
+		}
+
+		// 获取难度颜色样式
+		function getDifficultyColor(difficulty) {
+			const difficultyColors = {
+				'简单': 'difficulty-简单',
+				'中等': 'difficulty-中等',
+				'中级': 'difficulty-中级',
+				'困难': 'difficulty-困难',
+				'地狱': 'difficulty-地狱',
+				'S级': 'difficulty-S级',
+				'高级': 'difficulty-高级'
+			};
+			return difficultyColors[difficulty] || '';
+		}
+
 		function showError(message){ err.style.display='block'; err.textContent=message; }
 		function clearError(){ err.style.display='none'; err.textContent=''; }
 		function sel(options, value){
@@ -380,9 +466,40 @@ thead::after {
 			const tr = document.createElement('tr');
 			tr.appendChild(cellEditable(project?.name));
 			tr.appendChild(cellEditable(subtask?.name));
-			tr.appendChild(cellSelect(catSelect(category?.name||'')));
-			tr.appendChild(cellSelect(urgencySelect(subtask?.urgency_importance)));
-			tr.appendChild(cellSelect(diffSelect(subtask?.difficulty)));
+			
+			// 类别单元格 - 添加颜色样式
+			const categoryCell = cellSelect(catSelect(category?.name||''));
+			const categorySelect = categoryCell.querySelector('select');
+			if (categorySelect && category?.name) {
+				const colorClass = getCategoryColor(category.name);
+				if (colorClass) {
+					categorySelect.className += ' category-color ' + colorClass;
+				}
+			}
+			tr.appendChild(categoryCell);
+			
+			// 重要性单元格 - 添加颜色样式
+			const urgencyCell = cellSelect(urgencySelect(subtask?.urgency_importance));
+			const urgencySelect = urgencyCell.querySelector('select');
+			if (urgencySelect && subtask?.urgency_importance) {
+				const colorClass = getUrgencyColor(subtask.urgency_importance);
+				if (colorClass) {
+					urgencySelect.className += ' urgency-color ' + colorClass;
+				}
+			}
+			tr.appendChild(urgencyCell);
+			
+			// 难度单元格 - 添加颜色样式
+			const difficultyCell = cellSelect(diffSelect(subtask?.difficulty));
+			const difficultySelect = difficultyCell.querySelector('select');
+			if (difficultySelect && subtask?.difficulty) {
+				const colorClass = getDifficultyColor(subtask.difficulty);
+				if (colorClass) {
+					difficultySelect.className += ' difficulty-color ' + colorClass;
+				}
+			}
+			tr.appendChild(difficultyCell);
+			
 			return tr;
 		}
 		function blankRow(){ return row({name:''},{name:'',urgency_importance:'',difficulty:''},{name:''}); }
@@ -417,6 +534,39 @@ thead::after {
 				tr.style.outline = '1px solid rgba(79,156,255,0.6)'; setTimeout(()=>{ tr.style.outline = ''; }, 800);
 			}catch(e){ showError(e.message||String(e)); }
 		}
+
+		// 更新选择框颜色样式
+		function updateSelectColor(selectElement) {
+			const value = selectElement.value;
+			const tr = selectElement.closest('tr');
+			
+			// 移除所有颜色类
+			selectElement.className = selectElement.className.replace(/\b(category|urgency|difficulty)-[\w\u4e00-\u9fa5]+\b/g, '').replace(/\s+/g, ' ').trim();
+			if (!selectElement.className.includes('sel')) {
+				selectElement.className += ' sel';
+			}
+			
+			// 根据列位置确定类型并添加相应颜色
+			const cellIndex = Array.from(tr.children).indexOf(selectElement.closest('td'));
+			
+			if (cellIndex === 2 && value) { // 类别列
+				const colorClass = getCategoryColor(value);
+				if (colorClass) {
+					selectElement.className += ' category-color ' + colorClass;
+				}
+			} else if (cellIndex === 3 && value) { // 重要性列
+				const colorClass = getUrgencyColor(value);
+				if (colorClass) {
+					selectElement.className += ' urgency-color ' + colorClass;
+				}
+			} else if (cellIndex === 4 && value) { // 难度列
+				const colorClass = getDifficultyColor(value);
+				if (colorClass) {
+					selectElement.className += ' difficulty-color ' + colorClass;
+				}
+			}
+		}
+
 		function bindHandlers(){
 			// 文本单元格
 			tbody.querySelectorAll('.cell-edit').forEach(div => {
@@ -430,7 +580,13 @@ thead::after {
 			// 下拉选择
 			tbody.querySelectorAll('select').forEach(sel => {
 				if (sel.__bound) return; sel.__bound = true;
-				sel.addEventListener('change', ()=>{ saveRow(sel.closest('tr')); });
+				// 初始颜色设置
+				updateSelectColor(sel);
+				sel.addEventListener('change', ()=>{
+					// 更新颜色样式
+					updateSelectColor(sel);
+					saveRow(sel.closest('tr'));
+				});
 			});
 		}
 		async function load(){
