@@ -26,13 +26,259 @@
 		.sel{background:#0b152b; border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:6px; border-radius:4px; width:100%}
 		.notice{margin:10px 16px 0; font-size:12px; color:#9cc7ff; flex-shrink:0;}
 		.error{background:#f8d7da; color:#721c24; padding:8px 12px; border-radius:6px; margin:10px 16px; flex-shrink:0;}
-		.chat-section{height:300px; border-top:2px solid rgba(79,156,255,0.5); background:rgba(0,0,0,0.2); display:flex; flex-direction:column;}
+		.chat-section{height:50vh; border-top:2px solid rgba(79,156,255,0.5); background:rgba(0,0,0,0.2); display:flex; flex-direction:column; flex-shrink:0; min-height:200px; max-height:60vh;}
 		.chat-header{padding:12px 16px; background:rgba(0,0,0,0.3); border-bottom:1px solid rgba(79,156,255,0.3); color:#4f9cff; font-weight:600; flex-shrink:0;}
-		.chat-messages{flex:1; padding:12px 16px; overflow-y:auto; color:#e5e7eb; font-size:14px;}
+		.chat-messages{flex:1; padding:12px 16px; overflow-y:auto; color:#e5e7eb; font-size:14px; line-height:1.5; max-height:400px;}
 		.chat-input-area{display:flex; padding:12px 16px; border-top:1px solid rgba(79,156,255,0.3); background:rgba(0,0,0,0.2); flex-shrink:0;}
 		.chat-input{flex:1; background:rgba(10,10,26,0.8); border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:8px 12px; border-radius:6px; margin-right:8px; outline:none;}
 		.chat-send{background:rgba(79,156,255,0.3); border:1px solid rgba(79,156,255,0.5); color:#e5e7eb; padding:8px 16px; border-radius:6px; cursor:pointer; transition:all 0.3s;}
 		.chat-send:hover{background:rgba(79,156,255,0.5);}
+	
+/* 自定义滚动条样式 */
+.table-wrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.table-wrap::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(79,156,255,0.5);
+    border-radius: 4px;
+}
+.table-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(79,156,255,0.7);
+}
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+.chat-messages::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+}
+.chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(79,156,255,0.4);
+    border-radius: 3px;
+}
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(79,156,255,0.6);
+}
+
+	
+/* 响应式设计 - 动态高度控制 */
+@media (max-height: 800px) {
+    .chat-section { height: 45vh; min-height: 180px; }
+}
+@media (max-height: 600px) {
+    .chat-section { height: 40vh; min-height: 150px; }
+}
+@media (max-height: 500px) {
+    .chat-section { height: 35vh; min-height: 120px; }
+}
+
+	
+/* 表格底部指示器 */
+.table-bottom-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #4f9cff, transparent);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 确保表格内容有足够的底部间距 */
+#editTbody tr:last-child td {
+    padding-bottom: 20px;
+}
+
+	
+
+/* 增强的表格标题行样式 */
+thead {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+}
+
+thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    background: rgba(79,156,255,0.2) !important;
+    border-bottom: 2px solid rgba(79,156,255,0.5) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-left: 1px solid rgba(79,156,255,0.3);
+    border-right: 1px solid rgba(79,156,255,0.3);
+}
+
+/* 确保表格内容在标题行下方 */
+tbody {
+    position: relative;
+    z-index: 1;
+}
+
+tbody tr {
+    position: relative;
+    z-index: 1;
+    background: rgba(0,0,0,0.1);
+}
+
+tbody tr:hover {
+    background: rgba(79,156,255,0.08) !important;
+    z-index: 2;
+}
+
+/* 表格容器确保正确的层叠上下文 */
+.table-wrap {
+    position: relative;
+    z-index: 1;
+    overflow: auto;
+}
+
+/* 表格本身确保正确的层叠 */
+#editTable {
+    position: relative;
+    z-index: 1;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* 确保标题行在滚动时始终可见 */
+.table-wrap::-webkit-scrollbar {
+    z-index: 1;
+}
+
+/* 添加标题行分隔线 */
+thead::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #4f9cff, transparent);
+    z-index: 1000;
+}
+
+
+	
+
+/* 增强的向下滚动按钮样式 */
+.scroll-to-bottom-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, rgba(79,156,255,0.9), rgba(79,156,255,0.7));
+    border: 2px solid rgba(79,156,255,1);
+    border-radius: 50%;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(79,156,255,0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+}
+
+.scroll-to-bottom-btn:hover {
+    background: linear-gradient(135deg, rgba(79,156,255,1), rgba(79,156,255,0.9));
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(79,156,255,0.6);
+}
+
+.scroll-to-bottom-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.scroll-to-bottom-btn.show {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 滚动指示器增强 */
+.scroll-indicator {
+    position: absolute;
+    bottom: 10px;
+    right: 70px;
+    background: rgba(0,0,0,0.8);
+    color: #4f9cff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 999;
+    display: none;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(79,156,255,0.3);
+    backdrop-filter: blur(4px);
+}
+
+.scroll-indicator.show {
+    display: block;
+    opacity: 1;
+    transform: translateX(0);
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 按钮脉冲效果 */
+.scroll-to-bottom-btn.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 4px 16px rgba(79,156,255,0.4);
+    }
+    50% {
+        box-shadow: 0 4px 16px rgba(79,156,255,0.8), 0 0 0 8px rgba(79,156,255,0.1);
+    }
+    100% {
+        box-shadow: 0 4px 16px rgba(79,156,255,0.4);
+    }
+}
+
+
 	</style>
 </head>
 <body>
@@ -62,7 +308,12 @@
 							<tr><td colspan="5" style="text-align:center; padding:16px; color:#9ca3af">加载中...</td></tr>
 						</tbody>
 					</table>
-				</div>
+				
+				<!-- 向下滚动按钮 -->
+				<button id="scrollToBottomBtn" class="scroll-to-bottom-btn" title="滚动到底部">
+					▼
+				</button>
+</div>
 			</div>
 			<div class="chat-section">
 				<div class="chat-header">
@@ -220,17 +471,19 @@
 			chatMessages.scrollTop = chatMessages.scrollHeight;
 		}
 		
-		function sendMessage() {
+		async function sendMessage() {
 			const message = chatInput.value.trim();
 			if (!message) return;
-			
 			addMessage(message, true);
 			chatInput.value = '';
-			
-			// 这里可以添加AI回复逻辑
-			setTimeout(() => {
-				addMessage('收到您的消息，功能开发中...', false);
-			}, 500);
+			try{
+				const res = await fetch('/api/agent/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ message }) });
+				const data = await res.json();
+				if (!res.ok) throw new Error(data.detail || '发送失败');
+				addMessage(data.reply || '已处理', false);
+				// 如果有入库，刷新上方表格
+				if (data.project_id || data.subtask_id || data.category_id) { await load(); }
+			}catch(e){ addMessage('出错：' + (e.message||String(e)), false); }
 		}
 		
 		chatSend.addEventListener('click', sendMessage);
@@ -238,6 +491,184 @@
 			if (e.key === 'Enter') sendMessage();
 		});
 		
+                
+                // 动态调整对话窗口高度
+                function adjustChatHeight() {
+                    const chatSection = document.querySelector('.chat-section');
+                    const windowHeight = window.innerHeight;
+                    const panelHeaderHeight = document.querySelector('.panel-header')?.offsetHeight || 0;
+                    const errorBoxHeight = document.getElementById('errorBox')?.offsetHeight || 0;
+                    const noticeHeight = document.querySelector('.notice')?.offsetHeight || 0;
+                    const totalFixedElementsHeight = panelHeaderHeight + errorBoxHeight + noticeHeight + 40;
+                    
+                    const availableHeight = windowHeight - totalFixedElementsHeight;
+                    const chatHeight = Math.max(200, Math.min(availableHeight * 0.5, windowHeight * 0.6));
+                    
+                    if (chatSection) {
+                        chatSection.style.height = chatHeight + 'px';
+                    }
+
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (tableWrap) {
+                        tableWrap.style.maxHeight = (availableHeight - chatHeight) + 'px';
+                    }
+                }
+
+                // 滚动控制变量
+                let userScrolled = false;
+                let autoScrollEnabled = true;
+                let scrollCheckInterval;
+
+                // 检查是否在底部
+                function isAtBottom() {
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (!tableWrap) return true;
+                    return tableWrap.scrollTop >= tableWrap.scrollHeight - tableWrap.clientHeight - 5;
+                }
+
+                // 强制滚动到表格最底部
+                function forceScrollToBottom() {
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (!tableWrap || userScrolled) return;
+
+                    requestAnimationFrame(() => {
+                        tableWrap.scrollTop = tableWrap.scrollHeight;
+                        tableWrap.scrollTo({ top: tableWrap.scrollHeight, behavior: 'smooth' });
+                        const lastRow = tableWrap.querySelector('#editTbody tr:last-child');
+                        if (lastRow) {
+                            lastRow.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }
+                    });
+                }
+
+                // 平滑滚动到底部
+                function smoothScrollToBottom() {
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (!tableWrap) return;
+
+                    tableWrap.scrollTo({ 
+                        top: tableWrap.scrollHeight, 
+                        behavior: 'smooth' 
+                    });
+                    
+                    // 滚动完成后隐藏按钮
+                    setTimeout(() => {
+                        updateScrollButton();
+                    }, 500);
+                }
+
+                // 更新滚动按钮显示状态
+                function updateScrollButton() {
+                    const scrollBtn = document.getElementById('scrollToBottomBtn');
+                    if (!scrollBtn) return;
+
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (!tableWrap) return;
+
+                    if (isAtBottom()) {
+                        scrollBtn.classList.remove('show', 'pulse');
+                        userScrolled = false;
+                        autoScrollEnabled = true;
+                    } else {
+                        scrollBtn.classList.add('show');
+                        if (!userScrolled) {
+                            scrollBtn.classList.add('pulse');
+                        }
+                    }
+                }
+
+                // 设置滚动监听器
+                function setupScrollListener() {
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (!tableWrap) return;
+
+                    // 监听滚动事件
+                    tableWrap.addEventListener('scroll', function() {
+                        updateScrollButton();
+                        
+                        // 如果用户滚动到接近底部，重新启用自动滚动
+                        if (isAtBottom()) {
+                            userScrolled = false;
+                            autoScrollEnabled = true;
+                        } else if (tableWrap.scrollTop < tableWrap.scrollHeight - tableWrap.clientHeight - 50) {
+                            // 如果用户滚动到顶部或中间，禁用自动滚动
+                            userScrolled = true;
+                            autoScrollEnabled = false;
+                        }
+                    });
+
+                    // 监听鼠标滚轮事件
+                    tableWrap.addEventListener('wheel', function() {
+                        if (!isAtBottom()) {
+                            userScrolled = true;
+                            autoScrollEnabled = false;
+                        }
+                    });
+
+                    // 监听触摸事件
+                    tableWrap.addEventListener('touchmove', function() {
+                        if (!isAtBottom()) {
+                            userScrolled = true;
+                            autoScrollEnabled = false;
+                        }
+                    });
+                }
+
+                // 确保标题行始终可见
+                function ensureHeaderVisible() {
+                    const thead = document.querySelector('thead');
+                    if (thead) {
+                        thead.style.position = 'sticky';
+                        thead.style.top = '0';
+                        thead.style.zIndex = '999';
+                        thead.querySelectorAll('th').forEach(th => {
+                            th.style.background = 'rgba(79,156,255,0.2)';
+                            th.style.borderBottom = '2px solid rgba(79,156,255,0.5)';
+                            th.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+                            th.style.backdropFilter = 'blur(8px)';
+                            th.style.borderLeft = '1px solid rgba(79,156,255,0.3)';
+                            th.style.borderRight = '1px solid rgba(79,156,255,0.3)';
+                        });
+                    }
+                }
+
+                // 监听窗口大小变化
+                window.addEventListener('resize', function() {
+                    adjustChatHeight();
+                    setTimeout(forceScrollToBottom, 100);
+                });
+
+                // 页面加载完成后初始化
+                document.addEventListener('DOMContentLoaded', function() {
+                    adjustChatHeight();
+                    ensureHeaderVisible();
+                    setupScrollListener();
+                    
+                    // 添加向下滚动按钮点击事件
+                    const scrollBtn = document.getElementById('scrollToBottomBtn');
+                    if (scrollBtn) {
+                        scrollBtn.addEventListener('click', function() {
+                            smoothScrollToBottom();
+                        });
+                    }
+                    
+                    // 初始加载时自动滚动
+                    setTimeout(forceScrollToBottom, 200);
+                });
+
+                // 定期检查滚动位置（仅在自动滚动启用时）
+                setInterval(function() {
+                    if (!autoScrollEnabled) return;
+                    
+                    const tableWrap = document.querySelector('.table-wrap');
+                    if (tableWrap && tableWrap.scrollHeight > tableWrap.clientHeight) {
+                        if (!isAtBottom()) {
+                            forceScrollToBottom();
+                        }
+                    }
+                }, 500);
+
+
 		load();
 	})();
 	</script>

@@ -11,6 +11,51 @@ from contextlib import asynccontextmanager
 import jwt
 from passlib.context import CryptContext
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import sys
+
+# 为 agent 解析器添加路径
+if '/home/ubuntu/langchain-agent' not in sys.path:
+    sys.path.append('/home/ubuntu/langchain-agent')
+
+# LLM Agent 集成
+try:
+    from agent_subtask_llm_simple import run_llm_agent
+    AGENT_AVAILABLE = True
+    print("LLM Agent loaded successfully")
+except ImportError as e:
+    print(f"Warning: LLM Agent not available: {e}")
+    AGENT_AVAILABLE = False
+
+# 回退解析器
+try:
+    from parser import parse_task_fields  # type: ignore
+except Exception:
+    def parse_task_fields(message: str) -> Dict[str, Optional[str]]:
+        return {"project_name": None, "subtask_name": None, "category_name": None, "urgency_importance": None, "difficulty": None}
+
+def run_agent_with_user_context(message: str, user_id: int) -> Dict[str, Any]:
+    """运行LLM agent并返回结果"""
+    if not AGENT_AVAILABLE:
+        # 回退到简单解析
+        return {
+            "ok": False,
+            "reply": "LLM Agent暂时不可用，请使用简单格式：项目: 工作；子任务: 写日报",
+            "parsed_fields": {"project_name": None, "subtask_name": None, "category_name": None, "urgency_importance": None, "difficulty": None},
+            "task_created": False,
+            "task_info": {"reason": "LLM Agent不可用"}
+        }
+    
+    try:
+        result = run_llm_agent(message, user_id=user_id)
+        return result
+    except Exception as e:
+        return {
+            "ok": False,
+            "reply": f"Agent处理出错: {str(e)}",
+            "parsed_fields": {"project_name": None, "subtask_name": None, "category_name": None, "urgency_importance": None, "difficulty": None},
+            "task_created": False,
+            "task_info": {"error": str(e)}
+        }
 
 # 认证与安全配置
 JWT_SECRET = "change_this_secret_in_env"
@@ -65,6 +110,14 @@ class ScheduleItem(BaseModel):
 class ScheduleResponse(BaseModel):
     schedule_data: List[ScheduleItem]
 
+# 编辑器行模型
+class EditorRow(BaseModel):
+    project_name: Optional[str] = None
+    subtask_name: Optional[str] = None
+    category_name: Optional[str] = None
+    urgency_importance: Optional[str] = None
+    difficulty: Optional[str] = None
+
 # 认证模型
 class UserRegister(BaseModel):
     username: str
@@ -86,6 +139,16 @@ class ResetConfirm(BaseModel):
     token: str
     new_password: str
 
+class AgentChatRequest(BaseModel):
+    message: str
+
+class AgentChatResponse(BaseModel):
+    reply: str
+    parsed: Dict[str, Optional[str]]
+    category_id: Optional[int] = None
+    project_id: Optional[int] = None
+    subtask_id: Optional[int] = None
+
 # MySQL数据库连接池配置
 db_config = {
     'host': 'localhost',
@@ -99,7 +162,8 @@ db_config = {
 # 创建连接池
 connection_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
-    pool_size=5,
+    pool_size=20,
+    pool_reset_session=True,
     **db_config
 )
 
@@ -234,7 +298,7 @@ def init_db():
                 cursor.execute("ALTER TABLE daily_schedule ADD UNIQUE KEY uniq_user_date_slot (user_id, schedule_date, time_slot)")
         except Exception as e:
             print(f"设置按用户唯一索引失败: {e}")
-
+        
         conn.commit()
         print("Database tables initialized and migrated for user scoping!")
         
@@ -352,6 +416,183 @@ async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection
     finally:
         cursor.close()
         db.close()
+
+@app.post("/api/editor/row", response_model=Dict[str, Any])
+async def upsert_editor_row(body: EditorRow, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
+    """根据传入的行数据（分类/项目/子任务/紧急/困难）为当前用户创建或更新。
+    简化规则：
+    - 若category_name存在，按名称(user_id, name)查找或创建分类
+    - 若project_name存在，按(user_id, name)查找或创建项目，并关联分类（如果分类存在）
+    - 若subtask_name存在，按(user_id, project_id, name)查找或创建子任务，并更新紧急/困难
+    返回当前行对象的IDs
+    """
+    try:
+        cursor = db.cursor(dictionary=True)
+        user_id = current_user["sub"]
+        category_id = None
+        project_id = None
+        subtask_id = None
+
+        # 分类
+        if body.category_name:
+            cursor.execute("SELECT id FROM categories WHERE user_id=%s AND name=%s", (user_id, body.category_name))
+            row = cursor.fetchone()
+            if row:
+                category_id = row["id"]
+            else:
+                cursor.execute("INSERT INTO categories (user_id, name, color) VALUES (%s, %s, %s)", (user_id, body.category_name, "#4f9cff"))
+                category_id = cursor.lastrowid
+        
+        # 项目
+        if body.project_name:
+            cursor.execute("SELECT id FROM projects WHERE user_id=%s AND name=%s", (user_id, body.project_name))
+            row = cursor.fetchone()
+            if row:
+                project_id = row["id"]
+                # 如有分类则更新项目分类
+                if category_id:
+                    cursor.execute("UPDATE projects SET category_id=%s WHERE id=%s", (category_id, project_id))
+            else:
+                cursor.execute(
+                    "INSERT INTO projects (user_id, category_id, name, description, color) VALUES (%s, %s, %s, %s, %s)",
+                    (user_id, category_id, body.project_name, None, "#4f9cff")
+                )
+                project_id = cursor.lastrowid
+        
+        # 子任务
+        if body.subtask_name and project_id:
+            cursor.execute("SELECT id FROM subtasks WHERE user_id=%s AND project_id=%s AND name=%s", (user_id, project_id, body.subtask_name))
+            row = cursor.fetchone()
+            if row:
+                subtask_id = row["id"]
+                cursor.execute(
+                    "UPDATE subtasks SET urgency_importance=%s, difficulty=%s WHERE id=%s",
+                    (body.urgency_importance or "重要不紧急", body.difficulty or "中级", subtask_id)
+                )
+            else:
+                cursor.execute(
+                    "INSERT INTO subtasks (user_id, project_id, name, urgency_importance, difficulty, color) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (user_id, project_id, body.subtask_name, body.urgency_importance or "重要不紧急", body.difficulty or "中级", "#9cc7ff")
+                )
+                subtask_id = cursor.lastrowid
+        
+        db.commit()
+        return {
+            "message": "保存成功",
+            "category_id": category_id,
+            "project_id": project_id,
+            "subtask_id": subtask_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.post("/api/agent/chat", response_model=AgentChatResponse)
+async def agent_chat(body: AgentChatRequest, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
+    """LLM智能任务管理Agent：理解用户意图并创建任务"""
+    user_id = current_user["sub"]
+    
+    # 使用LLM agent处理用户消息
+    agent_result = run_agent_with_user_context(body.message or "", user_id)
+    
+    # 提取结果
+    reply = agent_result.get("reply", "处理完成")
+    parsed_fields = agent_result.get("parsed_fields", {})
+    task_created = agent_result.get("task_created", False)
+    task_info = agent_result.get("task_info", {})
+    
+    # 如果agent已经创建了任务，直接返回结果
+    if task_created and task_info.get("ids"):
+        ids = task_info["ids"]
+        return AgentChatResponse(
+            reply=reply,
+            parsed=parsed_fields,
+            category_id=ids.get("category_id"),
+            project_id=ids.get("project_id"),
+            subtask_id=ids.get("subtask_id")
+        )
+    
+    # 如果agent没有创建任务，但解析出了字段，尝试创建
+    if parsed_fields.get("project_name") and parsed_fields.get("subtask_name"):
+        try:
+            cursor = db.cursor(dictionary=True)
+            category_id = None
+            project_id = None
+            subtask_id = None
+            
+            # 分类
+            if parsed_fields.get("category_name"):
+                cursor.execute("SELECT id FROM categories WHERE user_id=%s AND name=%s", (user_id, parsed_fields["category_name"]))
+                row = cursor.fetchone()
+                if row:
+                    category_id = row["id"]
+                else:
+                    cursor.execute("INSERT INTO categories (user_id, name, color) VALUES (%s, %s, %s)", (user_id, parsed_fields["category_name"], "#4f9cff"))
+                    category_id = cursor.lastrowid
+            
+            # 项目
+            cursor.execute("SELECT id FROM projects WHERE user_id=%s AND name=%s", (user_id, parsed_fields["project_name"]))
+            row = cursor.fetchone()
+            if row:
+                project_id = row["id"]
+                if category_id:
+                    cursor.execute("UPDATE projects SET category_id=%s WHERE id=%s", (category_id, project_id))
+            else:
+                cursor.execute(
+                    "INSERT INTO projects (user_id, category_id, name, description, color) VALUES (%s, %s, %s, %s, %s)",
+                    (user_id, category_id, parsed_fields["project_name"], None, "#4f9cff")
+                )
+                project_id = cursor.lastrowid
+            
+            # 子任务
+            if project_id:
+                cursor.execute("SELECT id FROM subtasks WHERE user_id=%s AND project_id=%s AND name=%s", (user_id, project_id, parsed_fields["subtask_name"]))
+                row = cursor.fetchone()
+                if row:
+                    subtask_id = row["id"]
+                    cursor.execute(
+                        "UPDATE subtasks SET urgency_importance=%s, difficulty=%s WHERE id=%s",
+                        (parsed_fields.get("urgency_importance") or "重要不紧急", parsed_fields.get("difficulty") or "中级", subtask_id)
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO subtasks (user_id, project_id, name, urgency_importance, difficulty, color) VALUES (%s,%s,%s,%s,%s,%s)",
+                        (user_id, project_id, parsed_fields["subtask_name"], parsed_fields.get("urgency_importance") or "重要不紧急", parsed_fields.get("difficulty") or "中级", "#9cc7ff")
+                    )
+                    subtask_id = cursor.lastrowid
+            
+            db.commit()
+            reply += "。任务已保存"
+            
+            return AgentChatResponse(
+                reply=reply,
+                parsed=parsed_fields,
+                category_id=category_id,
+                project_id=project_id,
+                subtask_id=subtask_id
+            )
+            
+        except Exception as e:
+            db.rollback()
+            reply += f"。保存失败: {str(e)}"
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+            db.close()
+    
+    # 返回agent的回复，即使没有创建任务
+    return AgentChatResponse(
+        reply=reply,
+        parsed=parsed_fields,
+        category_id=None,
+        project_id=None,
+        subtask_id=None
+    )
 
 # 业务路由（受保护，按用户隔离）
 @app.get("/api/schedule/{schedule_date}")
