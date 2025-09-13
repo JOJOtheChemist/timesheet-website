@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-md mx-auto">
+        <h1 class="text-2xl mb-6">登录测试</h1>
+        
+        <div class="mb-4">
+            <label class="block text-sm mb-2">用户名</label>
+            <input type="text" id="username" class="w-full p-2 bg-gray-800 border border-gray-600 rounded" value="z">
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-sm mb-2">密码</label>
+            <input type="password" id="password" class="w-full p-2 bg-gray-800 border border-gray-600 rounded" value="z">
+        </div>
+        
+        <button onclick="testLogin()" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded mb-4">测试登录</button>
+        
+        <div id="result" class="mt-4 p-4 bg-gray-800 rounded"></div>
+        
+        <div class="mt-6">
+            <h3 class="text-lg mb-2">可用的测试账户：</h3>
+            <ul class="text-sm space-y-1">
+                <li>用户名: z, 密码: z</li>
+                <li>用户名: test, 密码: 123456</li>
+                <li>用户名: yeya, 密码: (需要查看数据库)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = '正在测试...';
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <div class="text-green-400">
+                            <h4>登录成功！</h4>
+                            <p>Token: ${data.access_token.substring(0, 50)}...</p>
+                            <p>Token类型: ${data.token_type}</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="text-red-400">
+                            <h4>登录失败</h4>
+                            <p>错误: ${data.detail}</p>
+                            <p>状态码: ${response.status}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="text-red-400">
+                        <h4>网络错误</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>登录</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link rel="stylesheet" href="components/background-switcher/background-switcher.css">
+	<style>
+		body{min-height:100vh;display:flex;align-items:center;justify-content:center;background-color:#0b1220;color:#e5e7eb;position:relative;z-index:0}
+		body::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:-1}
+		.card{width:360px;background:#0e1726;border:1px solid rgba(79,156,255,.3);border-radius:12px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+		.label{font-size:12px;color:#9ca3af;margin:8px 0 4px;display:block}
+		.input{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(79,156,255,.25);background:#0b152b;color:#e5e7eb}
+		.btn{width:100%;margin-top:14px;padding:10px;border-radius:8px;border:1px solid rgba(79,156,255,.4);background:#152745;color:#cfe4ff;cursor:pointer}
+		.link{color:#9cc7ff;cursor:pointer}
+		.msg{margin-top:10px;font-size:12px}
+		.msg.error{color:#fca5a5}
+		.msg.info{color:#93c5fd}
+		.notice{background:#0b152b;border:1px solid rgba(79,156,255,.25);padding:8px;border-radius:8px;margin-bottom:10px;color:#9cc7ff;font-size:12px}
+	</style>
+</head>
+<body>
+	<div style="display:flex;flex-direction:column;align-items:center;gap:30px;">
+		<div style="display:inline-block;padding:10px 18px;border:1px solid rgba(79,156,255,.6);border-radius:999px;background:rgba(0,0,0,0.35);color:#cfe4ff;font-weight:400;letter-spacing:1px;text-shadow:0 1px 2px rgba(0,0,0,.6);font-size:20px;">AI时间管理，成为长期主义者</div>
+		<div class="card">
+		<h1 class="text-xl mb-3" style="color:#4f9cff">账户登录</h1>
+		<div id="loggedNotice" class="notice" style="display:none">
+			检测到已登录，将在 <span id="countdown">3</span> 秒后进入日程页。若需切换账号请直接在下方表单输入新账号密码登录。
+		</div>
+		<form id="loginForm" autocomplete="off">
+			<label class="label">用户名</label>
+			<input class="input" id="username" name="username" required value="" autocomplete="username">
+			<label class="label">密码</label>
+			<input class="input" id="password" name="password" type="password" required value="" autocomplete="current-password">
+			<button class="btn" type="submit" id="submitBtn">登录</button>
+			<div id="msg" class="msg"></div>
+		</form>
+		<form id="registerForm" autocomplete="off" style="display:none;margin-top:10px">
+			<label class="label">用户名</label>
+			<input class="input" id="r_username" name="username" required autocomplete="username">
+			<label class="label">密码</label>
+			<input class="input" id="r_password" name="password" type="password" required autocomplete="new-password">
+			<label class="label">确认密码</label>
+			<input class="input" id="r_password2" name="password2" type="password" required autocomplete="new-password">
+			<label class="label">邀请码</label>
+			<input class="input" id="r_invite" name="invite_code" required>
+			<button class="btn" type="submit" id="registerBtn">注册</button>
+			<div id="r_msg" class="msg"></div>
+		</form>
+		<button id="enterBtn" class="btn" style="display:none;margin-top:10px">进入日程页</button>
+		<div class="mt-3 text-sm" style="color:#9ca3af">
+			<div id="switchLinks"><span id="toLogin" class="link">登录</span> ｜ <span id="toRegister" class="link">注册</span> ｜ <span id="toReset" class="link">重置密码</span></div>
+		</div>
+		<form id="resetForm" autocomplete="off" style="display:none;margin-top:10px">
+			<label class="label">用户名</label>
+			<input class="input" id="x_username" name="username" required autocomplete="username">
+			<label class="label">管理员校验码</label>
+			<input class="input" id="x_admin" name="admin_code" required>
+			<label class="label">新密码</label>
+			<input class="input" id="x_pwd1" name="new_password" type="password" required autocomplete="new-password">
+			<label class="label">确认新密码</label>
+			<input class="input" id="x_pwd2" name="new_password2" type="password" required autocomplete="new-password">
+			<button class="btn" type="submit" id="resetBtn">重置密码</button>
+			<div id="x_msg" class="msg"></div>
+		</form>
+		<!-- 注册成功后的资料完善与等待AI模块 -->
+		<form id="postRegForm" autocomplete="off" style="display:none;margin-top:10px">
+			<div class="notice">注册成功。完善以下信息便于智能项目管理；您也可以稍后在编辑页补充。</div>
+			<label class="label">您的专业</label>
+			<input class="input" id="pr_major" name="major" placeholder="例如：金融、计算机、中文" autocomplete="off">
+			<label class="label">备考目标</label>
+			<input class="input" id="pr_goal" name="goal" placeholder="例如：考研金融初试/四六级/CPA 科目一" autocomplete="off">
+			<label class="label">最近在做的项目</label>
+			<input class="input" id="pr_projects" name="projects" placeholder="例如：英语练习、专业课刷题、政治作业" autocomplete="off">
+			<button class="btn" type="button" id="pr_waitBtn">AI生成项目（<span id="pr_wait">0</span>s）</button>
+			<div id="pr_msg" class="msg info">已根据您的注册创建初始配置，正在准备智能任务模板...</div>
+			<div id="pr_result" class="msg" style="margin-top:8px;white-space:pre-wrap"></div>
+		</form>
+	</div>
+
+	<script>
+	(function(){
+		const TARGET = 'daily_schedule.html';
+		const form = document.getElementById('loginForm');
+		const API_BASE = 'http://localhost:5001';
+		const rform = document.getElementById('registerForm');
+		const submitBtn = document.getElementById('submitBtn');
+		const registerBtn = document.getElementById('registerBtn');
+		const msg = document.getElementById('msg');
+		const rmsg = document.getElementById('r_msg');
+		const enterBtn = document.getElementById('enterBtn');
+		const loggedNotice = document.getElementById('loggedNotice');
+		const countdownEl = document.getElementById('countdown');
+		const usernameEl = document.getElementById('username');
+		const passwordEl = document.getElementById('password');
+		const toRegister = document.getElementById('toRegister');
+		const toLogin = document.getElementById('toLogin');
+		const toReset = document.getElementById('toReset');
+		const resetForm = document.getElementById('resetForm');
+		const resetBtn = document.getElementById('resetBtn');
+		const xmsg = document.getElementById('x_msg');
+		const switchLinks = document.getElementById('switchLinks');
+		const titleEl = document.querySelector('h1.text-xl');
+		const postRegForm = document.getElementById('postRegForm');
+		const prMajor = document.getElementById('pr_major');
+		const prGoal = document.getElementById('pr_goal');
+		const prProjects = document.getElementById('pr_projects');
+		const prWaitBtn = document.getElementById('pr_waitBtn');
+		const prWait = document.getElementById('pr_wait');
+		const prMsg = document.getElementById('pr_msg');
+		const prResult = document.getElementById('pr_result');
+		async function fetchWithTimeout(url, options, timeoutMs){
+			const controller = new AbortController();
+			const id = setTimeout(()=>controller.abort(), timeoutMs || 12000);
+			try{
+				return await fetch(url, { ...(options||{}), signal: controller.signal });
+			} finally {
+				clearTimeout(id);
+			}
+		}
+		function isLikelyJWT(t){ return typeof t==='string' && t.split('.').length===3; }
+		function setLoading(b){ submitBtn.disabled = !!b; submitBtn.textContent = b ? '处理中...' : '登录'; }
+		function showError(text){ msg.className='msg error'; msg.textContent=text; }
+		function showInfo(text){ msg.className='msg info'; msg.textContent=text; }
+		function setRegLoading(b){ registerBtn.disabled = !!b; registerBtn.textContent = b ? '处理中...' : '注册'; }
+		function showRegError(text){ rmsg.className='msg error'; rmsg.textContent=text; }
+		function showRegInfo(text){ rmsg.className='msg info'; rmsg.textContent=text; }
+		function showPostRegister(username){
+			// 切换到注册后信息面板
+			form.style.display='none';
+			resetForm.style.display='none';
+			rform.style.display='none';
+			postRegForm.style.display='block';
+			if (switchLinks) switchLinks.style.display='none';
+			// 清空并隐藏注册提示
+			rmsg.textContent=''; rmsg.style.display='none';
+			if (titleEl) titleEl.textContent = '注册成功 · 完善信息';
+			// 保存到本地，便于后续编辑页读取
+			try{ localStorage.setItem('ts_postreg_username', username||''); }catch(e){}
+			let seconds = 0; prWait.textContent = '0';
+			if (postRegForm._timer) { clearInterval(postRegForm._timer); }
+			postRegForm._timer = null; // 计时器在点击生成后再启动
+			// 可选：当用户修改时缓存
+			[prMajor, prGoal, prProjects].forEach(inp=>{
+				inp.addEventListener('input', ()=>{
+					try{
+						localStorage.setItem('ts_postreg_major', prMajor.value||'');
+						localStorage.setItem('ts_postreg_goal', prGoal.value||'');
+						localStorage.setItem('ts_postreg_projects', prProjects.value||'');
+					}catch(e){}
+				});
+			});
+		}
+		
+		// 读取上次登录缓存（若存在）
+		try{
+			const cachedUser = localStorage.getItem('ts_auth_username') || '';
+			const cachedPass = localStorage.getItem('ts_auth_password') || '';
+			if (cachedUser) usernameEl.value = cachedUser;
+			if (cachedPass) passwordEl.value = cachedPass;
+		}catch(e){}
+		
+		form.addEventListener('submit', async function(e){
+			e.preventDefault(); setLoading(true); msg.textContent='';
+			try{
+				const fd = new FormData(form);
+				const body = { username: fd.get('username'), password: fd.get('password') };
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }, 12000);
+				const data = await res.json();
+				if(!res.ok){ throw new Error(data.detail || '登录失败'); }
+				localStorage.setItem('ts_auth_token', data.access_token);
+				// 缓存用户名和密码以便下次默认填充（注意：明文存储仅用于本地便捷，生产建议不要保存密码）
+				try{ localStorage.setItem('ts_auth_username', body.username); localStorage.setItem('ts_auth_password', body.password); }catch(e){}
+				location.href = TARGET;
+			}catch(err){
+				try{ localStorage.removeItem('ts_auth_token'); }catch(e){}
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					showError('服务器无响应，请稍后重试或检查 5001 端口连通性');
+				} else {
+					showError(err.message || '网络错误');
+				}
+			}
+			finally{ setLoading(false); }
+		});
+		
+		// 若本地有token：校验有效性再跳转；若格式不对或校验失败则自动清理
+		(async function(){
+			let t = localStorage.getItem('ts_auth_token');
+			if (!t) return;
+			if (!isLikelyJWT(t)) { try{ localStorage.removeItem('ts_auth_token'); }catch(e){} return; }
+			try{
+				const res = await fetchWithTimeout(`${API_BASE}/api/projects`, { headers:{ Authorization:`Bearer ${t}` } }, 8000);
+				if (res.ok) { location.replace(TARGET); return; }
+				if (res.status===401 || res.status===403) { try{ localStorage.removeItem('ts_auth_token'); }catch(e){} }
+			}catch(e){ /* 网络异常不跳转，保留登录表单 */ }
+		})();
+		
+		// 登录/注册/重置切换（底部固定显示）
+		toLogin.addEventListener('click', function(){
+			rform.style.display='none';
+			resetForm.style.display='none';
+			postRegForm.style.display='none';
+			form.style.display='block';
+			if (switchLinks) switchLinks.style.display='block';
+			if (titleEl) titleEl.textContent = '账户登录';
+		});
+		toRegister.addEventListener('click', function(){
+			form.style.display='none';
+			resetForm.style.display='none';
+			postRegForm.style.display='none';
+			rform.style.display='block';
+			if (switchLinks) switchLinks.style.display='block';
+			if (titleEl) titleEl.textContent = '账户注册';
+		});
+		toReset.addEventListener('click', function(){
+			form.style.display='none';
+			rform.style.display='none';
+			postRegForm.style.display='none';
+			resetForm.style.display='block';
+			if (switchLinks) switchLinks.style.display='block';
+			if (titleEl) titleEl.textContent = '账户找回';
+		});
+		// 注册提交流程
+		rform.addEventListener('submit', async function(e){
+			e.preventDefault(); setRegLoading(true); rmsg.textContent='';
+			try{
+				const fd = new FormData(rform);
+				const u = String(fd.get('username')||'').trim();
+				const p1 = String(fd.get('password')||'').trim();
+				const p2 = String(fd.get('password2')||'').trim();
+				const invite = String(fd.get('invite_code')||'').trim();
+				if(!u || !p1 || !p2 || !invite) throw new Error('请完整填写信息');
+				if(p1 !== p2) throw new Error('两次密码不一致');
+				// 确保不会携带任何历史 Authorization 头
+				try{ localStorage.removeItem('ts_auth_token'); }catch(e){}
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username:u, password:p1, invite_code:invite }), credentials:'omit', mode:'same-origin' }, 12000);
+				const data = await res.json();
+				if(!res.ok) throw new Error(data.detail || data.message || '注册失败');
+				showRegInfo('注册成功');
+				// 保存凭据，跳转到独立的初始配置页
+				try{ localStorage.setItem('ts_postreg_username', u||''); localStorage.setItem('ts_postreg_password', p1||''); }catch(e){}
+				location.href = 'onboarding.html';
+			}catch(err){
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					showRegError('服务器无响应，请稍后重试或检查 5001 端口连通性');
+				} else {
+					showRegError(err.message || '网络错误');
+					// 邀请码错误场景：自动清空，防止残留
+					try{ if ((err.message||'').includes('邀请码')) { const inv=document.getElementById('r_invite'); if(inv) inv.value=''; } }catch(e){}
+				}
+			}
+			finally{ setRegLoading(false); }
+		});
+
+		// AI 生成项目：按钮状态与调用
+		(function(){
+			let state = 'idle'; // idle | waiting | ready
+			async function ensureToken(){
+				let token = localStorage.getItem('ts_auth_token');
+				if (token) return token;
+				const username = localStorage.getItem('ts_postreg_username')||'';
+				const password = localStorage.getItem('ts_postreg_password')||'';
+				if (!username || !password) return '';
+				try{
+					const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) }, 12000);
+					const data = await res.json();
+					if(!res.ok) throw new Error(data.detail||'登录失败');
+					localStorage.setItem('ts_auth_token', data.access_token);
+					return data.access_token;
+				}catch(e){ return ''; }
+			}
+			async function callAgent(){
+				const major = prMajor.value.trim();
+				const goal = prGoal.value.trim();
+				const projects = prProjects.value.trim();
+				const token = await ensureToken();
+				const message = [
+					'你是智能项目管理助手，只负责子任务的识别、项目归属与增删改查。',
+					'现在请“直接给出要创建的项目与子任务清单”，不要询问，不要犹豫。',
+					'若用户未明确，也请根据常识与上下文进行合理补全，至少返回1个项目与若干子任务。',
+					'请优先将以下资料解析为可创建的任务：',
+					`- 专业：${major||'-'}`,
+					`- 备考目标：${goal||'-'}`,
+					`- 最近在做的项目：${projects||'-'}`,
+					'输出格式：用简短条目列出【项目 -> 子任务】（可多项），必要时合并到更大项目（如“英语练习”、“金融考研专业课复习”等）。',
+				].join('\n');
+				try{
+					const res = await fetchWithTimeout(`${API_BASE}/api/agent/chat`, { method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) }, body: JSON.stringify({ message }) }, 30000);
+					const data = await res.json();
+					if (!res.ok) throw new Error(data.detail||'生成失败');
+					const thought = data.thought ? `思考：${data.thought}\n` : '';
+					prResult.className='msg info';
+					let text = `${thought}${data.reply||'生成完成'}`;
+					if (Array.isArray(data.tasks) && data.tasks.length){
+						// 按项目分组
+						const byProj = {};
+						for (const t of data.tasks){
+							const pj = (t && t.project_name) || '未命名项目';
+							if(!byProj[pj]) byProj[pj] = [];
+							byProj[pj].push((t && t.subtask_name) || '未命名子任务');
+						}
+						text += '\n' + Object.keys(byProj).map(p=>`【${p}】\n- `+byProj[p].join('\n- ')).join('\n');
+					}
+					prResult.textContent = text;
+					return true;
+				}catch(err){
+					prResult.className='msg error';
+					prResult.textContent = err.message||'生成失败，请重试';
+					return false;
+				}
+			}
+			function startTimer(){
+				let seconds = 0; prWait.textContent='0';
+				if (postRegForm._timer) clearInterval(postRegForm._timer);
+				postRegForm._timer = setInterval(()=>{ seconds += 1; prWait.textContent=String(seconds); }, 1000);
+			}
+			function stopTimer(){ if (postRegForm._timer) { clearInterval(postRegForm._timer); postRegForm._timer=null; } }
+			pr_waitBtn.addEventListener('click', async function(){
+				if (state === 'ready') { location.href='edit_subtasks.html'; return; }
+				if (state !== 'idle') return;
+				state = 'waiting';
+				pr_waitBtn.disabled = true; pr_waitBtn.textContent = '等待AI生成项目（'; pr_waitBtn.appendChild(prWait); pr_waitBtn.appendChild(document.createTextNode('s）'));
+				pr_msg.className='msg info'; pr_msg.textContent='正在根据您的信息生成建议...';
+				prResult.textContent='';
+				startTimer();
+				const ok = await callAgent();
+				stopTimer();
+				if (ok){
+					state = 'ready';
+					pr_waitBtn.disabled = false; pr_waitBtn.textContent = '开始填表';
+					pr_msg.className='msg info'; pr_msg.textContent='生成完成，点击“开始填表”进入编辑页';
+				}else{
+					state = 'idle';
+					pr_waitBtn.disabled = false; pr_waitBtn.textContent = '重试生成项目（'; pr_waitBtn.appendChild(prWait); pr_waitBtn.appendChild(document.createTextNode('s）'));
+					pr_msg.className='msg error'; pr_msg.textContent='生成失败，请检查网络后重试';
+				}
+			});
+		})();
+		
+		// 管理码找回
+		resetForm.addEventListener('submit', async function(e){
+			e.preventDefault(); resetBtn.disabled=true; xmsg.textContent='';
+			try{
+				const fd = new FormData(resetForm);
+				const p1 = fd.get('new_password');
+				const p2 = fd.get('new_password2');
+				if (!p1 || p1.length < 6) throw new Error('新密码至少6位');
+				if (p1 !== p2) throw new Error('两次密码不一致');
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/admin-recover`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: fd.get('username'), admin_code: fd.get('admin_code'), new_password: p1 }) }, 12000);
+				let detail = '';
+				try{ const ct = res.headers.get('content-type') || ''; detail = ct.includes('application/json') ? (await res.json()).detail || '' : (await res.text()); }catch(e){}
+				if(!res.ok){
+					let msg = detail || '重置失败';
+					if (res.status === 403) msg = '管理员校验码错误';
+					else if (res.status === 404) msg = '用户不存在';
+					else if (res.status === 405) msg = '请求方式不正确，请刷新后重试';
+					throw new Error(msg);
+				}
+				xmsg.className='msg info';
+				xmsg.textContent='重置成功，请返回登录使用新密码登录';
+			}catch(err){
+				xmsg.className='msg error';
+				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
+					xmsg.textContent = '服务器无响应，请稍后重试或检查 5001 端口连通性';
+				} else {
+					xmsg.textContent = err.message;
+				}
+			}
+			finally{ resetBtn.disabled=false; }
+		});
+	})();
+	</script>
+</body>
+</html> 
