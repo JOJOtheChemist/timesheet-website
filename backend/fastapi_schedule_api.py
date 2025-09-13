@@ -744,32 +744,63 @@ async def get_schedule(schedule_date: str, db: mysql.connector.MySQLConnection =
 async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     try:
         cursor = db.cursor(dictionary=True)
-        cursor.execute('''
+        # 先尝试插入新记录
+        insert_query = '''
             INSERT INTO daily_schedule (
-                user_id,
-                schedule_date, time_slot,
+                user_id, schedule_date, time_slot,
                 planned_subtask_id, planned_notes,
                 actual_subtask_id, actual_notes, mood
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                planned_subtask_id = VALUES(planned_subtask_id),
-                planned_notes = VALUES(planned_notes),
-                actual_subtask_id = VALUES(actual_subtask_id),
-                actual_notes = VALUES(actual_notes),
-                mood = VALUES(mood),
-                updated_at = CURRENT_TIMESTAMP
-        ''', (
+        '''
+        insert_values = (
             current_user["sub"],
             schedule.schedule_date, schedule.time_slot,
             schedule.planned_subtask_id, schedule.planned_notes,
             schedule.actual_subtask_id, schedule.actual_notes, schedule.mood
-        ))
+        )
+
+        try:
+            cursor.execute(insert_query, insert_values)
+        except mysql.connector.IntegrityError:
+            # 如果记录已存在，则更新
+            update_fields = []
+            update_values = []
+
+            if schedule.planned_subtask_id is not None:
+                update_fields.append("planned_subtask_id = %s")
+                update_values.append(schedule.planned_subtask_id)
+            if schedule.planned_notes is not None:
+                update_fields.append("planned_notes = %s")
+                update_values.append(schedule.planned_notes)
+            if schedule.actual_subtask_id is not None:
+                update_fields.append("actual_subtask_id = %s")
+                update_values.append(schedule.actual_subtask_id)
+            if schedule.actual_notes is not None:
+                update_fields.append("actual_notes = %s")
+                update_values.append(schedule.actual_notes)
+            if schedule.mood is not None:
+                update_fields.append("mood = %s")
+                update_values.append(schedule.mood)
+
+            if update_fields:
+                update_fields.append("updated_at = CURRENT_TIMESTAMP")
+                update_values.extend([current_user["sub"], schedule.schedule_date, schedule.time_slot])
+
+                update_query = f'''
+                    UPDATE daily_schedule
+                    SET {', '.join(update_fields)}
+                    WHERE user_id = %s AND schedule_date = %s AND time_slot = %s
+                '''
+                cursor.execute(update_query, update_values)
         db.commit()
         cursor.execute('''
             SELECT id FROM daily_schedule WHERE user_id=%s AND schedule_date=%s AND time_slot=%s
         ''', (current_user["sub"], schedule.schedule_date, schedule.time_slot))
         row = cursor.fetchone()
+        # 清理剩余的结果集
+        while cursor.nextset():
+            pass
         if row:
             schedule.id = row['id']
         return schedule
@@ -784,47 +815,75 @@ async def create_schedule(schedule: ScheduleItem, db: mysql.connector.MySQLConne
 async def update_schedule(schedule_id: int, schedule: ScheduleItem, db: mysql.connector.MySQLConnection = Depends(get_db), current_user: Dict[str, Any] = Depends(require_user)):
     try:
         cursor = db.cursor(dictionary=True)
+
+        # 首先检查记录是否存在并属于当前用户
+        cursor.execute("SELECT id FROM daily_schedule WHERE id = %s AND user_id = %s", (schedule_id, current_user["sub"]))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Schedule not found")
+
+        # 构建更新查询 - 只更新提供的字段
         update_fields = []
         update_values = []
+
+        # 只更新实际提供的字段，避免NULL覆盖
+        if hasattr(schedule, 'schedule_date') and schedule.schedule_date is not None:
+            update_fields.append("schedule_date = %s"); update_values.append(schedule.schedule_date)
+        if hasattr(schedule, 'time_slot') and schedule.time_slot is not None:
+            update_fields.append("time_slot = %s"); update_values.append(schedule.time_slot)
+
+        # 处理计划任务字段
         if hasattr(schedule, 'planned_subtask_id'):
             if schedule.planned_subtask_id is not None:
                 update_fields.append("planned_subtask_id = %s"); update_values.append(schedule.planned_subtask_id)
             else:
                 update_fields.append("planned_subtask_id = NULL")
-        if hasattr(schedule, 'planned_notes'):
-            if schedule.planned_notes is not None:
-                update_fields.append("planned_notes = %s"); update_values.append(schedule.planned_notes)
-            else:
-                update_fields.append("planned_notes = NULL")
+        if hasattr(schedule, 'planned_notes') and schedule.planned_notes is not None:
+            update_fields.append("planned_notes = %s"); update_values.append(schedule.planned_notes)
+
+        # 处理实际任务字段
         if hasattr(schedule, 'actual_subtask_id'):
             if schedule.actual_subtask_id is not None:
                 update_fields.append("actual_subtask_id = %s"); update_values.append(schedule.actual_subtask_id)
             else:
                 update_fields.append("actual_subtask_id = NULL")
-        if hasattr(schedule, 'actual_notes'):
-            if schedule.actual_notes is not None:
-                update_fields.append("actual_notes = %s"); update_values.append(schedule.actual_notes)
-            else:
-                update_fields.append("actual_notes = NULL")
-        if hasattr(schedule, 'mood'):
-            if schedule.mood is not None:
-                update_fields.append("mood = %s"); update_values.append(schedule.mood)
-            else:
-                update_fields.append("mood = NULL")
+        if hasattr(schedule, 'actual_notes') and schedule.actual_notes is not None:
+            update_fields.append("actual_notes = %s"); update_values.append(schedule.actual_notes)
+
+        # 处理心情字段
+        if hasattr(schedule, 'mood') and schedule.mood is not None:
+            update_fields.append("mood = %s"); update_values.append(schedule.mood)
+
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")
+
         update_fields.append("updated_at = CURRENT_TIMESTAMP")
         update_values.extend([schedule_id, current_user["sub"]])
+
         cursor.execute(f'''
-            UPDATE daily_schedule 
+            UPDATE daily_schedule
             SET {', '.join(update_fields)}
             WHERE id = %s AND user_id = %s
         ''', update_values)
-        if cursor.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Schedule not found")
+
         db.commit()
-        schedule.id = schedule_id
-        return schedule
+
+        # 返回更新后的记录
+        cursor.execute("SELECT * FROM daily_schedule WHERE id = %s", (schedule_id,))
+        updated_record = cursor.fetchone()
+
+        return {
+            "id": updated_record["id"],
+            "schedule_date": updated_record["schedule_date"],
+            "time_slot": updated_record["time_slot"],
+            "planned_subtask_id": updated_record["planned_subtask_id"],
+            "planned_subtask_name": updated_record["planned_subtask_name"],
+            "planned_notes": updated_record["planned_notes"],
+            "actual_subtask_id": updated_record["actual_subtask_id"],
+            "actual_subtask_name": updated_record["actual_subtask_name"],
+            "actual_notes": updated_record["actual_notes"],
+            "mood": updated_record["mood"]
+        }
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update schedule: {str(e)}")

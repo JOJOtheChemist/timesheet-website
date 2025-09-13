@@ -5766,23 +5766,19 @@
             autoJumpToNextRow();
         }
         
-        // 保存子任务到数据库
+        // 保存子任务到数据库 - 修复版本
         async function saveSubtaskToDatabase(timeSlot, subtaskId, projectId, scheduleId, fieldType) {
             try {
                 if (!scheduleId) {
                     // 如果没有日程ID，需要先创建日程
                     const newSchedule = {
                         schedule_date: selectedDate,
-                        time_slot: timeSlot
+                        time_slot: timeSlot,
+                        // 根据字段类型设置相应的子任务ID，另一个保持为null
+                        planned_subtask_id: fieldType === 'planned' ? subtaskId : null,
+                        actual_subtask_id: fieldType === 'actual' ? subtaskId : null
                     };
-                    
-                    // 根据字段类型设置相应的子任务ID
-                    if (fieldType === 'planned') {
-                        newSchedule.planned_subtask_id = subtaskId;
-                    } else if (fieldType === 'actual') {
-                        newSchedule.actual_subtask_id = subtaskId;
-                    }
-                    
+
                     const response = await fetch('/api/schedule', {
                         method: 'POST',
                         headers: {
@@ -5790,7 +5786,7 @@
                         },
                         body: JSON.stringify(newSchedule)
                     });
-                    
+
                     if (response.ok) {
                         const result = await response.json();
                         console.log('子任务保存成功:', result);
@@ -5802,36 +5798,43 @@
                         throw new Error(`保存失败: ${response.status} - ${errorText}`);
                     }
                 } else {
-                    // 更新现有日程的子任务 - 需要先获取现有数据，然后合并更新
-                    // 先获取当前日程数据
+                    // 获取当前日程数据以进行合并更新
                     const currentResponse = await fetch(`/api/schedule/${selectedDate}`);
                     if (!currentResponse.ok) {
                         throw new Error('获取当前日程数据失败');
                     }
-                    
+
                     const currentData = await currentResponse.json();
                     const currentSchedule = currentData.schedule_data.find(s => s.id == scheduleId);
-                    
+
                     if (!currentSchedule) {
                         throw new Error('未找到当前日程记录');
                     }
-                    
-                    // 构建更新数据，保留现有字段
+
+                    // 构建更新数据，关键：保留另一个字段的值
                     const updateData = {
-                        planned_subtask_id: currentSchedule.planned_subtask_id,
-                        planned_notes: currentSchedule.planned_notes,
-                        actual_subtask_id: currentSchedule.actual_subtask_id,
-                        actual_notes: currentSchedule.actual_notes,
-                        mood: currentSchedule.mood
+                        schedule_date: currentSchedule.schedule_date,
+                        time_slot: currentSchedule.time_slot
                     };
-                    
-                    // 根据字段类型更新相应的子任务ID
+
+                    // 只更新指定的字段，保留另一个字段的现有值
                     if (fieldType === 'planned') {
                         updateData.planned_subtask_id = subtaskId;
+                        updateData.planned_notes = currentSchedule.planned_notes || '';
+                        // 保留实际的现有值
+                        updateData.actual_subtask_id = currentSchedule.actual_subtask_id;
+                        updateData.actual_notes = currentSchedule.actual_notes || '';
                     } else if (fieldType === 'actual') {
                         updateData.actual_subtask_id = subtaskId;
+                        updateData.actual_notes = currentSchedule.actual_notes || '';
+                        // 保留计划的现有值
+                        updateData.planned_subtask_id = currentSchedule.planned_subtask_id;
+                        updateData.planned_notes = currentSchedule.planned_notes || '';
                     }
-                    
+
+                    // 保留心情字段
+                    updateData.mood = currentSchedule.mood;
+
                     const response = await fetch(`/api/schedule/${scheduleId}`, {
                         method: 'PUT',
                         headers: {
@@ -5839,9 +5842,9 @@
                         },
                         body: JSON.stringify(updateData)
                     });
-                    
+
                     if (response.ok) {
-                        console.log('子任务更新成功');
+                        console.log('子任务更新成功:', fieldType, 'task updated');
                         // 更新成功后直接更新UI，不刷新整个页面
                         updateCellAfterSave(timeSlot, subtaskId, projectId, fieldType, scheduleId);
                     } else {
@@ -6633,6 +6636,9 @@
         }
             const originalFetch = window.fetch.bind(window);
             window.fetch = function(resource, init) {
+                });
+                }
+                return response;
                 try {
                     const token = localStorage.getItem('ts_auth_token');
                     const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
@@ -6643,16 +6649,7 @@
                         if (!opts.headers['Authorization'] && !opts.headers['authorization']) {
                             opts.headers['Authorization'] = 'Bearer ' + token;
                         }
-                        return originalFetch(resource, opts)
-                    // 检查响应状态，如果是401则跳转到登录页面
-                    .then(response => {
-                        if (response.status === 401) {
-                            console.log("认证失败，跳转到登录页面");
-                            localStorage.removeItem("ts_auth_token");
-                            location.href = "login.html";
-                        }
-                        return response;
-                    })
+                        return originalFetch(resource, opts);
                     }
                 } catch (e) {}
                 return originalFetch(resource, init);

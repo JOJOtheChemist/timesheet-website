@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话复盘 - 时间管理助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dialogue-container {
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .dialogue-header {
+            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .dialogue-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .dialogue-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        .dialogue-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            margin: 0 10px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
+        }
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e8ed;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .dialogue-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: #4f9cff;
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e1e8ed;
+            margin-bottom: 20px;
+            max-width: 70%;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4f9cff;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .retrospect-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: 2px solid #4f9cff;
+            background: white;
+            color: #4f9cff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #4f9cff;
+            color: white;
+        }
+
+        .action-btn.active {
+            background: #4f9cff;
+            color: white;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            padding: 40px 20px;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .retrospect-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4f9cff;
+        }
+
+        .retrospect-summary h4 {
+            color: #4f9cff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .retrospect-summary p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .message-action-btn {
+            padding: 4px 8px;
+            border: 1px solid #e1e8ed;
+            background: white;
+            color: #666;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .message-action-btn:hover {
+            background: #f8f9fa;
+            color: #4f9cff;
+        }
+    </style>
+</head>
+<body>
+    <div class="dialogue-container">
+        <div class="dialogue-header">
+            <button class="close-btn" onclick="window.close()">×</button>
+            <h1>对话复盘</h1>
+            <p>与AI助手进行深度对话，反思和总结你的时间管理</p>
+        </div>
+
+        <div class="dialogue-messages" id="dialogueMessages">
+            <div class="empty-state">
+                <h3>开始你的复盘对话</h3>
+                <p>与AI助手分享你的想法，获得有价值的反馈和建议</p>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="message-avatar">AI</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="dialogue-input">
+            <input type="text" class="input-field" id="messageInput" placeholder="输入你的想法或问题..." maxlength="500">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span>→</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let messageCount = 0;
+        let isTyping = false;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+
+            // 回车发送消息
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // 输入时启用/禁用发送按钮
+            messageInput.addEventListener('input', function() {
+                sendBtn.disabled = this.value.trim() === '';
+            });
+
+            // 初始禁用发送按钮
+            sendBtn.disabled = true;
+
+            // 添加欢迎消息
+            setTimeout(() => {
+                addMessage('assistant', '你好！我是你的时间管理助手。今天有什么想要复盘或讨论的吗？', true);
+            }, 1000);
+        });
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || isTyping) return;
+
+            // 添加用户消息
+            addMessage('user', message);
+            messageInput.value = '';
+            document.getElementById('sendBtn').disabled = true;
+
+            // 模拟AI回复
+            setTimeout(() => {
+                showTypingIndicator();
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    const aiResponse = generateAIResponse(message);
+                    addMessage('assistant', aiResponse);
+                }, 1500 + Math.random() * 1000);
+            }, 500);
+        }
+
+        function addMessage(sender, content, isWelcome = false) {
+            const messagesContainer = document.getElementById('dialogueMessages');
+            
+            // 如果是欢迎消息，清空空状态
+            if (isWelcome) {
+                messagesContainer.innerHTML = '';
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '我' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = content;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            contentDiv.appendChild(timeDiv);
+
+            // 添加消息操作按钮
+            if (sender === 'assistant') {
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'message-actions';
+                actionsDiv.innerHTML = `
+                    <button class="message-action-btn" onclick="copyMessage(this)">复制</button>
+                    <button class="message-action-btn" onclick="likeMessage(this)">👍</button>
+                    <button class="message-action-btn" onclick="dislikeMessage(this)">👎</button>
+                `;
+                contentDiv.appendChild(actionsDiv);
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            // 滚动到底部
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            messageCount++;
+        }
+
+        function showTypingIndicator() {
+            isTyping = true;
+            document.getElementById('typingIndicator').style.display = 'flex';
+            document.getElementById('dialogueMessages').scrollTop = document.getElementById('dialogueMessages').scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            isTyping = false;
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        function generateAIResponse(userMessage) {
+            const responses = [
+                "这是一个很好的观察！你能详细说说当时的具体情况吗？",
+                "我理解你的感受。从时间管理的角度来看，你觉得哪些地方可以改进？",
+                "听起来你遇到了一个挑战。你之前是如何处理类似情况的？",
+                "这很有意思！你觉得这个经历给你带来了什么启发？",
+                "我注意到你提到了几个关键点。让我们逐一分析一下好吗？",
+                "从你的描述中，我看到了几个模式。你觉得这些模式有什么共同点？",
+                "这是一个很好的反思！你觉得下次遇到类似情况时，你会怎么做？",
+                "我理解你的想法。你觉得这个决定对你的长期目标有什么影响？",
+                "这确实需要仔细考虑。你能告诉我你现在的优先级是什么吗？",
+                "很好的问题！让我们从不同的角度来思考这个问题。"
+            ];
+
+            // 根据用户消息内容生成更相关的回复
+            if (userMessage.includes('时间') || userMessage.includes('计划')) {
+                return "时间管理确实很重要。你能告诉我你目前的时间安排是怎样的吗？有什么特别困扰你的地方？";
+            } else if (userMessage.includes('压力') || userMessage.includes('焦虑')) {
+                return "我理解你现在的感受。压力管理是时间管理的重要组成部分。你觉得是什么让你感到压力最大？";
+            } else if (userMessage.includes('目标') || userMessage.includes('梦想')) {
+                return "目标设定很关键！你能分享一下你的短期和长期目标吗？这些目标之间有什么联系？";
+            } else if (userMessage.includes('习惯') || userMessage.includes('改变')) {
+                return "改变习惯需要时间和耐心。你目前想要建立或改变哪些习惯？有什么具体的计划吗？";
+            } else if (userMessage.includes('效率') || userMessage.includes('专注')) {
+                return "提高效率是一个持续的过程。你觉得什么因素最影响你的专注力？有什么方法你觉得比较有效？";
+            }
+
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function copyMessage(button) {
+            const messageContent = button.closest('.message-content');
+            const text = messageContent.querySelector('p, div').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = '已复制';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            });
+        }
+
+        function likeMessage(button) {
+            button.textContent = '👍 已赞';
+            button.style.background = '#4f9cff';
+            button.style.color = 'white';
+        }
+
+        function dislikeMessage(button) {
+            button.textContent = '👎 已踩';
+            button.style.background = '#ff6b6b';
+            button.style.color = 'white';
+        }
+
+        // 添加一些预设的复盘问题
+        function addRetrospectQuestions() {
+            const questions = [
+                "今天的时间安排合理吗？",
+                "我完成了哪些重要任务？",
+                "有什么地方可以改进？",
+                "明天我应该优先做什么？",
+                "这周的学习/工作有什么收获？"
+            ];
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'retrospect-actions';
+            actionsDiv.innerHTML = '<h4>快速复盘问题：</h4>';
+
+            questions.forEach(question => {
+                const btn = document.createElement('button');
+                btn.className = 'action-btn';
+                btn.textContent = question;
+                btn.onclick = () => {
+                    document.getElementById('messageInput').value = question;
+                    document.getElementById('sendBtn').disabled = false;
+                };
+                actionsDiv.appendChild(btn);
+            });
+
+            document.getElementById('dialogueMessages').appendChild(actionsDiv);
+        }
+
+        // 页面加载完成后添加复盘问题
+        setTimeout(addRetrospectQuestions, 2000);
+    </script>
+</body>
+</html>
