@@ -40,7 +40,7 @@
 
 	<script>
 	(function(){
-		const API_BASE = 'http://localhost:5001';
+		const API_BASE = '';
 		const TARGET_EDIT = 'daily_schedule.html';
 		const prMajor = document.getElementById('pr_major');
 		const prGoal = document.getElementById('pr_goal');
@@ -94,52 +94,7 @@
 		function startTimer(){ let s=0; prWait.textContent='0'; timer && clearInterval(timer); timer=setInterval(()=>{ s+=1; prWait.textContent=String(s); },1000); }
 		function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
 
-		
-		// 保存用户画像的函数
-		const saveUserProfile = async () => {
-			const major = prMajor.value.trim();
-			const goal = prGoal.value.trim();
-			const projects = prProjects.value.trim();
-			const token = await ensureToken();
-			
-			if (!token) {
-				throw new Error('无法获取认证令牌');
-			}
-			
-			const profileData = {
-				major: major || null,
-				goal: goal || null,
-				projects: projects || null
-			};
-			
-			const res = await fetchWithTimeout(`${API_BASE}/api/user/profile`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
-				},
-				body: JSON.stringify(profileData)
-			}, 10000);
-			
-			const data = await res.json();
-			if (!res.ok) {
-				throw new Error(data.detail || '保存用户画像失败');
-			}
-			
-			return data;
-		};
-
 		async function callAgent(){
-
-		// 先保存用户画像
-		try {
-			await saveUserProfile();
-			console.log('用户画像保存成功');
-		} catch (err) {
-			console.error('保存用户画像失败:', err);
-			// 继续执行，不阻止AI生成
-		}
-		
 			const major = prMajor.value.trim();
 			const goal = prGoal.value.trim();
 			const projects = prProjects.value.trim();

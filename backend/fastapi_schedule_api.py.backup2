@@ -156,8 +156,7 @@ class ResetRequest(BaseModel):
     username: str
 
 class ResetConfirm(BaseModel):
-    token: str
-    new_password: str
+
 # 用户画像模型
 class UserProfile(BaseModel):
     major: Optional[str] = None
@@ -168,7 +167,8 @@ class UserProfileUpdate(BaseModel):
     major: Optional[str] = None
     goal: Optional[str] = None
     projects: Optional[str] = None
-
+    token: str
+    new_password: str
 
 class AdminRecover(BaseModel):
     username: str
@@ -386,10 +386,8 @@ async def login(user: UserLogin, db: mysql.connector.MySQLConnection = Depends(g
         db.close()
 
 @app.get("/api/auth/me", response_model=Dict[str, Any])
-async def me(current_user: Optional[Dict[str, Any]] = Depends(get_current_user)):
-    if not current_user:
-        raise HTTPException(status_code=401, detail="未认证")
-    return {"id": current_user.get("sub"), "username": current_user.get("username")}
+
+# 用户画像API端点
 
 # 用户画像API端点
 @app.get("/api/user/profile", response_model=Dict[str, Any])
@@ -455,6 +453,58 @@ async def update_user_profile(profile_data: UserProfileUpdate, current_user: Opt
         cursor.close()
         db.close()
 
+@app.
+@app.get("/api/user/profile", response_model=Dict[str, Any])
+async def get_user_profile(current_user: Optional[Dict[str, Any]] = Depends(get_current_user), db: mysql.connector.MySQLConnection = Depends(get_db)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="未认证")
+    try:
+        cursor = db.cursor(dictionary=True)
+        user_id = current_user.get("sub")
+        cursor.execute("SELECT major, goal, projects FROM user_profiles WHERE user_id = %s", (user_id,))
+        profile = cursor.fetchone()
+        if not profile:
+            return {"major": None, "goal": None, "projects": None}
+        return {"major": profile.get("major"), "goal": profile.get("goal"), "projects": profile.get("projects")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取用户画像失败: {str(e)}")
+    finally:
+        cursor.close()
+        db.close()
+
+@app.put("/api/user/profile", response_model=Dict[str, Any])
+async def update_user_profile(profile_data: UserProfileUpdate, current_user: Optional[Dict[str, Any]] = Depends(get_current_user), db: mysql.connector.MySQLConnection = Depends(get_db)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="未认证")
+    try:
+        cursor = db.cursor(dictionary=True)
+        user_id = current_user.get("sub")
+        
+        # 检查是否已存在用户画像
+        cursor.execute("SELECT id FROM user_profiles WHERE user_id = %s", (user_id,))
+        existing_profile = cursor.fetchone()
+        
+        if existing_profile:
+            # 更新现有画像
+            update_fields = []
+            update_values = []
+            if profile_data.major is not None:
+                update_fields.append("major = %s")
+                update_values.append(profile_data.major)
+            if profile_data.goal is not None:
+                update_fields.append("goal = %s")
+                update_values.append(profile_data.goal)
+            if profile_data.projects is not None:
+                update_fields.append("projects = %s")
+                update_values.append(profile_data.projects)
+            
+            if update_fields:
+                update_values.append(user_id)
+                cursor.execute(f"UPDATE user_profiles SET {,
+async def me(current_user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="未认证")
+    return {"id": current_user.get("sub"), "username": current_user.get("username")}
 
 @app.post("/api/auth/request-reset", response_model=Dict[str, Any])
 async def request_reset(body: ResetRequest, db: sqlite3.Connection = Depends(get_db)):
