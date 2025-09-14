@@ -3,8 +3,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+import sqlite3
 import mysql.connector
-from mysql.connector import pooling
 import json
 from datetime import datetime, date, timedelta
 import uvicorn
@@ -169,27 +169,19 @@ class AgentChatResponse(BaseModel):
     thought: Optional[str] = None
     tasks: Optional[List[Dict[str, Any]]] = None
 
-# MySQL数据库连接池配置
-db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '12356790zZ_',
-    'database': 'project_tasks',
-    'charset': 'utf8mb4',
-    'autocommit': True
+# MySQL数据库配置
+DATABASE_CONFIG = {
+    "host": "localhost",
+    "user": "debian-sys-maint",
+    "password": "36p2WFXFNmwuYvox",
+    "database": "project_tasks"
 }
-
-# 创建连接池
-connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="mypool",
-    pool_size=20,
-    pool_reset_session=True,
-    **db_config
-)
 
 # 数据库连接
 def get_db():
-    return connection_pool.get_connection()
+    import mysql.connector
+    conn = mysql.connector.connect(**DATABASE_CONFIG)
+    return conn
 
 # 密码与JWT工具
 def hash_password(plain_password: str) -> str:
@@ -223,35 +215,36 @@ def require_user(payload: Optional[Dict[str, Any]] = Depends(get_current_user)) 
 # 初始化数据库（含按用户隔离的迁移）
 def init_db():
     conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    
+    cursor = conn.cursor()
+
     try:
         # 用户表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
                 username VARCHAR(100) NOT NULL UNIQUE,
                 password_hash VARCHAR(255) NOT NULL,
                 email VARCHAR(255),
                 reset_token VARCHAR(255),
                 reset_expires DATETIME,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_username (username)
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
         # 业务表按需创建（简化版）
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS categories (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL DEFAULT 1,
                 name VARCHAR(255),
                 color VARCHAR(20)
             )
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS projects (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL DEFAULT 1,
                 category_id INT,
                 name VARCHAR(255),
                 description TEXT,
@@ -260,30 +253,30 @@ def init_db():
         ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS subtasks (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL DEFAULT 1,
                 project_id INT,
                 name VARCHAR(255),
-                priority VARCHAR(50),
-                urgency_importance VARCHAR(50),
-                difficulty VARCHAR(50),
+                urgency_importance VARCHAR(50) DEFAULT "重要不紧急",
+                difficulty VARCHAR(50) DEFAULT "中级",
                 color VARCHAR(20)
             )
         ''')
         # 新增：邀请码表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS invite_codes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
                 code VARCHAR(64) NOT NULL UNIQUE,
                 used_by INT NULL,
                 used_at DATETIME NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
         # daily_schedule 表（包含 user_id）
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS daily_schedule (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id INT PRIMARY KEY AUTO_INCREMENT,
                 user_id INT NOT NULL,
                 schedule_date DATE NOT NULL,
                 time_slot VARCHAR(10) NOT NULL,
@@ -296,42 +289,15 @@ def init_db():
                 actual_notes TEXT,
                 actual_project_color VARCHAR(20),
                 mood VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_schedule_date (schedule_date),
-                INDEX idx_time_slot (time_slot),
-                INDEX idx_planned_subtask_id (planned_subtask_id),
-                INDEX idx_actual_subtask_id (actual_subtask_id)
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, schedule_date, time_slot)
             )
         ''')
 
-        # 通用：为 categories/projects/subtasks/daily_schedule 添加 user_id 列（若不存在），并将历史数据标记为 yeya 用户（id=1）
-        for table in ["categories", "projects", "subtasks", "daily_schedule"]:
-            try:
-                cursor.execute(f"SHOW COLUMNS FROM {table} LIKE 'user_id'")
-                if not cursor.fetchone():
-                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN user_id INT NOT NULL DEFAULT 1 AFTER id")
-                    print(f"{table} 添加 user_id 列")
-            except Exception as e:
-                print(f"为 {table} 添加 user_id 列时出错: {e}")
-        
-        # 更新 daily_schedule 的唯一键为按用户唯一
-        try:
-            cursor.execute("SHOW INDEX FROM daily_schedule WHERE Key_name='uniq_date_slot'")
-            if cursor.fetchall():
-                cursor.execute("ALTER TABLE daily_schedule DROP INDEX uniq_date_slot")
-        except Exception:
-            pass
-        try:
-            cursor.execute("SHOW INDEX FROM daily_schedule WHERE Key_name='uniq_user_date_slot'")
-            if not cursor.fetchall():
-                cursor.execute("ALTER TABLE daily_schedule ADD UNIQUE KEY uniq_user_date_slot (user_id, schedule_date, time_slot)")
-        except Exception as e:
-            print(f"设置按用户唯一索引失败: {e}")
-        
         conn.commit()
         print("Database tables initialized and migrated for user scoping!")
-        
+
     except Exception as e:
         print(f"Database initialization error: {str(e)}")
         conn.rollback()
@@ -408,16 +374,16 @@ async def me(current_user: Optional[Dict[str, Any]] = Depends(get_current_user))
     return {"id": current_user.get("sub"), "username": current_user.get("username")}
 
 @app.post("/api/auth/request-reset", response_model=Dict[str, Any])
-async def request_reset(body: ResetRequest, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def request_reset(body: ResetRequest, db: sqlite3.Connection = Depends(get_db)):
     try:
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT id FROM users WHERE username=%s", (body.username,))
+        cursor = db.cursor()
+        cursor.execute("SELECT id FROM users WHERE username=?", (body.username,))
         row = cursor.fetchone()
         if not row:
             return {"message": "如果账号存在，重置令牌已生成"}
-        token = create_access_token({"reset": row["id"], "username": body.username}, expires_delta=timedelta(minutes=30))
+        token = create_access_token({"reset": row[0], "username": body.username}, expires_delta=timedelta(minutes=30))
         expires_at = datetime.utcnow() + timedelta(minutes=30)
-        cursor.execute("UPDATE users SET reset_token=%s, reset_expires=%s WHERE id=%s", (token, expires_at, row["id"]))
+        cursor.execute("UPDATE users SET reset_token=?, reset_expires=? WHERE id=?", (token, expires_at, row[0]))
         db.commit()
         response: Dict[str, Any] = {"message": "重置令牌已生成，有效期30分钟"}
         if DEV_RETURN_RESET_TOKEN:
@@ -431,21 +397,21 @@ async def request_reset(body: ResetRequest, db: mysql.connector.MySQLConnection 
         db.close()
 
 @app.post("/api/auth/reset-password", response_model=Dict[str, Any])
-async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def reset_password(body: ResetConfirm, db: sqlite3.Connection = Depends(get_db)):
     try:
-        cursor = db.cursor(dictionary=True)
+        cursor = db.cursor()
         try:
             payload = jwt.decode(body.token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("reset")
         except Exception:
             raise HTTPException(status_code=400, detail="无效或过期的令牌")
-        cursor.execute("SELECT id, reset_expires FROM users WHERE id=%s AND reset_token=%s", (user_id, body.token))
+        cursor.execute("SELECT id, reset_expires FROM users WHERE id=? AND reset_token=?", (user_id, body.token))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=400, detail="无效或过期的令牌")
-        if row["reset_expires"] and datetime.utcnow() > row["reset_expires"]:
+        if row[1] and datetime.utcnow() > row[1]:
             raise HTTPException(status_code=400, detail="令牌已过期")
-        cursor.execute("UPDATE users SET password_hash=%s, reset_token=NULL, reset_expires=NULL WHERE id=%s", (hash_password(body.new_password), user_id))
+        cursor.execute("UPDATE users SET password_hash=?, reset_token=NULL, reset_expires=NULL WHERE id=?", (hash_password(body.new_password), user_id))
         db.commit()
         return {"message": "密码已重置，请使用新密码登录"}
     except HTTPException:
@@ -458,19 +424,19 @@ async def reset_password(body: ResetConfirm, db: mysql.connector.MySQLConnection
         db.close()
 
 @app.post("/api/auth/admin-recover", response_model=Dict[str, Any])
-async def admin_recover(body: AdminRecover, db: mysql.connector.MySQLConnection = Depends(get_db)):
+async def admin_recover(body: AdminRecover, db: sqlite3.Connection = Depends(get_db)):
     if body.admin_code != ADMIN_RESET_CODE:
         raise HTTPException(status_code=403, detail="管理员校验码错误")
     try:
-        cursor = db.cursor(dictionary=True)
-        cursor.execute("SELECT id FROM users WHERE username=%s", (body.username,))
+        cursor = db.cursor()
+        cursor.execute("SELECT id FROM users WHERE username=?", (body.username,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="用户不存在")
         # 使用提供的新密码进行重置
         if not body.new_password or len(body.new_password) < 6:
             raise HTTPException(status_code=400, detail="新密码不符合要求")
-        cursor.execute("UPDATE users SET password_hash=%s WHERE id=%s", (hash_password(body.new_password), row["id"]))
+        cursor.execute("UPDATE users SET password_hash=? WHERE id=?", (hash_password(body.new_password), row[0]))
         db.commit()
         return {"message": "密码已重置"}
     except HTTPException:

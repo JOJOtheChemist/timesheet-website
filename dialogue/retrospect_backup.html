@@ -100,77 +100,110 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 14px;
+            color: white;
             margin: 0 10px;
             flex-shrink: 0;
         }
 
         .message.user .message-avatar {
             background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
-            color: white;
         }
 
         .message.assistant .message-avatar {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
         }
 
         .message-content {
             max-width: 70%;
-            background: white;
             padding: 15px 20px;
-            border-radius: 18px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
             position: relative;
+            word-wrap: break-word;
         }
 
         .message.user .message-content {
             background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
             color: white;
+            border-bottom-right-radius: 5px;
         }
 
         .message.assistant .message-content {
             background: white;
             color: #333;
+            border: 1px solid #e1e8ed;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .message-time {
-            font-size: 11px;
-            opacity: 0.6;
+            font-size: 12px;
+            opacity: 0.7;
             margin-top: 5px;
-            text-align: right;
         }
 
-        .message-actions {
+        .dialogue-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
             display: flex;
-            gap: 8px;
-            margin-top: 10px;
+            gap: 10px;
+            align-items: center;
         }
 
-        .message-action-btn {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 4px 8px;
-            font-size: 11px;
+        .input-field {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: #4f9cff;
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
+            color: white;
             cursor: pointer;
-            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: transform 0.2s;
         }
 
-        .message-action-btn:hover {
-            background: #e9ecef;
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .typing-indicator {
             display: none;
             align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e1e8ed;
             margin-bottom: 20px;
+            max-width: 70%;
         }
 
         .typing-dots {
             display: flex;
             gap: 4px;
-            margin-left: 10px;
         }
 
         .typing-dot {
@@ -181,12 +214,40 @@
             animation: typing 1.4s infinite ease-in-out;
         }
 
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
 
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .retrospect-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: 2px solid #4f9cff;
+            background: white;
+            color: #4f9cff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            background: #4f9cff;
+            color: white;
+        }
+
+        .action-btn.active {
+            background: #4f9cff;
+            color: white;
         }
 
         @keyframes fadeInUp {
@@ -200,98 +261,24 @@
             }
         }
 
-        .dialogue-input {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #e9ecef;
-        }
-
-        .input-container {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-        }
-
-        .message-input {
-            flex: 1;
-            border: 2px solid #e9ecef;
-            border-radius: 25px;
-            padding: 12px 20px;
-            font-size: 14px;
-            resize: none;
-            max-height: 100px;
-            transition: border-color 0.3s;
-        }
-
-        .message-input:focus {
-            outline: none;
-            border-color: #4f9cff;
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, #4f9cff 0%, #2c5aa0 100%);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            font-size: 18px;
-        }
-
-        .send-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(79, 156, 255, 0.4);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .retrospect-actions {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(79, 156, 255, 0.1);
-            border-radius: 12px;
-        }
-
-        .retrospect-actions h4 {
-            margin-bottom: 10px;
-            color: #4f9cff;
-            font-size: 14px;
-        }
-
-        .action-btn {
-            background: white;
-            border: 1px solid #4f9cff;
-            color: #4f9cff;
-            border-radius: 20px;
-            padding: 8px 16px;
-            margin: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
-
-        .action-btn:hover {
-            background: #4f9cff;
-            color: white;
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
         }
 
         .empty-state {
             text-align: center;
-            color: #6c757d;
+            color: #666;
             padding: 40px 20px;
         }
 
         .empty-state h3 {
             margin-bottom: 10px;
-            color: #4f9cff;
+            color: #333;
         }
 
         .empty-state p {
@@ -299,39 +286,46 @@
             line-height: 1.5;
         }
 
-        .analysis-data {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
+        .retrospect-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
             border-left: 4px solid #4f9cff;
         }
 
-        .analysis-data h4 {
+        .retrospect-summary h4 {
             color: #4f9cff;
             margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .retrospect-summary p {
+            color: #666;
             font-size: 14px;
+            line-height: 1.5;
         }
 
-        .task-item {
+        .message-actions {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
+            gap: 5px;
+            margin-top: 10px;
         }
 
-        .task-item:last-child {
-            border-bottom: none;
+        .message-action-btn {
+            padding: 4px 8px;
+            border: 1px solid #e1e8ed;
+            background: white;
+            color: #666;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
         }
 
-        .task-name {
-            font-weight: 500;
-        }
-
-        .task-hours {
-            color: #6c757d;
-            font-size: 12px;
+        .message-action-btn:hover {
+            background: #f8f9fa;
+            color: #4f9cff;
         }
     </style>
 </head>
@@ -360,17 +354,10 @@
         </div>
 
         <div class="dialogue-input">
-            <div class="input-container">
-                <textarea 
-                    class="message-input" 
-                    id="messageInput" 
-                    placeholder="输入你的消息..."
-                    rows="1"
-                ></textarea>
-                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-                    ➤
-                </button>
-            </div>
+            <input type="text" class="input-field" id="messageInput" placeholder="输入你的想法或问题..." maxlength="500">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <span>→</span>
+            </button>
         </div>
     </div>
 
@@ -383,32 +370,29 @@
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendBtn');
 
-            // 输入框事件
-            messageInput.addEventListener('input', function() {
-                sendBtn.disabled = this.value.trim() === '';
-                
-                // 自动调整高度
-                this.style.height = 'auto';
-                this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-            });
-
+            // 回车发送消息
             messageInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (!sendBtn.disabled) {
-                        sendMessage();
-                    }
+                    sendMessage();
                 }
             });
 
+            // 输入时启用/禁用发送按钮
+            messageInput.addEventListener('input', function() {
+                sendBtn.disabled = this.value.trim() === '';
+            });
+
+            // 初始禁用发送按钮
+            sendBtn.disabled = true;
+
             // 添加欢迎消息
             setTimeout(() => {
-                addMessage('assistant', '你好！我是你的复盘分析助手。我可以帮你：<br><br>📊 <strong>时间统计分析</strong> - 分析指定时间段的时间使用情况<br>🤔 <strong>复盘对话</strong> - 进行深度反思和改进讨论<br><br>请告诉我你想要进行哪种分析，或者直接说"分析X月X日到X月X日的时间使用情况"', true);
-                addRetrospectQuestions();
+                addMessage('assistant', '你好！我是你的时间管理助手。今天有什么想要复盘或讨论的吗？', true);
             }, 1000);
         });
 
-        async function sendMessage() {
+        function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
             
@@ -417,73 +401,17 @@
             // 添加用户消息
             addMessage('user', message);
             messageInput.value = '';
-            messageInput.style.height = 'auto';
             document.getElementById('sendBtn').disabled = true;
 
-            // 显示打字指示器
-            showTypingIndicator();
-
-            try {
-                // 调用复盘agent API
-                const response = await fetch('http://localhost:5006/api/review', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        user_id: 1
-                    })
-                });
-
-                const result = await response.json();
-                
-                // 隐藏打字指示器
-                hideTypingIndicator();
-                
-                if (result.success) {
-                    // 处理分析数据
-                    let replyContent = result.reply;
-                    
-                    if (result.analysis_data) {
-                        replyContent += formatAnalysisData(result.analysis_data);
-                    }
-                    
-                    addMessage('assistant', replyContent);
-                } else {
-                    addMessage('assistant', '抱歉，处理你的请求时出现了问题。请稍后再试。');
-                }
-            } catch (error) {
-                console.error('API调用失败:', error);
-                hideTypingIndicator();
-                addMessage('assistant', '抱歉，网络连接出现问题。请检查网络连接后重试。');
-            }
-        }
-
-        function formatAnalysisData(analysisData) {
-            if (!analysisData || !analysisData.task_breakdown) {
-                return '';
-            }
-
-            let html = '<div class="analysis-data">';
-            html += '<h4>📊 详细时间分析</h4>';
-            
-            if (analysisData.total_hours > 0) {
-                html += `<p><strong>总学习时间:</strong> ${analysisData.total_hours}小时</p>`;
-                html += '<div style="margin-top: 10px;">';
-                
-                analysisData.task_breakdown.slice(0, 5).forEach(task => {
-                    html += `<div class="task-item">`;
-                    html += `<span class="task-name">${task.task_name}</span>`;
-                    html += `<span class="task-hours">${task.hours}小时 (${task.percentage}%)</span>`;
-                    html += '</div>';
-                });
-                
-                html += '</div>';
-            }
-            
-            html += '</div>';
-            return html;
+            // 模拟AI回复
+            setTimeout(() => {
+                showTypingIndicator();
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    const aiResponse = generateAIResponse(message);
+                    addMessage('assistant', aiResponse);
+                }, 1500 + Math.random() * 1000);
+            }, 500);
         }
 
         function addMessage(sender, content, isWelcome = false) {
@@ -546,6 +474,36 @@
             document.getElementById('typingIndicator').style.display = 'none';
         }
 
+        function generateAIResponse(userMessage) {
+            const responses = [
+                "这是一个很好的观察！你能详细说说当时的具体情况吗？",
+                "我理解你的感受。从时间管理的角度来看，你觉得哪些地方可以改进？",
+                "听起来你遇到了一个挑战。你之前是如何处理类似情况的？",
+                "这很有意思！你觉得这个经历给你带来了什么启发？",
+                "我注意到你提到了几个关键点。让我们逐一分析一下好吗？",
+                "从你的描述中，我看到了几个模式。你觉得这些模式有什么共同点？",
+                "这是一个很好的反思！你觉得下次遇到类似情况时，你会怎么做？",
+                "我理解你的想法。你觉得这个决定对你的长期目标有什么影响？",
+                "这确实需要仔细考虑。你能告诉我你现在的优先级是什么吗？",
+                "很好的问题！让我们从不同的角度来思考这个问题。"
+            ];
+
+            // 根据用户消息内容生成更相关的回复
+            if (userMessage.includes('时间') || userMessage.includes('计划')) {
+                return "时间管理确实很重要。你能告诉我你目前的时间安排是怎样的吗？有什么特别困扰你的地方？";
+            } else if (userMessage.includes('压力') || userMessage.includes('焦虑')) {
+                return "我理解你现在的感受。压力管理是时间管理的重要组成部分。你觉得是什么让你感到压力最大？";
+            } else if (userMessage.includes('目标') || userMessage.includes('梦想')) {
+                return "目标设定很关键！你能分享一下你的短期和长期目标吗？这些目标之间有什么联系？";
+            } else if (userMessage.includes('习惯') || userMessage.includes('改变')) {
+                return "改变习惯需要时间和耐心。你目前想要建立或改变哪些习惯？有什么具体的计划吗？";
+            } else if (userMessage.includes('效率') || userMessage.includes('专注')) {
+                return "提高效率是一个持续的过程。你觉得什么因素最影响你的专注力？有什么方法你觉得比较有效？";
+            }
+
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
         function copyMessage(button) {
             const messageContent = button.closest('.message-content');
             const text = messageContent.querySelector('p, div').textContent;
@@ -572,11 +530,11 @@
         // 添加一些预设的复盘问题
         function addRetrospectQuestions() {
             const questions = [
-                "分析9月1日到9月7日的时间使用情况",
-                "帮我复盘一下这周的学习情况",
-                "我想分析一下最近的时间分配",
-                "这周的学习效率如何？",
-                "帮我分析一下各任务的时间花费"
+                "今天的时间安排合理吗？",
+                "我完成了哪些重要任务？",
+                "有什么地方可以改进？",
+                "明天我应该优先做什么？",
+                "这周的学习/工作有什么收获？"
             ];
 
             const actionsDiv = document.createElement('div');
@@ -596,6 +554,9 @@
 
             document.getElementById('dialogueMessages').appendChild(actionsDiv);
         }
+
+        // 页面加载完成后添加复盘问题
+        setTimeout(addRetrospectQuestions, 2000);
     </script>
 </body>
 </html>
