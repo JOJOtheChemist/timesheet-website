@@ -13,6 +13,10 @@ import jwt
 from passlib.context import CryptContext
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import sys
+
+# 邀请码管理模块
+sys.path.append("/home/ubuntu/timesheet")
+from invitation_code.api import router as invite_code_router
 import os
 import random
 import string
@@ -82,6 +86,9 @@ async def lifespan(app: FastAPI):
     print("Schedule API shutting down...")
 
 app = FastAPI(title="Schedule API", version="1.1.0", lifespan=lifespan)
+
+# 注册邀请码管理路由
+app.include_router(invite_code_router)
 
 # 启用 CORS
 app.add_middleware(

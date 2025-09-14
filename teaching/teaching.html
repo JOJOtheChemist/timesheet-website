@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>填表教学页面</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* 背景图由背景切换器控制 */
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            z-index: 0;
+        }
+
+        /* 暗色遮罩（80% 透明度） */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1; /* 盖在背景图上、页面内容下 */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: transparent;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            color: #e5e7eb;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #4f9cff;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            color: #8f8fb7;
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .benefits-section {
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .benefits-section h2 {
+            color: #4f9cff;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .benefits-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefits-list li {
+            padding: 8px 0;
+            color: #e5e7eb;
+            position: relative;
+            padding-left: 25px;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .benefits-list li::before {
+            content: "✓";
+            color: #4f9cff;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .subtask-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .subtask-btn {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid;
+            text-align: center;
+            opacity: 0.9;
+            backdrop-filter: blur(3px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .subtask-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .subtask-btn:hover::before {
+            left: 100%;
+        }
+
+        .subtask-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            opacity: 1;
+            filter: brightness(1.1);
+        }
+
+        .subtask-btn.work {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+
+        .subtask-btn.study {
+            background: rgba(78, 205, 196, 0.15);
+            color: #4ecdc4;
+            border-color: #4ecdc4;
+        }
+
+        .subtask-btn.exercise {
+            background: rgba(69, 183, 209, 0.15);
+            color: #45b7d1;
+            border-color: #45b7d1;
+        }
+
+        .subtask-btn.leisure {
+            background: rgba(240, 147, 251, 0.15);
+            color: #f093fb;
+            border-color: #f093fb;
+        }
+
+        .subtask-btn.other {
+            background: rgba(79, 172, 254, 0.15);
+            color: #4facfe;
+            border-color: #4facfe;
+        }
+
+        .demo-section {
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-section h3 {
+            color: #4f9cff;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .demo-section p {
+            color: #8f8fb7;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        /* 交互提示样式 */
+        .interactive-tip {
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .interactive-tip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 156, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
+        }
+
+        .interactive-tip h3 {
+            color: #4f9cff;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+
+        .interactive-tip p {
+            color: #8f8fb7;
+            font-size: 1rem;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .interactive-tip.success {
+            border-color: #4caf50;
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px #4caf50, 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .interactive-tip.success h3 {
+            color: #4caf50;
+        }
+
+        .interactive-tip.success p {
+            color: #4caf50;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: transparent;
+            border-radius: 10px;
+            overflow: visible;
+            color: #E5E7EB;
+            margin-bottom: 20px;
+        }
+
+        .schedule-table-container {
+            background: rgba(10, 10, 26, 0.5);
+            background-image: linear-gradient(to right, rgba(79, 156, 255, 0.065) 1px, transparent 1px), linear-gradient(to bottom, rgba(79, 156, 255, 0.065) 1px, transparent 1px);
+            background-size: 23.1px 23.1px;
+            background-position: center;
+            background-attachment: local;
+            border: 8px solid #4f9cff;
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px #4f9cff, 0 0 0 6px #000;
+            image-rendering: pixelated;
+            border-radius: 0;
+        }
+
+        .schedule-table th {
+            background: transparent !important;
+            color: #4f9cff;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .schedule-table td {
+            padding: 15px;
+            border-bottom: 1px solid rgba(79, 156, 255, 0.2);
+            vertical-align: middle;
+        }
+
+        .schedule-table tr:hover {
+            background: rgba(79, 156, 255, 0.1);
+        }
+
+        .time-slot {
+            font-weight: 600;
+            color: #8f8fb7;
+            font-size: 1.1rem;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 1);
+        }
+
+        .task-cell {
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(10, 10, 26, 0.3);
+            border: 2px dashed rgba(79, 156, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color: #8f8fb7;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .task-cell:hover {
+            background: rgba(79, 156, 255, 0.1);
+            border-color: rgba(79, 156, 255, 0.6);
+        }
+
+        .task-cell.filled {
+            background: rgba(79, 156, 255, 0.15);
+            border-color: #4f9cff;
+            border-style: solid;
+            color: #4f9cff;
+        }
+
+        .notes-cell {
+            min-height: 50px;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(10, 10, 26, 0.3);
+            border: 2px dashed rgba(79, 156, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color: #8f8fb7;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .notes-cell:hover {
+            background: rgba(79, 156, 255, 0.1);
+            border-color: rgba(79, 156, 255, 0.6);
+        }
+
+        .notes-cell.filled {
+            background: rgba(79, 156, 255, 0.15);
+            border-color: #4f9cff;
+            border-style: solid;
+            color: #4f9cff;
+        }
+
+        .reset-btn {
+            background: rgba(255, 107, 107, 0.15);
+            color: #ff6b6b;
+            border: 2px solid #ff6b6b;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+            background: rgba(255, 107, 107, 0.25);
+        }
+
+        .ai-benefits {
+            background: rgba(10, 10, 26, 0.5);
+            border: 4px solid rgba(79, 156, 255, 0.5);
+            box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79, 156, 255, 0.5), 0 0 20px rgba(79, 156, 255, 0.3);
+            color: #e5e7eb;
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .ai-benefits h3 {
+            color: #4f9cff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .ai-benefits ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ai-benefits li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 1);
+        }
+
+        .ai-benefits li::before {
+            content: "🤖";
+            position: absolute;
+            left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .subtask-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .schedule-table {
+                font-size: 14px;
+            }
+            
+            .schedule-table th,
+            .schedule-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 填表教学页面</h1>
+            <p>学习如何高效使用日程安排表，让AI更好地帮助您管理时间</p>
+        </div>
+
+        <div class="content">
+            <div class="benefits-section">
+                <h2>🎯 为什么需要这样的填表方式？</h2>
+                <ul class="benefits-list">
+                    <li><strong>提高效率：</strong>将日常高频任务做成按钮，一键填充，节省时间</li>
+                    <li><strong>数据统计：</strong>方便AI统计您的日常行为模式和时间分配</li>
+                    <li><strong>智能分析：</strong>AI可以基于您的数据生成个性化复盘报告</li>
+                    <li><strong>成功日记：</strong>AI可以自动生成您的每日成功日记和成就总结</li>
+                    <li><strong>习惯追踪：</strong>帮助您建立和维持良好的时间管理习惯</li>
+                    <li><strong>目标导向：</strong>让您的日常行为更加有目的性和计划性</li>
+                </ul>
+            </div>
+
+            <div class="demo-section">
+                <h3>🎮 互动演示</h3>
+                <p>点击下面的子任务按钮，体验如何快速填充表格：</p>
+                
+                <div class="subtask-buttons">
+                    <button class="subtask-btn work" onclick="fillTask('planned', '工作：完成项目报告', '#ff6b6b')">
+                        💼 工作：完成项目报告
+                    </button>
+                    <button class="subtask-btn study" onclick="fillTask('planned', '学习：阅读技术文档', '#4ecdc4')">
+                        📚 学习：阅读技术文档
+                    </button>
+                    <button class="subtask-btn exercise" onclick="fillTask('planned', '运动：30分钟跑步', '#45b7d1')">
+                        🏃 运动：30分钟跑步
+                    </button>
+                    <button class="subtask-btn leisure" onclick="fillTask('planned', '娱乐：看电影放松', '#f093fb')">
+                        🎬 娱乐：看电影放松
+                    </button>
+                    <button class="subtask-btn work" onclick="fillTask('actual', '工作：处理邮件和会议', '#ff6b6b')">
+                        📧 实际：处理邮件和会议
+                    </button>
+                    <button class="subtask-btn study" onclick="fillTask('actual', '学习：在线课程学习', '#4ecdc4')">
+                        💻 实际：在线课程学习
+                    </button>
+                    <button class="subtask-btn exercise" onclick="fillTask('actual', '运动：健身房训练', '#45b7d1')">
+                        🏋️ 实际：健身房训练
+                    </button>
+                    <button class="subtask-btn leisure" onclick="fillTask('actual', '娱乐：和朋友聚餐', '#f093fb')">
+                        🍽️ 实际：和朋友聚餐
+                    </button>
+                </div>
+            </div>
+
+            <!-- 交互式提示 -->
+            <div class="interactive-tip" id="interactiveTip">
+                <h3>💡 交互提示</h3>
+                <p id="tipText">请在下方时间轴里面点击计划任务</p>
+            </div>
+
+            <div class="schedule-table-container">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">时间</th>
+                            <th style="width: 200px;">计划任务</th>
+                            <th style="width: 200px;">计划备注</th>
+                            <th style="width: 200px;">实际任务</th>
+                            <th style="width: 200px;">实际备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="time-slot">14:00</td>
+                            <td>
+                                <div class="task-cell" id="planned-task" onclick="handleTaskClick('planned-task')">
+                                    点击按钮填充计划任务
+                                </div>
+                            </td>
+                            <td>
+                                <div class="notes-cell" id="planned-notes" onclick="editCell('planned-notes')">
+                                    点击添加备注
+                                </div>
+                            </td>
+                            <td>
+                                <div class="task-cell" id="actual-task" onclick="handleTaskClick('actual-task')">
+                                    点击按钮填充实际任务
+                                </div>
+                            </td>
+                            <td>
+                                <div class="notes-cell" id="actual-notes" onclick="editCell('actual-notes')">
+                                    点击添加备注
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button class="reset-btn" onclick="resetTable()">
+                🔄 重置表格
+            </button>
+
+            <div class="ai-benefits">
+                <h3>🤖 AI智能分析的优势</h3>
+                <ul>
+                    <li><strong>行为模式分析：</strong>AI可以分析您的时间分配模式，发现效率瓶颈</li>
+                    <li><strong>个性化建议：</strong>基于您的数据提供个性化的时间管理建议</li>
+                    <li><strong>自动复盘：</strong>每日自动生成复盘报告，总结您的成就和待改进之处</li>
+                    <li><strong>成功日记：</strong>AI可以帮您记录和总结每日的成就和进步</li>
+                    <li><strong>趋势预测：</strong>预测您的时间使用趋势，帮助您更好地规划未来</li>
+                    <li><strong>目标追踪：</strong>跟踪您的目标完成情况，提供激励和调整建议</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 交互状态跟踪
+        let interactionState = {
+            taskClicked: false,
+            buttonClicked: false
+        };
+
+        // 处理任务单元格点击
+        function handleTaskClick(cellId) {
+            if (!interactionState.taskClicked) {
+                // 第一次点击任务单元格
+                interactionState.taskClicked = true;
+                updateTip('请在上方任务模块里面挑选任务');
+                editCell(cellId);
+            } else {
+                // 后续点击，正常编辑
+                editCell(cellId);
+            }
+        }
+
+        // 更新提示文字
+        function updateTip(text) {
+            const tipElement = document.getElementById('tipText');
+            tipElement.textContent = text;
+        }
+
+        // 检查是否完成填表
+        function checkCompletion() {
+            const plannedTask = document.getElementById('planned-task');
+            const actualTask = document.getElementById('actual-task');
+            
+            if (plannedTask.classList.contains('filled') && actualTask.classList.contains('filled')) {
+                const tipElement = document.getElementById('interactiveTip');
+                tipElement.classList.add('success');
+                updateTip('🎉 填表成功！您已经学会了如何使用日程安排表');
+            }
+        }
+
+        // 填充任务（带颜色传递）
+        function fillTask(type, task, color) {
+            const cellId = type === 'planned' ? 'planned-task' : 'actual-task';
+            const cell = document.getElementById(cellId);
+            
+            cell.textContent = task;
+            cell.classList.add('filled');
+            
+            // 应用按钮的颜色
+            cell.style.color = color;
+            cell.style.borderColor = color;
+            cell.style.background = color + '20'; // 添加透明度
+            
+            // 更新交互状态
+            interactionState.buttonClicked = true;
+            
+            // 添加动画效果
+            cell.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                cell.style.transform = 'scale(1)';
+            }, 200);
+            
+            // 检查是否完成
+            checkCompletion();
+        }
+
+        // 编辑单元格（只有任务单元格可以按按钮传递颜色，备注不行）
+        function editCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const currentText = cell.textContent;
+            
+            // 如果单元格是空的或者包含提示文字，清空
+            if (currentText.includes('点击') || currentText.includes('添加')) {
+                cell.textContent = '';
+            }
+            
+            // 创建输入框
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentText;
+            input.style.width = '100%';
+            input.style.border = 'none';
+            input.style.background = 'transparent';
+            input.style.outline = 'none';
+            input.style.fontSize = '14px';
+            
+            // 根据单元格类型设置颜色
+            if (cellId.includes('task')) {
+                // 任务单元格：使用按钮传递的颜色或默认颜色
+                const currentColor = cell.style.color || '#4f9cff';
+                input.style.color = currentColor;
+                input.style.textShadow = '1px 1px 0 rgba(0, 0, 0, 1)';
+            } else {
+                // 备注单元格：使用默认颜色
+                input.style.color = '#8f8fb7';
+                input.style.textShadow = '1px 1px 0 rgba(0, 0, 0, 1)';
+            }
+            
+            // 替换单元格内容
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+            
+            // 保存功能
+            function save() {
+                const newText = input.value.trim();
+                cell.innerHTML = newText || (cellId.includes('task') ? '点击按钮填充任务' : '点击添加备注');
+                if (newText) {
+                    cell.classList.add('filled');
+                    
+                    // 如果是任务单元格，保持按钮传递的颜色
+                    if (cellId.includes('task')) {
+                        const currentColor = cell.style.color || '#4f9cff';
+                        cell.style.color = currentColor;
+                        cell.style.borderColor = currentColor;
+                        cell.style.background = currentColor + '20';
+                    }
+                    
+                    // 检查是否完成
+                    checkCompletion();
+                } else {
+                    cell.classList.remove('filled');
+                    // 重置颜色
+                    if (cellId.includes('task')) {
+                        cell.style.color = '#8f8fb7';
+                        cell.style.borderColor = 'rgba(79, 156, 255, 0.3)';
+                        cell.style.background = 'rgba(10, 10, 26, 0.3)';
+                    }
+                }
+            }
+            
+            // 绑定事件
+            input.addEventListener('blur', save);
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    save();
+                }
+            });
+        }
+
+        // 重置表格
+        function resetTable() {
+            const cells = ['planned-task', 'planned-notes', 'actual-task', 'actual-notes'];
+            
+            cells.forEach(cellId => {
+                const cell = document.getElementById(cellId);
+                cell.classList.remove('filled');
+                
+                // 重置颜色
+                cell.style.color = '#8f8fb7';
+                cell.style.borderColor = 'rgba(79, 156, 255, 0.3)';
+                cell.style.background = 'rgba(10, 10, 26, 0.3)';
+                
+                if (cellId.includes('task')) {
+                    cell.textContent = '点击按钮填充' + (cellId.includes('planned') ? '计划' : '实际') + '任务';
+                } else {
+                    cell.textContent = '点击添加备注';
+                }
+            });
+            
+            // 重置交互状态
+            interactionState.taskClicked = false;
+            interactionState.buttonClicked = false;
+            
+            // 重置提示
+            const tipElement = document.getElementById('interactiveTip');
+            tipElement.classList.remove('success');
+            updateTip('请在下方时间轴里面点击计划任务');
+            
+            // 添加重置动画
+            document.querySelector('.schedule-table').style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                document.querySelector('.schedule-table').style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('教学页面加载完成');
+            
+            // 添加一些示例数据展示
+            setTimeout(() => {
+                console.log('演示：自动填充示例数据');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

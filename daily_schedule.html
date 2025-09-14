@@ -78,14 +78,7 @@
             overflow: hidden;
         }
 
-        .sidebar {
-            background: rgba(17, 24, 39, 0.5); /* 深色 50% 透明 */
-            padding: 30px;
-            width: 50%; /* 调整为50%，与主内容区更接近 */
-            border-right: 1px solid rgba(255,255,255,0.08);
-            overflow-y: auto;
-            color: #E5E7EB;
-        }
+
 
         .main-content {
             flex: 1;
@@ -834,26 +827,9 @@
             filter: brightness(1.1); /* 稍微提亮 */
         }
 
-        /* 心情快捷选择按钮贪吃蛇方块样式 */
-        .project-component .px-5.pb-2 .flex.gap-2.mb-2.overflow-x-auto.whitespace-nowrap.no-scrollbar .mood-btn {
-            border: none !important; /* 移除边框 */
-            border-radius: 0 !important; /* 移除圆角 */
-            opacity: 1 !important; /* 完全不透明 */
-            backdrop-filter: none !important; /* 移除背景模糊 */
-            box-shadow: none !important; /* 移除阴影 */
-            image-rendering: pixelated !important; /* 像素化渲染 */
-            padding: 8px 12px !important;
-            font-weight: 500 !important;
-            text-align: center !important;
-            transition: all 0.1s ease !important; /* 快速过渡 */
-        }
 
-        .project-component .px-5.pb-2 .flex.gap-2.mb-2.overflow-x-auto.whitespace-nowrap.no-scrollbar .mood-btn:hover {
-            opacity: 1 !important; /* 保持完全不透明 */
-            transform: none !important; /* 移除上移效果 */
-            box-shadow: none !important; /* 移除阴影 */
-            filter: brightness(1.2) !important; /* 稍微提亮 */
-        }
+
+
 
         /* 心情弹窗贪吃蛇风格样式 */
         .mood-modal-panel {
@@ -1437,7 +1413,13 @@
             }
 
             .filter-grid {
-                grid-template-columns: repeat(2, 1fr);
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 10px;
+                padding-bottom: 5px;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
             }
 
             .schedule-table-container {
@@ -1446,7 +1428,7 @@
             }
 
             .project-component {
-                max-height: 400px;
+                max-height: 600px;
             }
             
             /* 移动端时间列sticky定位 */
@@ -1550,18 +1532,20 @@
         }
         .project-component-header {
             background: rgba(0, 0, 0, 0.3);
-            border-bottom: 2px solid rgba(79, 156, 255, 0.5);
-        }
-        .project-component-header h3 {
-            color: #4f9cff; /* 贪吃蛇的蓝色标题 */
-            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-        }
         .project-component .filter-container {
             color: #e5e7eb;
             padding: 0;
             padding-bottom: 0;
-            display: flex;
-            align-items: center;
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+            color: #e5e7eb;
+            padding: 0;
+            padding-bottom: 0;
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
         }
         .project-component .filter-container > div {
             padding-bottom: 0;
@@ -1686,18 +1670,8 @@
             z-index: 2;
         }
         
-        /* 覆盖Tailwind CSS类，使用贪吃蛇的颜色 */
-        .project-component .text-gray-600 {
-            color: #8f8fb7 !important; /* 贪吃蛇的灰色次级标题 */
-        }
         
-        .project-component .text-gray-700 {
-            color: #8f8fb7 !important; /* 贪吃蛇的灰色次级标题 */
-        }
         
-        .project-component .text-gray-400 {
-            color: #8f8fb7 !important; /* 贪吃蛇的灰色次级标题 */
-        }
         
         /* 心情快捷输入独立区域样式 */
         .mood-quick-input-section {
@@ -1760,7 +1734,13 @@
         .mood-quick-input-buttons {
             padding: 15px;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 10px;
+                padding-bottom: 5px;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
             gap: 8px;
             max-height: 300px;
             overflow-y: auto;
@@ -1807,7 +1787,36 @@
         .save-success {
             animation: saveSuccess 0.5s ease-in-out;
         }
-    </style>
+    
+        /* 修复筛选按钮左右滑动问题 - 只影响滚动，不影响标题样式 */
+        .project-component .filter-container {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .project-component .filter-container::-webkit-scrollbar {
+            display: none;
+        }
+        .project-component .filter-container > div {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .project-component .filter-container > div::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-grid {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .filter-grid::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-group {
+            flex-shrink: 0;
+        }
+</style>
 </head>
 <body>
     <!-- 猫咪sprite动画 -->
