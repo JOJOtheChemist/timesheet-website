@@ -69,13 +69,14 @@
 
         .container {
             display: flex;
-            gap: 30px;
+            gap: 5px;
             max-width: 1600px; /* 增加最大宽度，适应新的50%+50%布局 */
             margin: 0 auto;
             background: transparent;
             border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
+            flex-direction: column;
         }
 
 
@@ -86,7 +87,7 @@
             overflow-x: auto;
             display: flex;
             flex-direction: column;
-            width: 50%; /* 调整为50%，与侧边栏一致 */
+            width: 100%; /* 调整为50%，与侧边栏一致 */
             color: #E5E7EB;
         }
 
@@ -908,7 +909,7 @@
 
         /* 项目组件样式 */
         .project-component {
-            margin-top: 20px;
+            margin-top: 14px;
             background: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
@@ -1231,7 +1232,7 @@
         }
 
         .project-list {
-            padding: 15px 20px;
+            padding: 12px 16px;
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
@@ -1944,7 +1945,25 @@
                 </div>
             </div>
         </div>
-        
+        <div id="ai-analysis-mount"></div>
+        <script>(async()=>{
+  try {
+    const res = await fetch("/static/components/ai_analysis/ai_analysis.html?v=1757919448");
+    if (res.ok) {
+      const html = await res.text();
+      const mount = document.getElementById("ai-analysis-mount");
+      mount.innerHTML = html;
+      const scripts = mount.querySelectorAll("script");
+      scripts.forEach((oldScript)=>{
+        const s = document.createElement("script");
+        if (oldScript.src) { s.src = oldScript.src; } else { s.textContent = oldScript.textContent; }
+        Array.from(oldScript.attributes).forEach(attr => s.setAttribute(attr.name, attr.value));
+        oldScript.parentNode.replaceChild(s, oldScript);
+      });
+    }
+  } catch(e) { console.error("Load AI analysis component failed", e); }
+})();</script>
+
         <!-- 心情快捷输入独立区域 -->
         <div class="mood-quick-input-section" id="moodQuickInput">
             <div class="mood-quick-input-header" id="moodDragHandle">

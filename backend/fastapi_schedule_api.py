@@ -1109,3 +1109,23 @@ async def agent_chat_stream(body: AgentChatRequest, db: mysql.connector.MySQLCon
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
     
     return StreamingResponse(generate(), media_type="text/plain")
+
+@app.post("/api/ai/analysis", response_model=Dict[str, Any])
+async def ai_analysis_endpoint(payload: Dict[str, Any] = None, current_user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+    """Return a simple AI analysis stub for the requested scope.
+    Expects JSON body like: {"scope": "today"}
+    """
+    scope = None
+    try:
+        if isinstance(payload, dict):
+            scope = payload.get("scope")
+    except Exception:
+        scope = None
+    username = current_user.get("username") if current_user else None
+    # Minimal stub: echo scope and a simple message
+    return {
+        "ok": True,
+        "scope": scope or "today",
+        "user": username,
+        "summary": "AI分析已接收请求，将在后续版本提供真实分析结果。"
+    }

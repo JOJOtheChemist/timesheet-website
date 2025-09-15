@@ -1,0 +1,160 @@
+<!-- AI Analysis Component -->
+<button id="ai-analysis-btn" type="button" style="all:unset; display:block; width:100%;">
+<div id="ai-analysis-progress-between" style="margin:6px 0; background: rgba(26,26,46,0.8); border:1px solid #4a4a7a; border-radius:8px; padding:10px; cursor:pointer; transition:all 0.12s ease; box-shadow:0 2px 4px rgba(0,0,0,0.15); position:relative;">
+  <!-- 标题区：两行布局：第一行标题+提示，第二行状态文案 -->
+  <div style="display:flex; flex-direction:column; gap:4px; justify-content:flex-start; margin-bottom:6px; position:relative; z-index:3;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:6px;">
+              <span style="color:#4f9cff; font-weight:600; font-size:14px;">解锁AI分析</span>
+              <span style="color:#8f8fb7; font-size:12px; display:flex; align-items:center; gap:4px;">
+                  <i style="font-size:11px;" class="fa fa-external-link"></i>点击查看详情
+              </span>
+          </div>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span id="ai-progress-left" style="color:#8f8fb7; font-size:12px; position:relative; z-index:3;">
+              填写30个实际任务格子，解锁完整分析
+          </span>
+          <span id="ai-progress-percent" style="color:#8f8fb7; font-size:12px; position:relative; z-index:3;">
+              0%
+          </span>
+      </div>
+  </div>
+  <!-- 进度条：优化样式，增加过渡和层次感 -->
+  <div style="width:100%; height:8px; background:#2a2a4a; border-radius:4px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); position:relative; z-index:3;">
+      <div id="ai-progress-fill-between" style="height:100%; width:0%; background:linear-gradient(90deg,#4f9cff,#22c55e); transition:width 0.5s ease; box-shadow:0 0 8px rgba(79,156,255,0.4);"></div>
+  </div>
+</div>
+</button>
+
+<script>
+// 保留所有原有逻辑，未做任何修改
+(function(){
+const GOAL_COUNT = 30;
+const LEFT_ID = 'ai-progress-left';
+const PERCENT_ID = 'ai-progress-percent';
+const FILL_ID = 'ai-progress-fill-between';
+const SCHEDULE_BODY_SELECTOR = '#scheduleBody';
+const PLACEHOLDER_TEXT = '点击选择实际任务';
+
+// 跳转到分析中心（按钮绑定，移动端可靠触发）
+try {
+  const btn = document.getElementById('ai-analysis-btn');
+  const box = document.getElementById('ai-analysis-progress-between');
+  if (btn && box) {
+    const pressOn = () => {
+      box.style.transform = 'scale(0.98)';
+      box.style.boxShadow = '0 1px 2px rgba(0,0,0,0.25) inset, 0 1px 2px rgba(0,0,0,0.2)';
+      box.style.borderColor = '#5a5a8a';
+    };
+    const pressOff = () => {
+      box.style.transform = 'scale(1)';
+      box.style.boxShadow = '0 2px 4px rgba(0,0,0,0.15)';
+      box.style.borderColor = '#4a4a7a';
+    };
+    btn.addEventListener('click', function(){
+      window.location.href = '/schedule_ai_analysis/';
+    }, { passive: true });
+    // 按下/抬起视觉反馈（支持触摸与鼠标）
+    btn.addEventListener('touchstart', pressOn, { passive: true });
+    btn.addEventListener('touchend', pressOff, { passive: true });
+    btn.addEventListener('touchcancel', pressOff, { passive: true });
+    btn.addEventListener('mousedown', pressOn, { passive: true });
+    btn.addEventListener('mouseup', pressOff, { passive: true });
+    btn.addEventListener('mouseleave', pressOff, { passive: true });
+  }
+} catch(e) {}
+
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function isTodaySelected() {
+  try {
+    const input = document.querySelector('#dateSelect');
+    if (!input || !input.value) return true; // 无值按今天处理
+    return input.value === formatDate(new Date());
+  } catch (e) { return true; }
+}
+
+function getActualFilledCount() {
+  const tbody = document.querySelector(SCHEDULE_BODY_SELECTOR);
+  if (!tbody) return 0;
+
+  // 1) 优先：通过任务徽章统计（更贴近前端渲染状态）
+  const badges = tbody.querySelectorAll("#scheduleBody > tr > td:nth-child(4) > .task-badge[data-field-type=\"actual\"]:not(.empty)");
+  let badgeCount = 0;
+  badges.forEach(badge => {
+    const isEmptyClass = badge.classList.contains('empty');
+    const text = (badge.textContent || '').trim();
+    const hasId = (badge.getAttribute('data-subtask-id') || '').trim() !== '';
+    if (!isEmptyClass && hasId && text && !text.includes(PLACEHOLDER_TEXT)) {
+      badgeCount += 1;
+    }
+  });
+  if (badgeCount > 0) return badgeCount;
+
+  // 2) 兜底：按列文本判断
+  let fallback = 0;
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const cell = cells[3];
+    if (!cell) return;
+    const text = (cell.textContent || '').trim();
+    if (text && !text.includes(PLACEHOLDER_TEXT)) {
+      fallback += 1;
+    }
+  });
+  return fallback;
+}
+
+function updateProgress() {
+  const filled = getActualFilledCount();
+  const percent = Math.max(0, Math.min(100, Math.round((filled / GOAL_COUNT) * 100)));
+  const left = document.getElementById(LEFT_ID);
+  const percentNode = document.getElementById(PERCENT_ID);
+  const fill = document.getElementById(FILL_ID);
+  if (fill) fill.style.width = percent + '%';
+  const todayFlag = isTodaySelected() ? '' : '（当前非今日视图，进度不更新）';
+  if (percentNode) percentNode.textContent = percent + '%';
+  if (left) left.textContent = `填写30个实际任务格子，解锁完整分析${todayFlag ? ' ' + todayFlag : ''}`.trim();
+}
+
+function setupObserver() {
+  const tbody = document.querySelector(SCHEDULE_BODY_SELECTOR);
+  if (!tbody) {
+    // 表格尚未渲染，稍后重试
+    setTimeout(setupObserver, 500);
+    return;
+  }
+  const mo = new MutationObserver(() => {
+    // 表格数据变化时更新
+    updateProgress();
+  });
+  mo.observe(tbody, { childList: true, subtree: true, characterData: true });
+  // 初始计算一次
+  updateProgress();
+}
+
+// 当组件注入后运行
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(setupObserver, 0);
+} else {
+  document.addEventListener('DOMContentLoaded', setupObserver);
+}
+
+// 监听日期变更，更新提示
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'dateSelect') {
+    updateProgress();
+  }
+}, true);
+})();
+</script>
+
+<!-- 引入FontAwesome用于图标（若项目已引入可删除） -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
