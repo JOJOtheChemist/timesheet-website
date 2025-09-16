@@ -1817,6 +1817,63 @@
         .filter-group {
             flex-shrink: 0;
         }
+
+        /* 隐藏“心情快捷”横向滚动条（保留滑动能力） */
+        .mood-quick-inline {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -ms-overflow-style: none;    /* IE/Edge */
+            scrollbar-width: none;       /* Firefox */
+        }
+        .mood-quick-inline::-webkit-scrollbar {  /* Chrome/Safari */
+            width: 0px;
+            height: 0px;
+            background: transparent;
+        }
+        /* 滑动暗示：左右渐隐遮罩（中间更明显，左右更淡） */
+        #between-project-and-ai .mood-scroll-hide { position: relative; }
+        #between-project-and-ai .mood-scroll-hide::before,
+        #between-project-and-ai .mood-scroll-hide::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 28px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        #between-project-and-ai .mood-scroll-hide::before {
+            left: 0;
+            background: linear-gradient(to right, rgba(10, 10, 26, 0.9), rgba(10, 10, 26, 0));
+        }
+        #between-project-and-ai .mood-scroll-hide::after {
+            right: 0;
+            background: linear-gradient(to left, rgba(10, 10, 26, 0.9), rgba(10, 10, 26, 0));
+        }
+        /* 项目列表滚动暗示：上下渐隐遮罩（提示可滚动） */
+        body > .container > .project-component > .project-list {
+            position: relative;
+        }
+        body > .container > .project-component > .project-list::before,
+        body > .container > .project-component > .project-list::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 24px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        /* 顶部渐隐（由深到浅 -> 透明） */
+        body > .container > .project-component > .project-list::before {
+            top: 0;
+            background: linear-gradient(to bottom, rgba(10,10,26,0.9), rgba(10,10,26,0));
+        }
+        /* 底部渐隐（由深到浅 -> 透明） */
+        body > .container > .project-component > .project-list::after {
+            bottom: 0;
+            background: linear-gradient(to top, rgba(10,10,26,0.9), rgba(10,10,26,0));
+        }
 </style>
 </head>
 <body>
@@ -1942,6 +1999,20 @@
                             <span class="text-sm text-gray-600">正在加载项目数据...</span>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="between-row" id="between-project-and-ai" style="margin: 8px 0; padding: 8px; border: 1px dashed rgba(79,156,255,.4); border-radius: 8px; color:#9cc7ff;">
+            <div class="mood-scroll-hide" style="overflow:hidden;">
+                <div class="mood-quick-inline" style="display:flex;flex-wrap:nowrap;gap:6px;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:12px;margin-bottom:-12px;">
+                    <span style="color:#9cc7ff;white-space:nowrap;">😊 心情快捷：</span>
+                    <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
+                    <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
+                    <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
+                    <button onclick="quickSetMood('恐惧')" class="mood-btn bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300">😨 恐惧</button>
+                    <button onclick="quickSetMood('厌恶')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">🤢 厌恶</button>
+                    <button onclick="quickSetMood('信任')" class="mood-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300">🤝 信任</button>
+                    <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
                 </div>
             </div>
         </div>
