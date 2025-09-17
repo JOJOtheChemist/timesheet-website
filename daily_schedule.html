@@ -6783,72 +6783,68 @@
     })();
     </script>
     
-    <div id="bottom-fixed-container" style="position:fixed; left:12px; right:12px; bottom:12px; z-index:99997; background:rgba(10,10,26,0.95); color:#e5e7eb; padding:12px 16px; text-align:center; border-radius:10px; border:4px solid rgba(79,156,255,0.5); box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79,156,255,0.5), 0 0 20px rgba(79,156,255,0.3); backdrop-filter:blur(10px);">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <div style="flex:1; text-align:center;"><span style="color:#4f9cff; font-size:16px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5);">时间表</span></div>
-            <div style="flex:1; text-align:center;"><span style="color:#4f9cff; font-size:16px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5);">动态广场</span></div>
-            <div style="flex:1; text-align:center;"><span style="color:#4f9cff; font-size:16px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5);">消息</span></div>
-            <div style="flex:1; text-align:center;"><span style="color:#4f9cff; font-size:16px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5);">我</span></div>
-        </div>
-    </div>
-    
     <script>
-    (function(){
+    (async function(){
         try {
-            var container = document.getElementById('bottom-fixed-container');
-            if (!container) return;
-            var row = container.firstElementChild;
-            if (!row) return;
-            var items = Array.prototype.slice.call(row.children || []);
-            // 路由映射：时间表、动态广场、消息、我
-            var routes = [
-                function(){ location.href = 'daily_schedule.html'; },
-                function(){ location.href = '/social'; },
-                function(){ location.href = '/message'; },
-                function(){ location.href = '/myself'; }
-            ];
-            items.forEach(function(item, idx){
-                if (!item) return;
-                item.style.cursor = 'pointer';
-                item.style.userSelect = 'none';
-                var label = item.querySelector('span') || item;
-                var original = {
-                    color: label.style.color || '',
-                    filter: label.style.filter || '',
-                    transform: label.style.transform || '',
-                    textShadow: label.style.textShadow || ''
-                };
-                function hoverOn(){
-                    label.style.color = '#beddff';
-                    label.style.filter = 'drop-shadow(0 0 6px rgba(79,156,255,0.6))';
-                    label.style.transform = 'scale(1.06)';
-                }
-                function hoverOff(){
-                    label.style.color = original.color;
-                    label.style.filter = original.filter;
-                    label.style.transform = original.transform;
-                    label.style.textShadow = original.textShadow;
-                }
-                function pressOn(){
-                    label.style.transform = 'scale(0.96)';
-                    label.style.color = '#e6f2ff';
-                }
-                function pressOff(){
-                    label.style.transform = 'scale(1.02)';
-                }
-                item.addEventListener('mouseenter', hoverOn);
-                item.addEventListener('mouseleave', hoverOff);
-                item.addEventListener('mousedown', function(e){ e.preventDefault(); pressOn(); });
-                item.addEventListener('mouseup', pressOff);
-                item.setAttribute('tabindex', '0');
-                item.addEventListener('focus', hoverOn);
-                item.addEventListener('blur', hoverOff);
-                var go = routes[idx] || function(){};
-                item.addEventListener('click', function(){ go(); });
-                // touch support
-                item.addEventListener('touchstart', function(){ pressOn(); }, {passive:true});
-                item.addEventListener('touchend', function(){ pressOff(); go(); }, {passive:true});
-            });
+            const res = await fetch('/menu/bottom_menu.html');
+            if (res.ok) {
+                const html = await res.text();
+                document.body.insertAdjacentHTML('beforeend', html);
+                var container = document.getElementById('bottom-fixed-container');
+                if (!container) return;
+                var row = container.firstElementChild;
+                if (!row) return;
+                var items = Array.prototype.slice.call(row.children || []);
+                var routes = [
+                    function(){ location.href = 'daily_schedule.html'; },
+                    function(){ location.href = '/social'; },
+                    function(){ location.href = '/message'; },
+                    function(){ location.href = '/myself'; }
+                ];
+                items.forEach(function(item, idx){
+                    if (!item) return;
+                    item.style.cursor = 'pointer';
+                    item.style.userSelect = 'none';
+                    var label = item.querySelector('span') || item;
+                    var original = {
+                        color: label.style.color || '',
+                        filter: label.style.filter || '',
+                        transform: label.style.transform || '',
+                        textShadow: label.style.textShadow || ''
+                    };
+                    function hoverOn(){
+                        label.style.color = '#beddff';
+                        label.style.filter = 'drop-shadow(0 0 6px rgba(79,156,255,0.6))';
+                        label.style.transform = 'scale(1.06)';
+                    }
+                    function hoverOff(){
+                        label.style.color = original.color;
+                        label.style.filter = original.filter;
+                        label.style.transform = original.transform;
+                        label.style.textShadow = original.textShadow;
+                    }
+                    function pressOn(){
+                        label.style.transform = 'scale(0.96)';
+                        label.style.color = '#e6f2ff';
+                    }
+                    function pressOff(){
+                        label.style.transform = 'scale(1.02)';
+                    }
+                    item.addEventListener('mouseenter', hoverOn);
+                    item.addEventListener('mouseleave', hoverOff);
+                    item.addEventListener('mousedown', function(e){ e.preventDefault(); pressOn(); });
+                    item.addEventListener('mouseup', pressOff);
+                    item.setAttribute('tabindex', '0');
+                    item.addEventListener('focus', hoverOn);
+                    item.addEventListener('blur', hoverOff);
+                    var go = routes[idx] || function(){};
+                    item.addEventListener('click', function(){ go(); });
+                    item.addEventListener('touchstart', function(){ pressOn(); }, {passive:true});
+                    item.addEventListener('touchend', function(){ pressOff(); go(); }, {passive:true});
+                });
+            } else {
+                console.error('Load bottom menu failed: ' + res.status);
+            }
         } catch (e) { console.error('bottom menu init failed', e); }
     })();
     </script>
