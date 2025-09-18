@@ -40,7 +40,20 @@
 
 	<script>
 	(function(){
-		const API_BASE = '/api';
+		const API_BASE = '';
+		// 从URL参数获取用户名和密码
+		const urlParams = new URLSearchParams(window.location.search);
+		const urlUsername = urlParams.get('username');
+		const urlPassword = urlParams.get('password');
+		if (urlUsername && urlPassword) {
+			try {
+				localStorage.setItem('ts_postreg_username', urlUsername);
+				localStorage.setItem('ts_postreg_password', urlPassword);
+				console.log('Set credentials from URL parameters');
+			} catch (e) {
+				console.error('Failed to set localStorage from URL:', e);
+			}
+		}
 		const TARGET_EDIT = 'daily_schedule.html';
 		const prMajor = document.getElementById('pr_major');
 		const prGoal = document.getElementById('pr_goal');
@@ -50,7 +63,8 @@
 		const prMsg = document.getElementById('pr_msg');
 		const prResult = document.getElementById('pr_result');
 		const goEditBtn = document.getElementById('go_edit_btn');
-		let timer = null; let state='idle';
+		let timer = null; 
+		let state = 'idle';
 
 		// 恢复可能缓存的表单
 		try{
@@ -58,6 +72,7 @@
 			prGoal.value = localStorage.getItem('ts_postreg_goal') || '';
 			prProjects.value = localStorage.getItem('ts_postreg_projects') || '';
 		}catch(e){}
+		
 		[prMajor, prGoal, prProjects].forEach(inp=>{
 			inp.addEventListener('input', ()=>{
 				try{
@@ -71,39 +86,80 @@
 		async function fetchWithTimeout(url, options, timeoutMs){
 			const controller = new AbortController();
 			const id = setTimeout(()=>controller.abort(), timeoutMs || 12000);
-			try{ return await fetch(url, { ...(options||{}), signal: controller.signal }); }
-			finally{ clearTimeout(id); }
+			try{ 
+				return await fetch(url, { ...(options||{}), signal: controller.signal }); 
+			}
+			finally{ 
+				clearTimeout(id); 
+			}
 		}
-		function isLikelyJWT(t){ return typeof t==='string' && t.split('.').length===3; }
+		
+		function isLikelyJWT(t){ 
+			return typeof t==='string' && t.split('.').length===3; 
+		}
+		
 		async function ensureToken(){
 			let token = localStorage.getItem('ts_auth_token');
 			if (token && isLikelyJWT(token)) return token;
 			const username = localStorage.getItem('ts_postreg_username')||localStorage.getItem('ts_auth_username')||'';
 			const password = localStorage.getItem('ts_postreg_password')||localStorage.getItem('ts_auth_password')||'';
-			if(!username || !password) return '';
+			if(!username || !password) { 
+				console.error("No username/password in localStorage. Please register first."); 
+				return ""; 
+			}
 			try{
-				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username, password }) }, 12000);
+				const res = await fetchWithTimeout(`${API_BASE}/api/auth/login`, { 
+					method:'POST', 
+					headers:{'Content-Type':'application/json'}, 
+					body: JSON.stringify({ username, password }) 
+				}, 12000);
 				const data = await res.json();
 				if(!res.ok) throw new Error(data.detail||'登录失败');
 				localStorage.setItem('ts_auth_token', data.access_token);
 				localStorage.setItem('ts_auth_username', username);
 				localStorage.setItem('ts_auth_password', password);
 				return data.access_token;
-			}catch(e){ return ''; }
+			}catch(e){ 
+				console.error('Token获取失败:', e);
+				return ''; 
+			}
 		}
-		function startTimer(){ let s=0; prWait.textContent='0'; timer && clearInterval(timer); timer=setInterval(()=>{ s+=1; prWait.textContent=String(s); },1000); }
-		function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
-
 		
+		function startTimer(){
+			let s = 0;
+			prWait.textContent = '0';
+			if (timer) { clearInterval(timer); }
+			timer = setInterval(()=>{
+				s += 1;
+				prWait.textContent = String(s);
+				// 分段提示
+				if (s === 3) {
+					prMsg.textContent = '正在分析您的专业背景...';
+				} else if (s === 8) {
+					prMsg.textContent = '正在生成个性化项目建议...';
+				} else if (s === 15) {
+					prMsg.textContent = 'AI正在深度思考中，请稍候...';
+				} else if (s === 25) {
+					prMsg.textContent = '即将完成，正在优化建议...';
+				}
+			}, 1000);
+		}
+		
+		function stopTimer(){ 
+			if(timer){ 
+				clearInterval(timer); 
+				timer=null; 
+			} 
+		}
+
 		// 保存用户画像的函数
 		const saveUserProfile = async () => {
 			const major = prMajor.value.trim();
 			const goal = prGoal.value.trim();
 			const projects = prProjects.value.trim();
 			const token = await ensureToken();
-			
-			if (!token) {
-				throw new Error('无法获取认证令牌');
+			if(!token) { 
+				throw new Error("无法获取认证令牌，请先注册或登录"); 
 			}
 			
 			const profileData = {
@@ -130,36 +186,57 @@
 		};
 
 		async function callAgent(){
-
-		// 先保存用户画像
-		try {
-			await saveUserProfile();
-			console.log('用户画像保存成功');
-		} catch (err) {
-			console.error('保存用户画像失败:', err);
-			// 继续执行，不阻止AI生成
-		}
-		
+			console.log('开始调用AI生成项目...');
+			
+			// 先保存用户画像
+			try {
+				await saveUserProfile();
+				console.log('用户画像保存成功');
+			} catch (err) {
+				console.error('保存用户画像失败:', err);
+				// 继续执行，不阻止AI生成
+			}
+			
 			const major = prMajor.value.trim();
 			const goal = prGoal.value.trim();
 			const projects = prProjects.value.trim();
 			const token = await ensureToken();
+			
+			if(!token) { 
+				throw new Error("无法获取认证令牌，请先注册或登录"); 
+			}
+			
 			const message = [
 				'你是智能项目管理助手，只负责子任务的识别、项目归属与增删改查。',
-				'现在请“直接给出要创建的项目与子任务清单”，不要询问，不要犹豫。',
+				'现在请"直接给出要创建的项目与子任务清单"，不要询问，不要犹豫。',
 				'若用户未明确，也请根据常识与上下文进行合理补全，至少返回1个项目与若干子任务。',
 				'请优先将以下资料解析为可创建的任务：',
 				`- 专业：${major||'-'}`,
 				`- 备考目标：${goal||'-'}`,
 				`- 最近在做的项目：${projects||'-'}`,
-				'输出格式：用简短条目列出【项目 -> 子任务】（可多项），必要时合并到更大项目（如“英语练习”、“金融考研专业课复习”等）。',
+				'输出格式：用简短条目列出【项目 -> 子任务】（可多项），必要时合并到更大项目（如"英语练习"、"金融考研专业课复习"等）。',
 			].join('\n');
-			const res = await fetchWithTimeout(`${API_BASE}/api/agent/chat`, { method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) }, body: JSON.stringify({ message }) }, 30000);
+			
+			console.log('发送请求到AI agent...', message.substring(0, 100) + '...');
+			
+			const res = await fetchWithTimeout(`${API_BASE}/api/agent/chat`, { 
+				method:'POST', 
+				headers:{
+					'Content-Type':'application/json', 
+					'Authorization': `Bearer ${token}`
+				}, 
+				body: JSON.stringify({ message }) 
+			}, 30000);
+			
 			const data = await res.json();
+			console.log('AI响应:', data);
+			
 			if(!res.ok) throw new Error(data.detail||'生成失败');
+			
 			const tRaw = (data.thought||'').trim();
 			const thought = tRaw && tRaw !== '无思考过程' ? `思考：${tRaw}\n` : '';
 			let text = `${thought}${data.reply||'生成完成'}`;
+			
 			if (Array.isArray(data.tasks) && data.tasks.length){
 				const byProj = {};
 				for (const t of data.tasks){
@@ -169,22 +246,71 @@
 				}
 				text += '\n' + Object.keys(byProj).map(p=>`【${p}】\n- `+byProj[p].join('\n- ')).join('\n');
 			}
+			
 			prResult.className='msg info';
 			prResult.textContent=text;
+			console.log('AI生成完成');
 			return true;
 		}
 
 		prWaitBtn.addEventListener('click', async function(){
-			if(state==='ready'){ location.href=TARGET_EDIT; return; }
-			if(state!=='idle') return;
-			state='waiting'; prWaitBtn.disabled=true; startTimer();
-			prMsg.className='msg info'; prMsg.textContent='正在根据您的信息生成建议...'; prResult.textContent='';
-			try{ const ok = await callAgent(); if(ok){ state='ready'; prMsg.textContent=''; goEditBtn.style.display='block'; prWaitBtn.style.display='none'; } else { state='idle'; prMsg.className='msg error'; prMsg.textContent='生成失败，请稍后重试'; prWaitBtn.disabled=false; } }
-			catch(err){ state='idle'; prMsg.className='msg error'; prMsg.textContent=err.message||'生成失败'; prWaitBtn.disabled=false; }
-			finally{ stopTimer(); }
+			console.log('按钮被点击，当前状态:', state);
+			
+			if(state==='ready'){ 
+				location.href=TARGET_EDIT; 
+				return; 
+			}
+			if(state!=='idle') {
+				console.log('状态不是idle，不执行');
+				// 允许在等待状态下直接进入编辑页，兼容“可点击+倒计时”诉求
+				if (state === 'waiting') {
+					location.href = TARGET_EDIT;
+				}
+				return;
+			}
+			
+			state='waiting'; 
+			prWaitBtn.disabled=false; // 保持可点击
+			// 保持倒计时显示
+			startTimer();
+			prMsg.className='msg info'; 
+			prMsg.textContent='正在根据您的信息生成建议...'; 
+			prResult.textContent='';
+			
+			try{ 
+				const ok = await callAgent(); 
+				if(ok){ 
+					state='ready'; 
+					prMsg.textContent=''; 
+					goEditBtn.style.display='block'; 
+					prWaitBtn.style.display='none'; 
+				} else { 
+					state='idle'; 
+					prMsg.className='msg error'; 
+					prMsg.textContent='生成失败，请稍后重试'; 
+					prWaitBtn.disabled=false; 
+					prWaitBtn.textContent = 'AI生成项目（0s）';
+				} 
+			}
+			catch(err){ 
+				console.error('callAgent出错:', err);
+				state='idle'; 
+				prMsg.className='msg error'; 
+				prMsg.textContent=err.message||'生成失败'; 
+				prWaitBtn.disabled=false; 
+				prWaitBtn.textContent = 'AI生成项目（0s）';
+			}
+			finally{ 
+				stopTimer(); 
+			}
 		});
-		goEditBtn.addEventListener('click', ()=>{ location.href=TARGET_EDIT; });
+		
+		goEditBtn.addEventListener('click', ()=>{ 
+			location.href=TARGET_EDIT; 
+		});
+		
+		console.log('onboarding页面初始化完成');
 	})();
 	</script>
 </body>
-</html> 
+</html>

@@ -240,7 +240,7 @@
 				showRegInfo('注册成功');
 				// 保存凭据，跳转到独立的初始配置页
 				try{ localStorage.setItem('ts_postreg_username', u||''); localStorage.setItem('ts_postreg_password', p1||''); }catch(e){}
-				location.href = 'onboarding.html';
+				location.href = 'onboarding.html?username=' + encodeURIComponent(u||'') + '&password=' + encodeURIComponent(p1||'');
 			}catch(err){
 				if (err && (err.name === 'AbortError' || String(err).includes('AbortError'))) {
 					showRegError('服务器无响应，请稍后重试或检查 5001 端口连通性');

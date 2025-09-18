@@ -1,17 +1,753 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>占位页面</title>
-  <style>
-    body { margin:0; background:#0a0a1a; color:#e5e7eb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif; }
-    .wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; }
-    .box { padding:24px 28px; border-radius:10px; background:rgba(10,10,26,0.95); border:4px solid rgba(79,156,255,0.5); box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(79,156,255,0.5), 0 0 20px rgba(79,156,255,0.3); backdrop-filter:blur(10px); }
-    .text { color:#4f9cff; font-size:18px; font-weight:600; text-shadow:2px 2px 0 rgba(0,0,0,0.5); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的主页 | 女性成长时间管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+        body { background-color: #f9f7f9; color: #333; line-height: 1.5; }
+        
+        /* 顶部导航栏 */
+        .page-header {
+            height: 56px; background-color: #fff;
+            display: flex; align-items: center; padding: 0 20px;
+            box-shadow: 0 2px 8px rgba(221, 194, 230, 0.1);
+            position: sticky; top: 0; z-index: 90;
+        }
+        .page-title { font-size: 18px; font-weight: 600; color: #5a3372; flex: 1; text-align: center; }
+        .edit-btn { font-size: 14px; color: #9d65c9; font-weight: 500; cursor: pointer; }
+
+        /* 页面容器 */
+        .container {
+            padding: 0 20px 80px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* 个人信息卡 */
+        .profile-card {
+            background: linear-gradient(135deg, #f0e6f5 0%, #e0d0e8 100%);
+            border-radius: 18px;
+            padding: 20px;
+            margin: 15px 0 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(221, 194, 230, 0.2);
+        }
+        .profile-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9d65c9;
+            font-size: 32px;
+            margin-bottom: 10px;
+            border: 3px solid #fff;
+        }
+        .profile-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #5a3372;
+            margin-bottom: 3px;
+        }
+        .profile-meta {
+            font-size: 12px;
+            color: #7a5490;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        .profile-stats {
+            display: flex;
+            gap: 20px;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #9d65c9;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #7a5490;
+        }
+
+        /* 资产区 */
+        .asset-section {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(221, 194, 230, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .asset-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .asset-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: #f0e6f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9d65c9;
+            font-size: 18px;
+        }
+        .asset-detail {
+            display: flex;
+            flex-direction: column;
+        }
+        .asset-title {
+            font-size: 13px;
+            color: #888;
+        }
+        .asset-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: #9d65c9;
+        }
+        .recharge-btn {
+            padding: 6px 15px;
+            border-radius: 18px;
+            background-color: #9d65c9;
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(157, 101, 201, 0.2);
+        }
+        .consume-record {
+            font-size: 11px;
+            color: #a88cb8;
+            margin-top: 3px;
+        }
+
+        /* 关系链区（紧凑版） */
+        .relation-section {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(221, 194, 230, 0.15);
+        }
+        .relation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .relation-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #5a3372;
+        }
+        .relation-edit {
+            font-size: 12px;
+            color: #9d65c9;
+            cursor: pointer;
+        }
+        .relation-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 5px 0;
+            margin-bottom: 10px;
+        }
+        .relation-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .relation-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: #9d65c9;
+            margin-bottom: 2px;
+        }
+        .relation-label {
+            font-size: 12px;
+            color: #888;
+        }
+        .relation-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .relation-category {
+            display: flex;
+            flex-direction: column;
+        }
+        .category-title {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        .relation-list {
+            display: flex;
+            gap: 8px;
+            padding: 2px 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .relation-list::-webkit-scrollbar { display: none; }
+        .relation-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f0e6f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9d65c9;
+            font-size: 15px;
+            position: relative;
+            cursor: pointer;
+        }
+        .relation-avatar.tutor {
+            background-color: #e6f5f0;
+            color: #65c985;
+        }
+        .relation-avatar.student {
+            background-color: #f5eef0;
+            color: #c98565;
+        }
+        .relation-avatar.fan {
+            background-color: #f5f0e6;
+            color: #c99d65;
+        }
+        .relation-name {
+            position: absolute;
+            bottom: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #888;
+            white-space: nowrap;
+        }
+        .relation-tag {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #ff6b8b;
+            color: white;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 核心入口区 */
+        .section-title {
+            font-size: 15px; font-weight: 600; color: #5a3372;
+            margin: 20px 0 10px;
+            display: flex; align-items: center;
+        }
+        .section-title::after {
+            content: ""; width: 4px; height: 15px;
+            background-color: #c888d8; margin-right: 8px;
+        }
+        .entry-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .entry-card {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 12px 5px;
+            box-shadow: 0 2px 8px rgba(221, 194, 230, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .entry-card:hover { transform: translateY(-2px); }
+        .entry-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: #f0e6f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9d65c9;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+        .entry-icon.schedule { background-color: #f0e6f5; color: #9d65c9; }
+        .entry-icon.post { background-color: #e6f0f5; color: #659dc9; }
+        .entry-icon.more { background-color: #f0f5e6; color: #85c965; }
+        .entry-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* 徽章墙区域（完整展示） */
+        .badge-wall {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(221, 194, 230, 0.15);
+        }
+        .badge-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .badge-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #5a3372;
+        }
+        .badge-more {
+            font-size: 12px;
+            color: #9d65c9;
+            cursor: pointer;
+        }
+        .badge-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .badge-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .badge-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #f0e6f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9d65c9;
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        .badge-icon.locked {
+            background-color: #eee;
+            color: #ccc;
+        }
+        .badge-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        .badge-desc {
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* 底部导航栏 */
+        .nav-bottom {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 60px; background-color: #fff;
+            box-shadow: 0 -2px 8px rgba(221, 194, 230, 0.15);
+            display: flex;
+            max-width: 500px;
+            margin: 0 auto;
+            z-index: 100;
+        }
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .nav-item.active {
+            color: #9d65c9;
+        }
+        .nav-icon {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        /* 徽章详情弹窗 */
+        .badge-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .badge-modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-content {
+            background-color: #fff;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0e6f5;
+        }
+        .modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #5a3372;
+        }
+        .close-modal {
+            font-size: 20px;
+            color: #a88cb8;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap"><div class="box"><div class="text">占位页面</div></div></div>
+    <!-- 页面内标题栏 -->
+    <div class="page-header">
+        <div class="edit-btn">编辑资料</div>
+        <div class="page-title">我的主页</div>
+        <div style="width: 60px;"></div> <!-- 占位 -->
+    </div>
+
+    <!-- 页面容器 -->
+    <div class="container">
+        <!-- 1. 个人信息卡 -->
+        <div class="profile-card">
+            <div class="profile-avatar">👩</div>
+            <div class="profile-name">考研的小艾</div>
+            <div class="profile-meta">
+                <span>Goal：24考研上岸会计学</span>
+                <span>Major：财务管理</span>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-value">1286h</div>
+                    <div class="stat-label">总学习时长</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">2024.03.15</div>
+                    <div class="stat-label">加入日期</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 资产区 -->
+        <div class="asset-section">
+            <div>
+                <div class="asset-info">
+                    <div class="asset-icon">💎</div>
+                    <div class="asset-detail">
+                        <div class="asset-title">我的钻石</div>
+                        <div class="asset-value">158</div>
+                        <div class="consume-record">最近：3天前 购买导师咨询 50钻石</div>
+                    </div>
+                </div>
+            </div>
+            <button class="recharge-btn">充值</button>
+        </div>
+
+        <!-- 3. 关系链区（紧凑版） -->
+        <div class="relation-section">
+            <div class="relation-header">
+                <div class="relation-title">我的关系</div>
+                <div class="relation-edit">管理</div>
+            </div>
+            <div class="relation-stats">
+                <div class="relation-item">
+                    <div class="relation-value">3</div>
+                    <div class="relation-label">关注导师</div>
+                </div>
+                <div class="relation-item">
+                    <div class="relation-value">0</div>
+                    <div class="relation-label">我的学员</div>
+                </div>
+                <div class="relation-item">
+                    <div class="relation-value">28</div>
+                    <div class="relation-label">粉丝</div>
+                </div>
+            </div>
+            <div class="relation-categories">
+                <div class="relation-category">
+                    <div class="category-title">关注的导师</div>
+                    <div class="relation-list">
+                        <div class="relation-avatar tutor">
+                            王
+                            <div class="relation-name">王老师</div>
+                        </div>
+                        <div class="relation-avatar tutor">
+                            李
+                            <div class="relation-name">李学姐</div>
+                        </div>
+                        <div class="relation-avatar tutor">
+                            张
+                            <div class="relation-name">张导师</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relation-category">
+                    <div class="category-title">最近粉丝</div>
+                    <div class="relation-list">
+                        <div class="relation-avatar fan">
+                            琳
+                            <div class="relation-name">小琳</div>
+                            <div class="relation-tag">新</div>
+                        </div>
+                        <div class="relation-avatar fan">
+                            美
+                            <div class="relation-name">阿美</div>
+                        </div>
+                        <div class="relation-avatar fan">
+                            楠
+                            <div class="relation-name">小楠</div>
+                        </div>
+                        <div class="relation-avatar fan">
+                            琪
+                            <div class="relation-name">琪琪</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 核心入口区（紧凑网格） -->
+        <div class="section-title">功能入口</div>
+        <div class="entry-grid">
+            <!-- 我的时间表 -->
+            <div class="entry-card" data-entry="schedule">
+                <div class="entry-icon schedule">📅</div>
+                <div class="entry-name">时间表</div>
+            </div>
+            <!-- 我的动态 -->
+            <div class="entry-card" data-entry="post">
+                <div class="entry-icon post">📝</div>
+                <div class="entry-name">动态</div>
+            </div>
+            <!-- 更多功能 -->
+            <div class="entry-card" data-entry="more">
+                <div class="entry-icon more">🔧</div>
+                <div class="entry-name">更多</div>
+            </div>
+        </div>
+
+        <!-- 5. 徽章墙（完整展示） -->
+        <div class="section-title">我的徽章</div>
+        <div class="badge-wall">
+            <div class="badge-header">
+                <div class="badge-title">已获得8枚徽章（共20枚）</div>
+                <div class="badge-more">查看全部</div>
+            </div>
+            <div class="badge-grid">
+                <div class="badge-item" data-badge="1">
+                    <div class="badge-icon">🔥</div>
+                    <div class="badge-name">坚持之星</div>
+                    <div class="badge-desc">连续打卡7天</div>
+                </div>
+                <div class="badge-item" data-badge="2">
+                    <div class="badge-icon">📚</div>
+                    <div class="badge-name">复习王者</div>
+                    <div class="badge-desc">复习频率达标</div>
+                </div>
+                <div class="badge-item" data-badge="3">
+                    <div class="badge-icon">🎯</div>
+                    <div class="badge-name">目标达成</div>
+                    <div class="badge-desc">周时长超计划</div>
+                </div>
+                <div class="badge-item" data-badge="4">
+                    <div class="badge-icon">👥</div>
+                    <div class="badge-name">分享达人</div>
+                    <div class="badge-desc">发布5条动态</div>
+                </div>
+                <div class="badge-item" data-badge="5">
+                    <div class="badge-icon">💎</div>
+                    <div class="badge-name">首次充值</div>
+                    <div class="badge-desc">充值任意金额</div>
+                </div>
+                <div class="badge-item" data-badge="6">
+                    <div class="badge-icon">📈</div>
+                    <div class="badge-name">进步神速</div>
+                    <div class="badge-desc">周时长增50%</div>
+                </div>
+                <div class="badge-item" data-badge="7">
+                    <div class="badge-icon locked">🔒</div>
+                    <div class="badge-name">上岸先锋</div>
+                    <div class="badge-desc">待解锁</div>
+                </div>
+                <div class="badge-item" data-badge="8">
+                    <div class="badge-icon locked">🔒</div>
+                    <div class="badge-name">学霸认证</div>
+                    <div class="badge-desc">待解锁</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="nav-bottom">
+        <div class="nav-item">
+            <div class="nav-icon">📅</div>
+            <div class="nav-text">时间表</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">👥</div>
+            <div class="nav-text">广场</div>
+        </div>
+        <div class="nav-item active">
+            <div class="nav-icon">👤</div>
+            <div class="nav-text">我的</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">💬</div>
+            <div class="nav-text">消息</div>
+        </div>
+    </div>
+
+    <!-- 徽章详情弹窗 -->
+    <div class="badge-modal" id="badgeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">徽章详情</div>
+                <div class="close-modal">×</div>
+            </div>
+            <div id="badgeDetail">
+                <!-- 徽章详情内容将通过JS动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 徽章数据
+        const badgeData = {
+            1: { name: "坚持之星", desc: "连续7天完成学习计划打卡", getDate: "2024-07-10", icon: "🔥" },
+            2: { name: "复习王者", desc: "连续14天完成复习任务，复习频率达到80%以上", getDate: "2024-07-05", icon: "📚" },
+            3: { name: "目标达成", desc: "单周学习时长超过计划时长的120%", getDate: "2024-06-28", icon: "🎯" },
+            4: { name: "分享达人", desc: "累计发布5条学习动态，获得20次以上点赞", getDate: "2024-06-15", icon: "👥" },
+            5: { name: "首次充值", desc: "完成首次钻石充值，开启导师指导服务", getDate: "2024-06-01", icon: "💎" },
+            6: { name: "进步神速", desc: "单周学习时长较上一周增长50%以上", getDate: "2024-05-20", icon: "📈" },
+            7: { name: "上岸先锋", desc: "成功上传考研上岸经验案例，通过官方审核", getDate: "未获得", icon: "🎓" },
+            8: { name: "学霸认证", desc: "累计学习时长达到3000小时，且周均打卡率90%以上", getDate: "未获得", icon: "🏅" }
+        };
+
+        // 徽章点击交互
+        const badgeItems = document.querySelectorAll('.badge-item');
+        const badgeModal = document.getElementById('badgeModal');
+        const badgeDetail = document.getElementById('badgeDetail');
+        const closeModal = document.querySelector('.close-modal');
+
+        badgeItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const badgeId = item.dataset.badge;
+                const badge = badgeData[badgeId];
+                
+                // 填充徽章详情
+                badgeDetail.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 0;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; background-color: ${item.querySelector('.badge-icon').classList.contains('locked') ? '#eee' : '#f0e6f5'}; display: flex; align-items: center; justify-content: center; color: ${item.querySelector('.badge-icon').classList.contains('locked') ? '#ccc' : '#9d65c9'}; font-size: 36px; margin-bottom: 15px;">
+                            ${badge.icon}
+                        </div>
+                        <h3 style="font-size: 18px; color: #5a3372; margin-bottom: 8px;">${badge.name}</h3>
+                        <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 15px; max-width: 300px;">${badge.desc}</p>
+                        <p style="font-size: 13px; color: #a88cb8;">${badge.getDate !== '未获得' ? `获得时间: ${badge.getDate}` : '解锁条件: 完成对应学习任务'}</p>
+                    </div>
+                `;
+                
+                badgeModal.classList.add('show');
+            });
+        });
+
+        // 关闭徽章弹窗
+        closeModal.addEventListener('click', () => {
+            badgeModal.classList.remove('show');
+        });
+        badgeModal.addEventListener('click', (e) => {
+            if (e.target === badgeModal) badgeModal.classList.remove('show');
+        });
+
+        // 查看全部徽章
+        document.querySelector('.badge-more').addEventListener('click', () => {
+            alert('跳转至完整徽章墙页面（展示全部20枚徽章）');
+        });
+
+        // 关系链交互
+        document.querySelector('.relation-edit').addEventListener('click', () => {
+            alert('打开关系管理页面（完整关注/粉丝列表）');
+        });
+
+        document.querySelectorAll('.relation-avatar').forEach(avatar => {
+            avatar.addEventListener('click', () => {
+                const name = avatar.querySelector('.relation-name').textContent;
+                const type = avatar.classList.contains('tutor') ? '导师' : '粉丝';
+                alert(`跳转至${type}「${name}」的个人主页`);
+            });
+        });
+
+        // 功能入口点击
+        document.querySelectorAll('.entry-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const name = card.querySelector('.entry-name').textContent;
+                alert(`跳转至「${name}」页面`);
+            });
+        });
+
+        // 基础交互
+        document.querySelector('.edit-btn').addEventListener('click', () => {
+            alert('打开编辑资料页面');
+        });
+
+        document.querySelector('.recharge-btn').addEventListener('click', () => {
+            alert('打开钻石充值页面');
+        });
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                const text = item.querySelector('.nav-text').textContent;
+                if (text !== '我的') alert(`跳转至「${text}」页面`);
+            });
+        });
+    </script>
 </body>
 </html>
