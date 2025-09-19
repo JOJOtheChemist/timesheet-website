@@ -2005,7 +2005,7 @@
         <div class="between-row" id="between-project-and-ai" style="margin: 8px 0; padding: 8px; border: 1px dashed rgba(79,156,255,.4); border-radius: 8px; color:#9cc7ff;">
             <div class="mood-scroll-hide" style="overflow:hidden;">
                 <div class="mood-quick-inline" style="display:flex;flex-wrap:nowrap;gap:6px;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;padding-bottom:12px;margin-bottom:-12px;">
-                    <span style="color:#9cc7ff;white-space:nowrap;">😊 心情快捷：</span>
+                    <span style="color:#9cc7ff;white-space:nowrap;">😊 心情：</span>
                     <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
                     <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
                     <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
@@ -2038,7 +2038,7 @@
         <!-- 心情快捷输入独立区域 -->
         <div class="mood-quick-input-section" id="moodQuickInput">
             <div class="mood-quick-input-header" id="moodDragHandle">
-                <h3>😊 心情快捷输入</h3>
+                <h3>语音输入/AI输入</h3>
                 <div class="mood-toggle-btn" onclick="toggleMoodQuickInput()" ontouchstart="toggleMoodQuickInput()">▼</div>
             </div>
             <div class="mood-quick-input-buttons" id="moodButtons">
@@ -2269,7 +2269,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.planned_subtask_id || ''}"
                                      data-field-type="planned"
-                                     contenteditable="false">${scheduleItem.planned_notes || '+'}</span>
+                                     contenteditable="false" data-placeholder="碎碎念（选填）">${scheduleItem.planned_notes || ''}</span>
                             </td>
                             <!-- 实际子任务 -->
                             <td class="task-column" onclick="selectTimeSlot(event, '${scheduleItem.time_slot}', '${scheduleItem.actual_subtask_id || ''}', '${scheduleItem.actual_subtask_name || '未知任务'}', 'actual')">
@@ -2291,7 +2291,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-field-type="actual"
-                                     contenteditable="false">${scheduleItem.actual_notes || '+'}</span>
+                                     contenteditable="false" data-placeholder="碎碎念（选填）">${scheduleItem.actual_notes || ''}</span>
                             </td>
                             <!-- 实际心情 -->
                             <td class="mood-column" onclick="selectMoodCell(event, '${scheduleItem.time_slot}', '${scheduleItem.id || ''}', 'actual')">
@@ -2300,7 +2300,7 @@
                                      data-schedule-id="${scheduleItem.id || ''}"
                                      data-subtask-id="${scheduleItem.actual_subtask_id || ''}"
                                      data-field-type="actual"
-                                     contenteditable="false">${scheduleItem.mood || '+'}</span>
+                                     contenteditable="false" data-placeholder="选择心情">${scheduleItem.mood || ''}</span>
                             </td>
                         `;
                         console.log(`时间槽 ${scheduleItem.time_slot}: 计划颜色 = ${plannedSubtaskColor}, 实际颜色 = ${actualSubtaskColor}`);
@@ -2329,7 +2329,7 @@
                                      data-schedule-id=""
                                      data-subtask-id=""
                                      data-field-type="planned"
-                                     contenteditable="false">-</span>
+                                     contenteditable="false" data-placeholder="请输入备注（选填）"></span>
                             </td>
                             <!-- 实际子任务 -->
                             <td class="task-column" onclick="selectTimeSlot(event, '${timeString}', '', '', 'actual')">
@@ -2350,7 +2350,7 @@
                                      data-schedule-id=""
                                      data-subtask-id=""
                                      data-field-type="actual"
-                                     contenteditable="false">-</span>
+                                     contenteditable="false" data-placeholder="请输入备注（选填）"></span>
                             </td>
                             <!-- 实际心情 -->
                             <td class="mood-column" onclick="selectMoodCell(event, '${timeString}', '', 'actual')">
@@ -2359,7 +2359,7 @@
                                      data-schedule-id=""
                                      data-subtask-id=""
                                      data-field-type="actual"
-                                     contenteditable="false">-</span>
+                                     contenteditable="false" data-placeholder="选择心情"></span>
                             </td>
                         `;
                     }
@@ -4421,7 +4421,7 @@
                 currentEditingColumn = newColumn;
                 
                 // 清除之前的高亮
-                document.querySelectorAll('.task-column.selected, .notes-column.selected, .time-column.selected').forEach(cell => {
+                document.querySelectorAll('.task-column.selected, .notes-column.selected, .mood-column.selected, .time-column.selected').forEach(cell => {
                     cell.classList.remove('selected');
                 });
                 
@@ -5308,13 +5308,22 @@
             styleNoScrollbar.textContent = `
             .no-scrollbar::-webkit-scrollbar { display: none; }
             .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            /* contenteditable 占位符：仅在为空时显示 */
+            .notes-text[contenteditable="true"]:empty:before,
+            .notes-text[contenteditable="false"]:empty:before,
+            .mood-text[contenteditable="true"]:empty:before,
+            .mood-text[contenteditable="false"]:empty:before {
+                content: attr(data-placeholder);
+                color: #9ca3af;
+                pointer-events: none;
+            }
             `;
             document.head.appendChild(styleNoScrollbar);
         })();
 
         function applyMoodStyle(moodElement, mood) {
             const { emoji } = getMoodStyle(mood);
-            moodElement.textContent = emoji ? `${emoji} ${mood}` : mood || '+';
+            moodElement.textContent = emoji ? `${emoji} ${mood}` : mood || '';
             
             // 取消背景色与边框、还原文字颜色
             moodElement.style.backgroundColor = 'transparent';
@@ -5959,7 +5968,7 @@
         function updateMoodAfterSave(timeSlot, mood, scheduleId) {
             const moodElement = document.querySelector(`[data-time="${timeSlot}"] .mood-cell`);
             if (moodElement) {
-                moodElement.textContent = mood || '+';
+                moodElement.textContent = mood || '';
                 moodElement.style.animation = 'saveSuccess 0.5s ease-in-out';
                 setTimeout(() => {
                     moodElement.style.animation = '';
