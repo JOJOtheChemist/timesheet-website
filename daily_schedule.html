@@ -2038,18 +2038,11 @@
         <!-- 心情快捷输入独立区域 -->
         <div class="mood-quick-input-section" id="moodQuickInput">
             <div class="mood-quick-input-header" id="moodDragHandle">
-                <h3>语音输入/AI输入</h3>
+                <h3>AI对话填表（新增！）</h3>
                 <div class="mood-toggle-btn" onclick="toggleMoodQuickInput()" ontouchstart="toggleMoodQuickInput()">▼</div>
             </div>
             <div class="mood-quick-input-buttons" id="moodButtons">
                 <button onclick="quickSetMood('喜悦')" class="mood-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300">😊 喜悦</button>
-                <button onclick="quickSetMood('悲伤')" class="mood-btn bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-300">😢 悲伤</button>
-                <button onclick="quickSetMood('愤怒')" class="mood-btn bg-red-100 hover:bg-red-200 text-red-800 border-red-300">😡 愤怒</button>
-                <button onclick="quickSetMood('恐惧')" class="mood-btn bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300">😨 恐惧</button>
-                <button onclick="quickSetMood('厌恶')" class="mood-btn bg-green-100 hover:bg-green-200 text-green-800 border-green-300">🤢 厌恶</button>
-                <button onclick="quickSetMood('信任')" class="mood-btn bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-300">🤝 信任</button>
-                <button onclick="quickSetMood('惊讶')" class="mood-btn bg-orange-100 hover:bg-orange-200 text-orange-800 border-orange-300">😲 惊讶</button>
-                <button onclick="quickSetMood('期待')" class="mood-btn bg-pink-100 hover:bg-pink-200 text-pink-800 border-orange-300">✨ 期待</button>
             </div>
         </div>
 
@@ -6785,7 +6778,11 @@
         btn.style.cursor = 'pointer';
         btn.title = '清除登录状态并返回登录页';
         btn.addEventListener('click', function(){
-            try { localStorage.removeItem('ts_auth_token'); } catch(e) {}
+            try { 
+                localStorage.removeItem('ts_auth_token'); 
+                // 清除Cookie
+                document.cookie = 'access_token=; path=/; max-age=0';
+            } catch(e) {}
             location.href = 'login.html';
         });
         document.body.appendChild(btn);
@@ -6806,7 +6803,16 @@
                 var items = Array.prototype.slice.call(row.children || []);
                 var routes = [
                     function(){ location.href = 'daily_schedule.html'; },
-                    function(){ location.href = '/social'; },
+                    function(){ 
+                        // AI对话跳转，传递用户ID
+                        let userID = localStorage.getItem('userID') || 
+                                     localStorage.getItem('username') || 
+                                     sessionStorage.getItem('userID') || 
+                                     sessionStorage.getItem('username') || 
+                                     'default_user';
+                        const aiChatURL = `http://140.143.194.215/kode-new/?userID=${encodeURIComponent(userID)}`;
+                        window.open(aiChatURL, '_blank');
+                    },
                     function(){ location.href = '/message'; },
                     function(){ location.href = '/myself'; }
                 ];
